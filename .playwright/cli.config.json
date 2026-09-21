@@ -1,0 +1,15 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "channel": "msedge",
+      "headless": true
+    },
+    "contextOptions": {
+      "locale": "ja-JP",
+      "timezoneId": "Asia/Tokyo",
+      "viewport": { "width": 1100, "height": 900 }
+    }
+  }
+}

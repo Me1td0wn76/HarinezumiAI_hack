@@ -13,5 +13,8 @@
     "postinstall": "pnpm --filter @lt/shared build",
     "db:seed": "pnpm --filter @lt/api prisma:seed",
     "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@playwright/cli": "^0.1.21"
   }
 }

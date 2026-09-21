@@ -39,13 +39,13 @@ body {
     @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700;
   }
   .btn-secondary {
-    @apply btn border border-stone-300 bg-white text-stone-700 hover:bg-stone-50;
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 border border-stone-300 bg-white text-stone-700 hover:bg-stone-50;
   }
   .btn-danger {
-    @apply btn border border-red-200 bg-white text-red-600 hover:bg-red-50;
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 border border-red-200 bg-white text-red-600 hover:bg-red-50;
   }
   .badge {
     @apply inline-block rounded-full px-2.5 py-0.5 text-xs font-medium;

@@ -1,13 +1,32 @@
 "use client";
 
 import type { EventDateDto, ResponderRowDto } from "@lt/shared";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useSyncExternalStore } from "react";
 import { submitGuestResponses } from "@/actions/share";
 import { FormMessage } from "./form-message";
 import { ResponseFields } from "./response-fields";
 
 const KEY_STORAGE = "lt:guestKey";
 const NAME_STORAGE = "lt:guestName";
+
+// localStorage は SSR 時に存在しないので useSyncExternalStore 経由で読む（サーバー側は null / ""）
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function readGuestKey(): string {
+  let key = localStorage.getItem(KEY_STORAGE);
+  if (!key) {
+    key = crypto.randomUUID();
+    localStorage.setItem(KEY_STORAGE, key);
+  }
+  return key;
+}
+
+function readGuestName(): string {
+  return localStorage.getItem(NAME_STORAGE) ?? "";
+}
 
 /**
  * 共有URL 用の回答フォーム（ログイン不要）。
@@ -23,48 +42,41 @@ export function GuestResponseForm({
   responders: ResponderRowDto[];
 }) {
   const [state, action, pending] = useActionState(submitGuestResponses, undefined);
-  const [guestKey, setGuestKey] = useState<string | null>(null);
-  const [guestName, setGuestName] = useState("");
+  const guestKey = useSyncExternalStore(subscribe, readGuestKey, () => null);
+  const storedName = useSyncExternalStore(subscribe, readGuestName, () => "");
+  const nameRef = useRef<HTMLInputElement>(null);
 
-  // localStorage は SSR 時に触れないので、マウント後に読む
+  // 送信に成功したら次回のために名前を覚えておく
   useEffect(() => {
-    let key = localStorage.getItem(KEY_STORAGE);
-    if (!key) {
-      key = crypto.randomUUID();
-      localStorage.setItem(KEY_STORAGE, key);
-    }
-    setGuestKey(key);
-    setGuestName(localStorage.getItem(NAME_STORAGE) ?? "");
-  }, []);
+    if (state?.success && nameRef.current) localStorage.setItem(NAME_STORAGE, nameRef.current.value);
+  }, [state]);
 
-  useEffect(() => {
-    if (state?.success) localStorage.setItem(NAME_STORAGE, guestName);
-  }, [state, guestName]);
+  // guestKey が決まるまで（ハイドレーション完了まで）はフォームを出さない
+  if (!guestKey) return <p className="text-sm text-stone-400">読み込み中…</p>;
 
-  const mine = guestKey ? responders.find((r) => r.responderKey === `guest:${guestKey}`) : undefined;
+  const mine = responders.find((r) => r.responderKey === `guest:${guestKey}`);
 
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="token" value={token} />
-      <input type="hidden" name="guestKey" value={guestKey ?? ""} />
+      <input type="hidden" name="guestKey" value={guestKey} />
       <div>
         <label className="label" htmlFor="guestName">
           名前
         </label>
         <input
+          ref={nameRef}
           id="guestName"
           name="guestName"
           className="input max-w-xs"
           required
           maxLength={50}
-          value={guestName}
-          onChange={(e) => setGuestName(e.target.value)}
+          defaultValue={mine?.displayName ?? storedName}
         />
       </div>
-      {/* guestKey が決まってから描画しないと、自分の前回回答を初期値にできない */}
-      {guestKey && <ResponseFields key={mine ? "mine" : "new"} candidateDates={candidateDates} initial={mine?.answers} />}
+      <ResponseFields candidateDates={candidateDates} initial={mine?.answers} />
       <FormMessage state={state} successText="回答を保存しました" />
-      <button type="submit" className="btn-primary" disabled={pending || !guestKey}>
+      <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? "送信中…" : mine ? "回答を更新する" : "回答する"}
       </button>
     </form>

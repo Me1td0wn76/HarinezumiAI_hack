@@ -123,13 +123,15 @@ NestJSのバックエンドでは、以下のレイヤーを基本とする。
 | プログラミング言語 | TypeScript |
 | バックエンド | NestJS |
 | API | REST API |
+| 通知 | Discord Webhook（外部チャネル通知）+ 共有URL |
+| 開発スコープ | 優先度「必須」「高」を本体で実装。「中」「低」は Issue 化して PR で受け付ける |
 | アーキテクチャ | API分離型 |
 | 内部設計 | レイヤードアーキテクチャ |
 | データベース | PostgreSQL |
 | ORM | Prisma |
 | UI | Tailwind CSS |
 | カレンダー | FullCalendar |
-| 認証 | 未決定 |
+| 認証 | メール + パスワード（bcrypt + JWT）。Google ログイン等は Issue で追加 |
 | バージョン管理 | Git / GitHub |
 
 ※使用技術は開発条件やチームの経験を踏まえて最終決定する。
@@ -248,6 +250,8 @@ Event
 | アーキテクチャ | API分離型 |
 | バックエンド | NestJS |
 | 内部アーキテクチャ | レイヤードアーキテクチャ |
-| DB | PostgreSQL（候補） |
-| ORM | Prisma（候補） |
+| DB | PostgreSQL |
+| ORM | Prisma |
 | API | REST API |
+| 通知 | Discord Webhook（外部チャネル通知）+ 共有URL |
+| 開発スコープ | 優先度「必須」「高」を本体で実装。「中」「低」は Issue 化して PR で受け付ける |

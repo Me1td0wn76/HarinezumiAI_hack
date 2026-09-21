@@ -1,29 +1,69 @@
-# HarinezumiAI_hack
+# HarinezumiAI_hack — LT会支援Webアプリ
 
-LT会を気軽に開催・参加できる環境をつくる **LT会支援Webアプリ**。
+学内でLT会を気軽に開催・参加できる環境をつくる Web アプリ。
 
-## 解決したい課題
+- 発表者が発表内容と候補日を登録する
+- 参加者が候補日ごとに ○ / △ / × で回答する（共有URL ならログイン不要）
+- 主催者が集計を見て開催日を決める → Discord に通知
 
-- LT会を開催しても人が集まらない
-- 人が集まりそうな日程でしか開催できない
-- 主催者と参加者の日程調整に手間がかかる
+設計の背景は [docs/design.md](./docs/design.md)、決めた／決めていないことは [docs/open-questions.md](./docs/open-questions.md)、API 一覧は [docs/api.md](./docs/api.md) を参照。
 
-## 構成（予定）
+## 構成
+
+pnpm workspace の monorepo。
+
+```
+apps/
+  web/        Next.js 16 (App Router)  — 画面。Server Functions 経由で API を呼ぶ BFF 構成
+  api/        NestJS 12 + Prisma 7     — REST API。Controller → Service → Repository の3層
+packages/
+  shared/     API のリクエスト/レスポンス型と列挙値（web / api 両方から import）
+docker-compose.yml   PostgreSQL 17
+```
 
 | 分類 | 技術 |
 | --- | --- |
-| フロントエンド | Next.js / React / TypeScript |
-| バックエンド | NestJS（要再検討: [open-questions.md](./docs/open-questions.md)） |
-| データベース | PostgreSQL + Prisma |
-| UI | Tailwind CSS |
-| 認証 | 未決定 |
+| フロントエンド | Next.js / React / Tailwind CSS |
+| バックエンド | NestJS / Prisma / PostgreSQL |
+| 認証 | メール + パスワード（bcrypt + JWT）。JWT は web 側の httpOnly Cookie に保持 |
+| 通知 | Discord Incoming Webhook（`DISCORD_WEBHOOK_URL` を設定した場合のみ） |
 
-## ドキュメント
+## セットアップ
 
-- [システム設計概要](./docs/design.md) — 機能一覧、アーキテクチャ、DB設計、開発フェーズ
-- [未決定事項・技術判断メモ](./docs/open-questions.md) — 着手前に決めるべき項目と推奨案
+必要なもの: Node.js 22 以上、pnpm 10、Docker
 
-## 開発
+```bash
+pnpm install
 
-2〜3人のチームで開発。まずはフェーズ1（アカウント・LT会作成）とフェーズ2（日程調整）を
-動く状態にすることを目標とする。
+# 環境変数（そのままでローカル開発は動く）
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+
+pnpm db:up        # PostgreSQL を起動
+pnpm db:migrate   # マイグレーション適用 + Prisma Client 生成
+pnpm db:seed      # デモデータ投入（demo@example.com / password123）
+
+pnpm dev          # web(3000) / api(3001) / shared(型の watch) を同時起動
+```
+
+http://localhost:3000 を開く。
+
+## よく使うコマンド
+
+| コマンド | 内容 |
+| --- | --- |
+| `pnpm dev` | 全パッケージを開発モードで起動 |
+| `pnpm build` | 全パッケージをビルド |
+| `pnpm lint` | 全パッケージを lint |
+| `pnpm db:migrate` | `prisma migrate dev`（スキーマ変更後に実行） |
+| `pnpm db:studio` | Prisma Studio で DB を見る |
+| `pnpm --filter @lt/api test` | API のユニットテスト |
+| `pnpm --filter @lt/api test:e2e` | API の e2e テスト（DB 起動が必要） |
+
+## 開発の流れ
+
+- スキーマを変えるとき: `apps/api/prisma/schema.prisma` を編集 → `pnpm db:migrate` → 必要なら `packages/shared` の型も更新
+- API を足すとき: `apps/api/src/modules/<機能>/` に module / controller / service / repository を追加し、レスポンス型は `packages/shared` に置く
+- 画面を足すとき: `apps/web/src/app/` にページ、API 呼び出しは `apps/web/src/actions/` の Server Function か `lib/api.ts` の `apiFetch`
+
+優先度「中」「低」の機能（アプリ内通知、フォロー、連絡、団体管理、Google ログインなど）は GitHub Issues で管理し、PR ベースで進める。

@@ -3,13 +3,15 @@
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "dev": "pnpm -r --parallel --filter ./apps/* --filter ./packages/* dev",
+    "dev": "pnpm -r --parallel --stream dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @lt/api prisma:migrate",
     "db:studio": "pnpm --filter @lt/api prisma:studio",
-    "postinstall": "pnpm --filter @lt/shared build"
+    "postinstall": "pnpm --filter @lt/shared build",
+    "db:seed": "pnpm --filter @lt/api prisma:seed",
+    "test": "pnpm -r test"
   }
 }

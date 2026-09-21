@@ -12,7 +12,7 @@ LT会支援アプリ（全国の誰でも使える公開サービス。SNS の�
 - **スキーマ変更**: `apps/api/prisma/schema.prisma` → `pnpm db:migrate`。`prisma migrate reset` は使わず、開発 DB の初期化は `TRUNCATE` + `pnpm db:seed`
 - **日時**: 保存は UTC、表示は `apps/web/src/lib/format.ts` で Asia/Tokyo 固定
 - コミットはユーザーが行う。頼まれない限り commit / push しない
-- 優先度「中」「低」の機能は GitHub Issues（#3〜#14）で管理。着手前に既存 Issue を確認する
+- 本体に無い機能は GitHub Issues で管理（#3〜#20）。着手前に既存 Issue を確認する。優先度は `priority:high` > `medium` > `low`
 
 ## スキル（`.claude/skills/`）
 

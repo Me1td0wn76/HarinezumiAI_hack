@@ -1,0 +1,108 @@
+// LT会支援アプリ データモデル
+// enum は packages/shared/src/enums.ts と一致させること
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// ユーザー
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  bio          String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  organizedEvents Event[]
+  responses       DateResponse[]
+
+  @@map("users")
+}
+
+/// LT会の状態
+enum EventStatus {
+  OPEN      // 日程調整中
+  CONFIRMED // 開催日決定
+  CLOSED    // 終了・中止
+}
+
+/// LT会
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  /// 発表内容
+  description String
+  status      EventStatus @default(OPEN)
+  /// 共有URL 用トークン。ログインなしで回答できる
+  shareToken  String      @unique @default(cuid()) @map("share_token")
+
+  organizerId String @map("organizer_id")
+  organizer   User   @relation(fields: [organizerId], references: [id])
+
+  /// 主催者が決定した開催日
+  confirmedDateId String?    @unique @map("confirmed_date_id")
+  confirmedDate   EventDate? @relation("ConfirmedDate", fields: [confirmedDateId], references: [id], onDelete: SetNull)
+
+  candidateDates EventDate[] @relation("CandidateDates")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizerId])
+  @@index([status, createdAt])
+  @@map("events")
+}
+
+/// 開催候補日
+model EventDate {
+  id       String    @id @default(uuid())
+  eventId  String    @map("event_id")
+  event    Event     @relation("CandidateDates", fields: [eventId], references: [id], onDelete: Cascade)
+  startsAt DateTime  @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
+
+  responses    DateResponse[]
+  confirmedFor Event?         @relation("ConfirmedDate")
+
+  @@unique([eventId, startsAt])
+  @@map("event_dates")
+}
+
+/// 候補日への回答
+enum Availability {
+  YES   // ○ 参加可能
+  MAYBE // △ 調整可能
+  NO    // × 不可
+}
+
+/// 候補日への回答。ログインユーザーは userId、ゲストは guestKey で識別する
+model DateResponse {
+  id          String    @id @default(uuid())
+  eventDateId String    @map("event_date_id")
+  eventDate   EventDate @relation(fields: [eventDateId], references: [id], onDelete: Cascade)
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// ゲスト回答の識別子（ブラウザ側で生成）
+  guestKey  String? @map("guest_key")
+  guestName String? @map("guest_name")
+
+  availability Availability
+  comment      String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 同一ユーザー / 同一ゲストの二重回答を防ぐ（NULL は重複扱いにならない）
+  @@unique([eventDateId, userId])
+  @@unique([eventDateId, guestKey])
+  @@map("date_responses")
+}

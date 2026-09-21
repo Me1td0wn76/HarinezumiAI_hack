@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 は依存パッケージの build script を既定で実行しない。必要なものだけ許可する
+onlyBuiltDependencies:
+  - prisma
+  - '@prisma/engines'
+  - esbuild
+  - sharp
+  - unrs-resolver

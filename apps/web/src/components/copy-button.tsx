@@ -12,7 +12,7 @@ export function CopyButton({ text }: { text: string }) {
   }
 
   return (
-    <button type="button" onClick={copy} className="btn-secondary">
+    <button type="button" onClick={copy} className="btn-secondary shrink-0 whitespace-nowrap">
       {copied ? "コピーしました" : "コピー"}
     </button>
   );

@@ -15,7 +15,7 @@ export function AddDatesForm({ eventId }: { eventId: string }) {
       <CandidateDatesField min={1} />
       <FormMessage state={state} successText="候補日を追加しました" />
       <button type="submit" className="btn-secondary" disabled={pending}>
-        {pending ? "追加中…" : "候補日を追加"}
+        {pending ? "追加中…" : "追加する"}
       </button>
     </form>
   );

@@ -1,6 +1,6 @@
 # HarinezumiAI_hack — AI エージェント向けメモ
 
-学内 LT会支援アプリ。pnpm monorepo（`apps/web` Next.js 16 / `apps/api` NestJS 12 + Prisma 7 / `packages/shared` 共有型）。
+LT会支援アプリ（全国の誰でも使える公開サービス。SNS のような気軽さを目指す）。pnpm monorepo（`apps/web` Next.js 16 / `apps/api` NestJS 12 + Prisma 7 / `packages/shared` 共有型）。
 まず [README.md](README.md) と [docs/api.md](docs/api.md) を読むこと。設計判断は [docs/open-questions.md](docs/open-questions.md) に記録済みで、蒸し返さない。
 
 ## 守る約束

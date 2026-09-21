@@ -1,4 +1,4 @@
-/** 表示は学内利用を想定して日本時間に固定する */
+/** 国内向けサービスなので表示は日本時間に固定する。海外対応時はユーザー設定に置き換える */
 const TIME_ZONE = 'Asia/Tokyo';
 
 const dateTime = new Intl.DateTimeFormat('ja-JP', {

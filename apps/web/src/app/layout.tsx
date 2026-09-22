@@ -21,7 +21,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "LT会支援アプリ",
-  description: "学内LT会の開催と日程調整を支援するアプリ",
+  description: "LT会を気軽に立てて、見つけて、参加できるサービス",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

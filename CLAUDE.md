@@ -1,6 +1,6 @@
 # HarinezumiAI_hack — AI エージェント向けメモ
 
-学内 LT会支援アプリ。pnpm monorepo（`apps/web` Next.js 16 / `apps/api` NestJS 12 + Prisma 7 / `packages/shared` 共有型）。
+LT会支援アプリ（全国の誰でも使える公開サービス。SNS のような気軽さを目指す）。pnpm monorepo（`apps/web` Next.js 16 / `apps/api` NestJS 12 + Prisma 7 / `packages/shared` 共有型）。
 まず [README.md](README.md) と [docs/api.md](docs/api.md) を読むこと。設計判断は [docs/open-questions.md](docs/open-questions.md) に記録済みで、蒸し返さない。
 
 ## 守る約束
@@ -12,7 +12,7 @@
 - **スキーマ変更**: `apps/api/prisma/schema.prisma` → `pnpm db:migrate`。`prisma migrate reset` は使わず、開発 DB の初期化は `TRUNCATE` + `pnpm db:seed`
 - **日時**: 保存は UTC、表示は `apps/web/src/lib/format.ts` で Asia/Tokyo 固定
 - コミットはユーザーが行う。頼まれない限り commit / push しない
-- 優先度「中」「低」の機能は GitHub Issues（#3〜#14）で管理。着手前に既存 Issue を確認する
+- 本体に無い機能は GitHub Issues で管理（#3〜#20）。着手前に既存 Issue を確認する。優先度は `priority:high` > `medium` > `low`
 
 ## スキル（`.claude/skills/`）
 

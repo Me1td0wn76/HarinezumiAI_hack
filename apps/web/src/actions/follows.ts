@@ -14,8 +14,6 @@ export async function toggleFollow(_prev:FollowActionState,formData:FormData):Pr
     const targetUserId = str(formData,'targetUserId');
     const currentlyFollowing = str(formData,'isFollowing') === 'true'
 
-    console.log('[toggleFollow]', { targetUserId, currentlyFollowing });
-
     try{
         if(currentlyFollowing)
         {

@@ -31,7 +31,7 @@ export function EventList({ initial, query }: { initial: PageDto<EventSummaryDto
 
   if (items.length === 0) {
     return (
-      <div className="card text-center text-stone-500">
+      <div className="card text-center text-muted-foreground">
         <p>条件に合うLT会はありません。</p>
       </div>
     );
@@ -39,12 +39,12 @@ export function EventList({ initial, query }: { initial: PageDto<EventSummaryDto
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {items.map((e) => (
           <EventCard key={e.id} event={e} />
         ))}
       </div>
-      {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-center text-sm text-danger-foreground">{error}</p> : null}
       {cursor ? (
         <div className="text-center">
           <button type="button" onClick={loadMore} className="btn-secondary" disabled={pending}>

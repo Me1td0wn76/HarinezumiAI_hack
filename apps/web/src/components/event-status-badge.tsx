@@ -1,9 +1,10 @@
 import { EVENT_STATUS_LABEL, type EventStatus } from "@lt/shared";
 
+/** ステータスバッジの配色。EventStatus の値ごとに切り替える */
 const styles: Record<EventStatus, string> = {
-  OPEN: "bg-amber-100 text-amber-800",
-  CONFIRMED: "bg-emerald-100 text-emerald-800",
-  CLOSED: "bg-stone-200 text-stone-600",
+  OPEN: "bg-secondary text-secondary-foreground",
+  CONFIRMED: "bg-success-bg text-success-foreground",
+  CLOSED: "bg-muted text-muted-foreground",
 };
 
 export function EventStatusBadge({ status }: { status: EventStatus }) {

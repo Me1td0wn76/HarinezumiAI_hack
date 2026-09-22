@@ -5,14 +5,16 @@ export function TagChip({ tag, count, active = false }: { tag: string; count?: n
   return (
     <Link
       href={`/tags/${encodeURIComponent(tag)}`}
-      className={`badge transition hover:bg-emerald-100 hover:text-emerald-800 ${
-        active ? "bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white" : "bg-stone-100 text-stone-600"
+      className={`badge transition hover:-translate-y-0.5 ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted text-muted-foreground hover:bg-secondary hover:text-secondary-foreground"
       }`}
       aria-label={count !== undefined ? `#${tag}（${count}件）` : `#${tag}`}
     >
       #{tag}
       {count !== undefined ? (
-        <span className="ml-1 opacity-70" aria-hidden="true">
+        <span className="opacity-70" aria-hidden="true">
           {count}
         </span>
       ) : null}

@@ -35,7 +35,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
             <Link
               key={f.label}
               href={toHomeHref(query, { status: f.value })}
-              className={`badge ${active ? "bg-stone-800 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50"}`}
+              className={`badge transition ${active ? "bg-foreground text-background" : "border-[1.5px] border-border bg-card text-muted-foreground hover:border-primary"}`}
               aria-current={active ? "page" : undefined}
             >
               {f.label}
@@ -43,7 +43,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
           );
         })}
         {query.q ? (
-          <Link href={toHomeHref(query, { q: undefined })} className="text-xs text-stone-500 underline">
+          <Link href={toHomeHref(query, { q: undefined })} className="text-xs font-semibold text-secondary-foreground underline">
             「{query.q}」の検索を解除
           </Link>
         ) : null}
@@ -51,7 +51,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
 
       {topTags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-stone-400">タグ:</span>
+          <span className="mr-1 font-display text-xs font-bold text-subtle">タグ:</span>
           {topTags.map((t) => (
             <TagChip key={t.tag} tag={t.tag} count={t.count} active={t.tag === query.tag} />
           ))}

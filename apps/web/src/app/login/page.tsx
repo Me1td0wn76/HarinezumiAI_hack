@@ -4,5 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 
 export default async function LoginPage() {
   if (await getCurrentUser()) redirect("/");
-  return <AuthForm mode="login" />;
+  return (
+    <div className="px-4 py-8">
+      <AuthForm mode="login" />
+    </div>
+  );
 }

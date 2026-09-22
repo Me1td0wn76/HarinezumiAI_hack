@@ -12,7 +12,7 @@ export function ProfileForm({ user }: { user: UserDto }) {
     <form action={action} className="card space-y-4">
       <div>
         <label className="label">メールアドレス</label>
-        <p className="text-sm text-stone-600">{user.email}</p>
+        <p className="text-sm text-muted-foreground">{user.email}</p>
       </div>
       <div>
         <label className="label" htmlFor="displayName">

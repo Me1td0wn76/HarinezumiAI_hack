@@ -1,6 +1,8 @@
 import type { EventDetailDto } from "@lt/shared";
 import { notFound } from "next/navigation";
+import { EventPlace } from "@/components/event-place";
 import { EventStatusBadge } from "@/components/event-status-badge";
+import { GuestMeetingUrl } from "@/components/guest-meeting-url";
 import { GuestResponseForm } from "@/components/guest-response-form";
 import { ResponseGrid } from "@/components/response-grid";
 import { ApiError, apiFetch } from "@/lib/api";
@@ -32,6 +34,12 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
           </p>
         )}
       </header>
+
+      {/* サーバー側はゲストを識別できないので、開催日決定後は回答済みゲスト向けの取得ボタンを差し込む */}
+      <EventPlace
+        detail={detail}
+        reveal={detail.status === "CONFIRMED" && detail.hasMeetingUrl ? <GuestMeetingUrl token={token} /> : undefined}
+      />
 
       {detail.description && (
         <section className="card">

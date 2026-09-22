@@ -37,6 +37,7 @@ async function main() {
       title: '第1回 LT会',
       description: '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
       organizer: { connect: { id: demo.id } },
+      tags: { create: [{ tag: 'web' }, { tag: 'typescript' }, { tag: '初心者歓迎' }] },
       candidateDates: {
         create: [
           { startsAt: nextWeek(7, 18), endsAt: nextWeek(7, 19) },
@@ -59,7 +60,25 @@ async function main() {
     ],
   });
 
-  console.log(`seeded: users=2 event="${event.title}" (share: /share/${event.shareToken})`);
+  // 発見画面（タグ・検索・ページング）の確認用に、タグ違いのLT会をいくつか足す
+  const extras: { title: string; description: string; tags: string[]; organizer: string }[] = [
+    { title: 'Rust もくもく LT', description: 'Rust で作った CLI やライブラリの話。所有権の話も歓迎', tags: ['rust', 'cli'], organizer: taro.id },
+    { title: 'AI ツール活用 LT', description: 'Claude や Copilot を開発でどう使っているか', tags: ['ai', 'web'], organizer: demo.id },
+    { title: 'インフラ雑談 LT', description: 'Docker、Kubernetes、家のサーバーの話', tags: ['infra', 'docker'], organizer: taro.id },
+  ];
+  for (const [i, e] of extras.entries()) {
+    await prisma.event.create({
+      data: {
+        title: e.title,
+        description: e.description,
+        organizer: { connect: { id: e.organizer } },
+        tags: { create: e.tags.map((tag) => ({ tag })) },
+        candidateDates: { create: [{ startsAt: nextWeek(14 + i * 2, 19), endsAt: nextWeek(14 + i * 2, 20) }] },
+      },
+    });
+  }
+
+  console.log(`seeded: users=2 events=${1 + extras.length} (share: /share/${event.shareToken})`);
 }
 
 main()

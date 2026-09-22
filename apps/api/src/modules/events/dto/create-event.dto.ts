@@ -1,7 +1,18 @@
 import type { CreateEventRequest } from '@lt/shared';
 import { Type } from 'class-transformer';
-import { TAG_MAX_PER_EVENT } from '@lt/shared';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { EVENT_FORMAT, TAG_MAX_PER_EVENT, type EventFormat } from '@lt/shared';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
 
 export class CreateEventDto implements CreateEventRequest {
@@ -27,4 +38,19 @@ export class CreateEventDto implements CreateEventRequest {
   @ArrayMaxSize(TAG_MAX_PER_EVENT * 2)
   @IsString({ each: true })
   tags?: string[];
+
+  /** 省略時は ONLINE */
+  @IsOptional()
+  @IsIn(EVENT_FORMAT)
+  format?: EventFormat;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  venue?: string | null;
+
+  @IsOptional()
+  @IsUrl({ require_protocol: true, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  meetingUrl?: string | null;
 }

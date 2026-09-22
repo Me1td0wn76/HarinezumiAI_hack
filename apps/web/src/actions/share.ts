@@ -1,5 +1,6 @@
 'use server';
 
+import type { EventDetailDto } from '@lt/shared';
 import { revalidatePath } from 'next/cache';
 import { apiFetch, errorMessage } from '@/lib/api';
 import { parseResponses, str } from './form';
@@ -26,4 +27,12 @@ export async function submitGuestResponses(_prev: ActionState, formData: FormDat
   }
   revalidatePath(`/share/${token}`);
   return { success: true };
+}
+
+/** 回答済みゲストの配信URL。未回答や未決定なら null */
+export async function fetchGuestMeetingUrl(token: string, guestKey: string): Promise<string | null> {
+  const detail = await apiFetch<EventDetailDto>(`/share/${token}?guestKey=${encodeURIComponent(guestKey)}`, {
+    auth: false,
+  });
+  return detail.meetingUrl;
 }

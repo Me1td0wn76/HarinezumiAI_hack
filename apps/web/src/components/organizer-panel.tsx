@@ -39,9 +39,10 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
       {isOpen ? (
         <div>
           <p className="label">開催日を決める</p>
-          <div className="divide-y divide-card-border">
+          {/* ul/li でリストとして組む（div の入れ子だとスクリーンリーダーで項目数・項目単位の移動ができない） */}
+          <ul className="divide-y divide-card-border">
             {detail.tallies.map((t) => (
-              <div key={t.eventDate.id} className="py-3">
+              <li key={t.eventDate.id} className="py-3">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex-1">
                     <div className="font-display text-sm font-bold text-foreground">
@@ -79,9 +80,9 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
                   <div style={{ width: `${(t.maybe / totalResponders) * 100}%` }} className="bg-primary" />
                   <div style={{ width: `${(t.no / totalResponders) * 100}%` }} className="bg-danger" />
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
           <FormMessage state={confirmState} />
           <FormMessage state={removeState} />
         </div>
@@ -91,7 +92,7 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <strong className="font-display">
             {detail.confirmedDate && formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}
           </strong>{" "}
-          に決定済みです。Discord Webhook が設定されていれば、決定時に自動で通知されています。
+          に決定済みです。
         </div>
       )}
 

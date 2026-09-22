@@ -38,8 +38,13 @@ export function ResponseFields({
                     defaultChecked={current?.availability === a}
                     className="peer sr-only"
                   />
+                  {/*
+                    border-border-strong: 未選択時の枠線は WCAG 非テキストコントラスト基準(3:1)を満たす濃さにする
+                    （border-border は装飾用で薄すぎるため、意味を持つUI部品の境界には使わない）。
+                    peer-focus-visible: キーボード操作(Tab)でどの○△×にフォーカスがあるか分かるようにする
+                  */}
                   <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-card font-display text-base font-black text-subtle shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:scale-105 ${optionStyle[a]}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-border-strong bg-card font-display text-base font-black text-subtle shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:scale-105 peer-focus-visible:ring-4 peer-focus-visible:ring-primary/40 peer-focus-visible:ring-offset-2 ${optionStyle[a]}`}
                   >
                     {AVAILABILITY_LABEL[a]}
                   </span>

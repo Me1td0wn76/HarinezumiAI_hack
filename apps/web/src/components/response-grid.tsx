@@ -28,7 +28,7 @@ export function ResponseGrid({ detail, highlightKey }: { detail: EventDetailDto;
             {candidateDates.map((d) => (
               <th
                 key={d.id}
-                className={`whitespace-nowrap rounded-t-lg p-2 text-center font-display font-bold ${
+                className={`whitespace-nowrap p-2 text-center font-display font-bold ${
                   confirmedDate?.id === d.id ? "bg-success-bg text-success-foreground" : "text-foreground"
                 }`}
               >
@@ -60,7 +60,12 @@ export function ResponseGrid({ detail, highlightKey }: { detail: EventDetailDto;
             const mine = r.responderKey === highlightKey;
             return (
               <tr key={r.responderKey} className={`border-b border-card-border ${mine ? "bg-secondary/50" : ""}`}>
-                <th className="sticky left-0 whitespace-nowrap bg-card p-2 text-left font-normal">
+                {/*
+                  sticky なセルは不透明な背景を自前で持つ必要があるため、行(tr)の bg-secondary/50 だけでは
+                  この th には反映されない（他の td を隠すための不透明背景が上から覆ってしまう）。
+                  mine のときは th 側にも同じ背景色を明示的に指定する
+                */}
+                <th className={`sticky left-0 whitespace-nowrap p-2 text-left font-normal ${mine ? "bg-secondary/50" : "bg-card"}`}>
                   {r.displayName}
                   {r.isGuest && <span className="ml-1 text-xs text-subtle">(ゲスト)</span>}
                   {mine && <span className="ml-1 text-xs text-secondary-foreground">(自分)</span>}

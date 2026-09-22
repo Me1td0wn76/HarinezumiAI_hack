@@ -1,13 +1,12 @@
 import type { EventDetailDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EventStatusBadge } from "@/components/event-status-badge";
+import { EventHeader } from "@/components/event-header";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDateRange } from "@/lib/format";
 
 export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
   const { id } = await props.params;
@@ -26,26 +25,15 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
   const shareUrl = detail.shareToken ? `${webUrl}/share/${detail.shareToken}` : null;
 
+  // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-3xl font-black tracking-tight text-foreground">{detail.title}</h1>
-          <EventStatusBadge status={detail.status} />
-        </div>
-        <p className="text-sm text-subtle">主催: {detail.organizer.displayName}</p>
-        {detail.confirmedDate && (
-          <div className="flex items-center gap-3 rounded-[1.25rem] border-[1.5px] border-success bg-success-bg px-4 py-3">
-            <span className="text-2xl">📅</span>
-            <div>
-              <div className="mb-0.5 font-display text-xs font-bold text-success-foreground">開催日確定</div>
-              <div className="font-display text-base font-extrabold text-foreground">
-                {formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+      <EventHeader
+        title={detail.title}
+        status={detail.status}
+        organizer={detail.organizer}
+        confirmedDate={detail.confirmedDate}
+      />
 
       {detail.description && (
         <section className="card">

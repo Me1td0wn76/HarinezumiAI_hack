@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
 import { CandidateDatesField } from "./candidate-dates-field";
 import { FormMessage } from "./form-message";
+import { FormatFields } from "./format-fields";
 
 export function EventForm() {
   const [state, action, pending] = useActionState(createEvent, undefined);
@@ -30,6 +31,7 @@ export function EventForm() {
           placeholder="発表テーマや持ち時間、参加者へのメッセージなど"
         />
       </div>
+      <FormatFields />
       <div>
         <label className="label" htmlFor="tags">
           タグ（任意・{TAG_MAX_PER_EVENT}つまで）

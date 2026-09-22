@@ -1,30 +1,53 @@
 import type { EventDetailDto } from "@lt/shared";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventStatusBadge } from "@/components/event-status-badge";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ShareButtons } from "@/components/share-buttons";
+import { ApiError } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { getEventDetail, webUrl } from "@/lib/events";
 import { formatDateRange } from "@/lib/format";
+import { eventDescription } from "@/lib/og-image";
 
-export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
-  const { id } = await props.params;
-
-  let detail: EventDetailDto;
+/** 見つからない・不正な ID は 404 に寄せる */
+async function loadDetail(id: string): Promise<EventDetailDto> {
   try {
     // Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
-    detail = await apiFetch<EventDetailDto>(`/events/${id}`);
+    return await getEventDetail(id);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-  const user = await getCurrentUser();
+}
+
+/** OGP。X / LINE / Discord に貼ったときのカード表示に使われる */
+export async function generateMetadata(props: PageProps<"/events/[id]">): Promise<Metadata> {
+  const { id } = await props.params;
+  const detail = await loadDetail(id);
+  const description = eventDescription(detail);
+  return {
+    title: detail.title,
+    description,
+    openGraph: { title: detail.title, description, type: "article", url: `/events/${id}` },
+    twitter: { card: "summary_large_image", title: detail.title, description },
+  };
+}
+
+export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
+  const { id } = await props.params;
+
+  // generateMetadata と同じ関数なので React.cache で 1 回しか取得されない
+  const [detail, user] = await Promise.all([loadDetail(id), getCurrentUser()]);
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
-  const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
-  const shareUrl = detail.shareToken ? `${webUrl}/share/${detail.shareToken}` : null;
+  const shareUrl = detail.shareToken ? webUrl(`/share/${detail.shareToken}`) : null;
+  const shareText = detail.confirmedDate
+    ? `「${detail.title}」${formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)} 開催`
+    : `「${detail.title}」参加できる日を回答しよう`;
 
   return (
     <div className="space-y-6">
@@ -34,6 +57,7 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
           <EventStatusBadge status={detail.status} />
         </div>
         <p className="text-sm text-stone-500">主催: {detail.organizer.displayName}</p>
+        <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />
         {detail.confirmedDate && (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
             📅 開催日: <strong>{formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}</strong>

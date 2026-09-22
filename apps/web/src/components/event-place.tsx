@@ -12,30 +12,30 @@ export function EventPlace({ detail, reveal }: { detail: EventDetailDto; reveal?
   return (
     <section className="card space-y-2 text-sm">
       <div className="flex items-center gap-2">
-        <h2 className="font-medium text-stone-500">開催形式</h2>
+        <h2 className="font-display text-sm font-bold text-muted-foreground">開催形式</h2>
         <EventFormatBadge format={detail.format} />
       </div>
       {detail.venue ? (
         <p>
-          <span className="text-stone-500">会場: </span>
+          <span className="text-muted-foreground">会場: </span>
           {detail.venue}
         </p>
       ) : null}
       {meetingUrl ? (
         <p>
-          <span className="text-stone-500">配信URL: </span>
-          <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="break-all text-emerald-700 underline">
+          <span className="text-muted-foreground">配信URL: </span>
+          <a href={meetingUrl} target="_blank" rel="noopener noreferrer" className="break-all font-semibold text-secondary-foreground underline">
             {meetingUrl}
           </a>
         </p>
       ) : urlPending ? (
         reveal ?? (
-          <p className="text-stone-500">
+          <p className="text-muted-foreground">
             配信URLは{detail.status === "CONFIRMED" ? "回答した人にのみ表示されます" : "開催日決定後、回答した人に表示されます"}。
           </p>
         )
       ) : detail.format !== "OFFLINE" ? (
-        <p className="text-stone-400">配信URLは未設定です（{EVENT_FORMAT_LABEL[detail.format]}）</p>
+        <p className="text-subtle">配信URLは未設定です（{EVENT_FORMAT_LABEL[detail.format]}）</p>
       ) : null}
     </section>
   );

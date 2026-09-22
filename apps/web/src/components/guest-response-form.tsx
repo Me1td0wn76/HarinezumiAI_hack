@@ -52,7 +52,7 @@ export function GuestResponseForm({
   }, [state]);
 
   // guestKey が決まるまで（ハイドレーション完了まで）はフォームを出さない
-  if (!guestKey) return <p className="text-sm text-stone-400">読み込み中…</p>;
+  if (!guestKey) return <p className="text-sm text-subtle">読み込み中…</p>;
 
   const mine = responders.find((r) => r.responderKey === `guest:${guestKey}`);
 

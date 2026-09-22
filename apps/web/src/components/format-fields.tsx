@@ -27,7 +27,7 @@ export function FormatFields({ initialFormat = "ONLINE" }: { initialFormat?: Eve
                 onChange={() => setFormat(f)}
                 className="peer sr-only"
               />
-              <span className="inline-block rounded-lg border border-stone-300 px-3 py-1.5 text-sm text-stone-600 peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300">
+              <span className="inline-block rounded-full border-[1.5px] border-border-strong px-3.5 py-1.5 font-display text-sm font-bold text-muted-foreground transition peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-4 peer-focus-visible:ring-primary/30">
                 {EVENT_FORMAT_LABEL[f]}
               </span>
             </label>
@@ -55,7 +55,7 @@ export function FormatFields({ initialFormat = "ONLINE" }: { initialFormat?: Eve
             maxLength={500}
             placeholder="https://meet.google.com/xxx-xxxx-xxx"
           />
-          <p className="mt-1 text-xs text-stone-500">開催日を決定するまで参加者には表示されません。決定後、回答した人だけに表示されます。</p>
+          <p className="mt-1 text-xs text-subtle">開催日を決定するまで参加者には表示されません。決定後、回答した人だけに表示されます。</p>
         </div>
       ) : null}
     </div>

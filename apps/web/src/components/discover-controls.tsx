@@ -23,7 +23,7 @@ const FORMAT_FILTERS: { value: EventFormat | undefined; label: string }[] = [
 ];
 
 const chip = (active: boolean) =>
-  `badge ${active ? "bg-stone-800 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50"}`;
+  `badge transition ${active ? "bg-foreground text-background" : "border-[1.5px] border-border bg-card text-muted-foreground hover:border-primary"}`;
 
 /** 検索欄・状態フィルタ・開催形式フィルタ・人気タグ。すべて GET リンク / フォームなので JS 不要 */
 export function DiscoverControls({ query, topTags }: { query: EventListQuery; topTags: TagCountDto[] }) {
@@ -59,7 +59,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
             </Link>
           );
         })}
-        <span className="mx-1 text-stone-300" aria-hidden="true">
+        <span className="mx-1 text-border-strong" aria-hidden="true">
           |
         </span>
         {FORMAT_FILTERS.map((f) => {
@@ -76,7 +76,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
           );
         })}
         {query.q ? (
-          <Link href={toHomeHref(query, { q: undefined })} className="text-xs text-stone-500 underline">
+          <Link href={toHomeHref(query, { q: undefined })} className="text-xs font-semibold text-secondary-foreground underline">
             「{query.q}」の検索を解除
           </Link>
         ) : null}
@@ -84,7 +84,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
 
       {topTags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-stone-400">タグ:</span>
+          <span className="mr-1 font-display text-xs font-bold text-subtle">タグ:</span>
           {topTags.map((t) => (
             <TagChip key={t.tag} tag={t.tag} count={t.count} active={t.tag === query.tag} />
           ))}

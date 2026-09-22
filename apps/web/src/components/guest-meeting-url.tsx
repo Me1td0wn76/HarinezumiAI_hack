@@ -20,20 +20,20 @@ export function GuestMeetingUrl({ token }: { token: string }) {
   const [pending, startTransition] = useTransition();
 
   if (!guestKey) {
-    return <p className="text-stone-500">配信URLは回答した人にのみ表示されます。</p>;
+    return <p className="text-muted-foreground">配信URLは回答した人にのみ表示されます。</p>;
   }
   if (url) {
     return (
       <p>
-        <span className="text-stone-500">配信URL: </span>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="break-all text-emerald-700 underline">
+        <span className="text-muted-foreground">配信URL: </span>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="break-all font-semibold text-secondary-foreground underline">
           {url}
         </a>
       </p>
     );
   }
   if (url === null) {
-    return <p className="text-stone-500">このブラウザからの回答が見つからないため、配信URLを表示できません。</p>;
+    return <p className="text-muted-foreground">このブラウザからの回答が見つからないため、配信URLを表示できません。</p>;
   }
   return (
     <button

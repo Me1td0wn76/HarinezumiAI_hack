@@ -1,9 +1,10 @@
 import { EVENT_FORMAT_LABEL, type EventFormat } from "@lt/shared";
 
+/* デザイントークンに形式別の色は無いので、ステータス色と被らない落ち着いた配色を直接指定する */
 const styles: Record<EventFormat, string> = {
-  ONLINE: "bg-sky-100 text-sky-800",
-  OFFLINE: "bg-orange-100 text-orange-800",
-  HYBRID: "bg-violet-100 text-violet-800",
+  ONLINE: "bg-sky-100 text-sky-900",
+  OFFLINE: "bg-orange-100 text-orange-900",
+  HYBRID: "bg-violet-100 text-violet-900",
 };
 
 const icons: Record<EventFormat, string> = {

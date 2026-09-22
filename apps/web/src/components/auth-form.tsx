@@ -11,7 +11,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="card mx-auto max-w-md">
-      <h1 className="mb-4 text-xl font-bold">{isLogin ? "ログイン" : "新規登録"}</h1>
+      <span className="eyebrow mb-3">⚡ {isLogin ? "LOGIN" : "SIGN UP"}</span>
+      <h1 className="mb-4 font-display text-2xl font-black text-foreground">{isLogin ? "ログイン" : "新規登録"}</h1>
       <form action={action} className="space-y-4">
         {!isLogin && (
           <div>
@@ -46,14 +47,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           {pending ? "送信中…" : isLogin ? "ログイン" : "登録する"}
         </button>
       </form>
-      <p className="mt-4 text-center text-sm text-stone-500">
+      <p className="mt-4 text-center text-sm text-muted-foreground">
         {isLogin ? (
           <>
-            アカウントがない方は <Link href="/register" className="text-emerald-700 underline">新規登録</Link>
+            アカウントがない方は{" "}
+            <Link href="/register" className="font-semibold text-secondary-foreground underline">
+              新規登録
+            </Link>
           </>
         ) : (
           <>
-            登録済みの方は <Link href="/login" className="text-emerald-700 underline">ログイン</Link>
+            登録済みの方は{" "}
+            <Link href="/login" className="font-semibold text-secondary-foreground underline">
+              ログイン
+            </Link>
           </>
         )}
       </p>

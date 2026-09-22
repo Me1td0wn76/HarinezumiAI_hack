@@ -1,10 +1,11 @@
 import { AVAILABILITY, AVAILABILITY_LABEL, type Availability, type EventDateDto, type ResponderRowDto } from "@lt/shared";
 import { formatDateRange } from "@/lib/format";
 
+/** ○△×の丸ボタン（vote-btn）が選択された(peer-checked)ときの配色。Availability の値ごとに切り替える */
 const optionStyle: Record<Availability, string> = {
-  YES: "peer-checked:bg-emerald-600 peer-checked:text-white",
-  MAYBE: "peer-checked:bg-amber-500 peer-checked:text-white",
-  NO: "peer-checked:bg-stone-500 peer-checked:text-white",
+  YES: "peer-checked:border-success peer-checked:bg-success-bg peer-checked:text-success-foreground peer-checked:scale-110",
+  MAYBE: "peer-checked:border-primary peer-checked:bg-warning-bg peer-checked:text-warning-foreground peer-checked:scale-110",
+  NO: "peer-checked:border-danger peer-checked:bg-danger-bg peer-checked:text-danger-foreground peer-checked:scale-110",
 };
 
 /**
@@ -19,13 +20,15 @@ export function ResponseFields({
   initial?: ResponderRowDto["answers"];
 }) {
   return (
-    <div className="divide-y divide-stone-100">
+    <div className="divide-y divide-card-border">
       {candidateDates.map((d) => {
         const current = initial?.[d.id];
         return (
           <div key={d.id} className="flex flex-wrap items-center gap-3 py-3">
-            <div className="w-44 shrink-0 text-sm font-medium">{formatDateRange(d.startsAt, d.endsAt)}</div>
-            <div className="flex gap-1" role="radiogroup">
+            <div className="w-44 shrink-0 font-display text-sm font-bold text-foreground">
+              {formatDateRange(d.startsAt, d.endsAt)}
+            </div>
+            <div className="flex gap-2" role="radiogroup">
               {AVAILABILITY.map((a) => (
                 <label key={a} className="cursor-pointer">
                   <input
@@ -36,7 +39,7 @@ export function ResponseFields({
                     className="peer sr-only"
                   />
                   <span
-                    className={`inline-block w-10 rounded-lg border border-stone-300 py-1 text-center font-bold text-stone-500 ${optionStyle[a]}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-card font-display text-base font-black text-subtle shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:scale-105 ${optionStyle[a]}`}
                   >
                     {AVAILABILITY_LABEL[a]}
                   </span>

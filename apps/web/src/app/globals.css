@@ -1,53 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+/*
+ * Tailwind v4 のテーマトークン。--color-* / --font-* を定義すると
+ * bg-primary, text-muted-foreground, font-display のようなユーティリティクラスが自動生成される。
+ * 各トークンは Figma Make のデザイン案（LT会支援Webアプリ.zip）の配色をそのまま移植したもの。
+ */
+@theme {
+  /* ページ全体の背景・文字色 */
+  --color-background: #fffdf4;
+  --color-foreground: #1a1814;
+  /* カード（.card）の背景・文字色・枠線 */
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1814;
+  --color-card-border: #ede8d8;
+
+  /* ブランドカラー（黄色）。主要ボタンやアクセントに使う */
+  --color-primary: #f5c800;
+  --color-primary-hover: #ffdd00;
+  --color-primary-foreground: #1a1814;
+
+  /* 淡い黄色。バッジ「日程調整中」や強調ボックスの背景に使う */
+  --color-secondary: #fff8d6;
+  --color-secondary-foreground: #8a6e00;
+
+  /* グレー系。補足テキストや非アクティブな要素に使う */
+  --color-muted: #f7f3e8;
+  --color-muted-foreground: #7a7060;
+  --color-subtle: #b8afa0;
+
+  /* 入力欄やカードの標準的な枠線色 */
+  --color-border: #e8e0cc;
+  --color-ring: #f5c800;
+
+  /* ○（参加可能）・開催確定など、成功系の状態色 */
+  --color-success: #52b76b;
+  --color-success-bg: #d4f5dc;
+  --color-success-foreground: #2a7a40;
+
+  /* ×（参加不可）・削除ボタンなど、警告系の状態色 */
+  --color-danger: #e87070;
+  --color-danger-bg: #ffe8e8;
+  --color-danger-foreground: #b03030;
+
+  /* △（調整可能）の状態色 */
+  --color-warning-bg: #fff3cd;
+  --color-warning-foreground: #8a6e00;
+
+  /* 見出し・ボタン用フォント（layout.tsx の Nunito）。font-display ユーティリティになる */
+  --font-display: var(--font-nunito), "Hiragino Sans", "Noto Sans JP", sans-serif;
+  /* 本文用フォント（layout.tsx の DM Sans）。body のデフォルトフォントとして下で使う */
+  --font-body: var(--font-dm-sans), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    "Hiragino Sans",
-    "Hiragino Kaku Gothic ProN",
-    "Noto Sans JP",
-    Meiryo,
-    sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 99px;
 }
 
 /* よく使う部品。JSX 側の className を短く保つためのもの */
 @layer components {
   .card {
-    @apply rounded-xl border border-stone-200 bg-white p-5 shadow-sm;
+    @apply rounded-[1.25rem] border-[1.5px] border-card-border bg-card p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)];
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-stone-700;
+    @apply mb-1 block font-display text-xs font-bold text-muted-foreground;
   }
   .input {
-    @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100;
-  }
-  .btn {
-    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply w-full rounded-[0.625rem] border-[1.5px] border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-primary focus:ring-4 focus:ring-primary/20;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 font-display text-sm font-extrabold text-primary-foreground shadow-[0_2px_8px_rgba(245,200,0,0.35)] transition hover:-translate-y-0.5 hover:bg-[color:var(--color-primary-hover)] hover:shadow-[0_4px_14px_rgba(245,200,0,0.45)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 border border-stone-300 bg-white text-stone-700 hover:bg-stone-50;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-border bg-card px-5 py-2.5 font-display text-sm font-bold text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_2px_8px_rgba(245,200,0,0.25)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 border border-red-200 bg-white text-red-600 hover:bg-red-50;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-border bg-card px-5 py-2.5 font-display text-sm font-bold text-danger-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:border-danger hover:bg-danger-bg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
   }
   .badge {
-    @apply inline-block rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 font-display text-xs font-bold;
+  }
+  /* ページ上部の小さなラベル（例: "⚡ LIGHTNING TALK", "⚡ NEW EVENT"）。見出しの前に置く飾り */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-primary bg-secondary px-3 py-1.5 font-display text-xs font-bold text-secondary-foreground;
+  }
+}
+
+/* トップページのイベント一覧（.events-grid）をスマホ幅では1列に落とす */
+@media (max-width: 640px) {
+  .events-grid {
+    grid-template-columns: 1fr !important;
   }
 }

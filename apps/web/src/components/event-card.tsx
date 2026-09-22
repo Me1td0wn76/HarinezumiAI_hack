@@ -5,17 +5,25 @@ import { EventStatusBadge } from "./event-status-badge";
 
 export function EventCard({ event }: { event: EventSummaryDto }) {
   return (
-    <Link href={`/events/${event.id}`} className="card block transition hover:border-emerald-300 hover:shadow">
+    <Link
+      href={`/events/${event.id}`}
+      className="card block transition hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.09)]"
+    >
       <div className="mb-2 flex items-start justify-between gap-3">
-        <h2 className="font-bold">{event.title}</h2>
+        <h2 className="font-display text-lg font-extrabold leading-snug text-foreground">{event.title}</h2>
         <EventStatusBadge status={event.status} />
       </div>
-      <p className="text-sm text-stone-600">
+      {/* 開催日が決まっていれば緑のボックスで日時を、未定なら黄色のボックスで候補日数・回答者数を出す */}
+      <div
+        className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+          event.confirmedDate ? "bg-success-bg text-success-foreground" : "bg-secondary text-secondary-foreground"
+        }`}
+      >
         {event.confirmedDate
-          ? `📅 ${formatDateRange(event.confirmedDate.startsAt, event.confirmedDate.endsAt)}`
+          ? `📅 開催日：${formatDateRange(event.confirmedDate.startsAt, event.confirmedDate.endsAt)}`
           : `候補日 ${event.candidateDateCount} 件 / 回答 ${event.responderCount} 人`}
-      </p>
-      <p className="mt-1 text-xs text-stone-400">主催: {event.organizer.displayName}</p>
+      </div>
+      <p className="mt-2 text-xs text-subtle">主催: {event.organizer.displayName}</p>
     </Link>
   );
 }

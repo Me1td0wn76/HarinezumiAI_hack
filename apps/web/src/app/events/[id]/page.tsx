@@ -30,38 +30,46 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
     <div className="space-y-6">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold">{detail.title}</h1>
+          <h1 className="font-display text-3xl font-black tracking-tight text-foreground">{detail.title}</h1>
           <EventStatusBadge status={detail.status} />
         </div>
-        <p className="text-sm text-stone-500">主催: {detail.organizer.displayName}</p>
+        <p className="text-sm text-subtle">主催: {detail.organizer.displayName}</p>
         {detail.confirmedDate && (
-          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
-            📅 開催日: <strong>{formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}</strong>
-          </p>
+          <div className="flex items-center gap-3 rounded-[1.25rem] border-[1.5px] border-success bg-success-bg px-4 py-3">
+            <span className="text-2xl">📅</span>
+            <div>
+              <div className="mb-0.5 font-display text-xs font-bold text-success-foreground">開催日確定</div>
+              <div className="font-display text-base font-extrabold text-foreground">
+                {formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}
+              </div>
+            </div>
+          </div>
         )}
       </header>
 
       {detail.description && (
         <section className="card">
-          <h2 className="mb-2 text-sm font-medium text-stone-500">発表内容</h2>
-          <p className="whitespace-pre-wrap text-sm">{detail.description}</p>
+          <h2 className="mb-2 font-display text-sm font-bold text-muted-foreground">発表内容</h2>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{detail.description}</p>
         </section>
       )}
 
       <section className="card">
-        <h2 className="mb-3 font-bold">回答状況</h2>
+        <h2 className="mb-3 font-display font-extrabold text-foreground">回答状況</h2>
         <ResponseGrid detail={detail} highlightKey={user?.id} />
       </section>
 
       {detail.status === "OPEN" && (
         <section className="card">
-          <h2 className="mb-1 font-bold">{myRow ? "あなたの回答" : "参加可否を回答する"}</h2>
+          <h2 className="mb-1 font-display font-extrabold text-foreground">
+            {myRow ? "あなたの回答" : "参加可否を回答する"}
+          </h2>
           {user ? (
             <ResponseForm eventId={detail.id} candidateDates={detail.candidateDates} initial={myRow?.answers} />
           ) : (
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-muted-foreground">
               回答するには{" "}
-              <Link href="/login" className="text-emerald-700 underline">
+              <Link href="/login" className="font-semibold text-secondary-foreground underline">
                 ログイン
               </Link>{" "}
               してください。主催者から共有URLをもらった場合はログインなしで回答できます。

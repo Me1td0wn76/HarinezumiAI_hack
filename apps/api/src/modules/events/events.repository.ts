@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { EventStatus, TagCountDto } from '@lt/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EventDate, Prisma } from '../../generated/prisma/client.js';
 
@@ -6,6 +7,7 @@ import type { EventDate, Prisma } from '../../generated/prisma/client.js';
 export const eventDetailInclude = {
   organizer: { select: { id: true, displayName: true } },
   confirmedDate: true,
+  tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
     orderBy: { startsAt: 'asc' },
     include: {
@@ -23,6 +25,7 @@ export type EventDetail = Prisma.EventGetPayload<{ include: typeof eventDetailIn
 export const eventSummaryInclude = {
   organizer: { select: { id: true, displayName: true } },
   confirmedDate: true,
+  tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
     select: { id: true, responses: { select: { userId: true, guestKey: true } } },
   },
@@ -35,15 +38,63 @@ export interface NewCandidateDate {
   endsAt: Date | null;
 }
 
+/** 一覧の絞り込み条件。undefined は「絞り込みなし」 */
+export interface EventListFilter {
+  tag?: string;
+  /** タイトル・説明の部分一致（大文字小文字を区別しない） */
+  q?: string;
+  status?: EventStatus;
+  organizerId?: string;
+}
+
+export interface EventPage {
+  items: EventSummary[];
+  nextCursor: string | null;
+}
+
 @Injectable()
 export class EventsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findManyForList(): Promise<EventSummary[]> {
-    return this.prisma.event.findMany({
+  /**
+   * 新しい順のカーソルページネーション。cursor は前ページ最後の event.id。
+   * limit + 1 件取って「続きがあるか」を判定する。
+   */
+  async findPage(filter: EventListFilter, limit: number, cursor?: string): Promise<EventPage> {
+    const where: Prisma.EventWhereInput = {};
+    if (filter.status) where.status = filter.status;
+    if (filter.organizerId) where.organizerId = filter.organizerId;
+    if (filter.tag) where.tags = { some: { tag: filter.tag } };
+    if (filter.q) {
+      // ILIKE '%q%'。events.title / description の pg_trgm GIN index が効く
+      where.OR = [
+        { title: { contains: filter.q, mode: 'insensitive' } },
+        { description: { contains: filter.q, mode: 'insensitive' } },
+      ];
+    }
+
+    const rows = await this.prisma.event.findMany({
+      where,
       include: eventSummaryInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
+  }
+
+  /** 使用回数の多いタグ */
+  async findTopTags(limit: number): Promise<TagCountDto[]> {
+    const rows = await this.prisma.eventTag.groupBy({
+      by: ['tag'],
+      _count: { tag: true },
+      orderBy: [{ _count: { tag: 'desc' } }, { tag: 'asc' }],
+      take: limit,
+    });
+    return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
   }
 
   findDetailById(id: string): Promise<EventDetail | null> {
@@ -59,6 +110,7 @@ export class EventsRepository {
     description: string;
     organizerId: string;
     candidateDates: NewCandidateDate[];
+    tags: string[];
   }): Promise<EventDetail> {
     return this.prisma.event.create({
       data: {
@@ -66,13 +118,26 @@ export class EventsRepository {
         description: input.description,
         organizer: { connect: { id: input.organizerId } },
         candidateDates: { create: input.candidateDates },
+        tags: { create: input.tags.map((tag) => ({ tag })) },
       },
       include: eventDetailInclude,
     });
   }
 
-  update(id: string, data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>): Promise<EventDetail> {
-    return this.prisma.event.update({ where: { id }, data, include: eventDetailInclude });
+  /** tags を渡した場合は丸ごと置き換える */
+  update(
+    id: string,
+    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>,
+    tags?: string[],
+  ): Promise<EventDetail> {
+    return this.prisma.event.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(tags ? { tags: { deleteMany: {}, create: tags.map((tag) => ({ tag })) } } : {}),
+      },
+      include: eventDetailInclude,
+    });
   }
 
   async delete(id: string): Promise<void> {

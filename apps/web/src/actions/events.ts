@@ -21,6 +21,9 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
         description: str(formData, 'description'),
         candidateDates,
         tags: parseTags(formData),
+        format: str(formData, 'format') || undefined,
+        venue: str(formData, 'venue') || null,
+        meetingUrl: str(formData, 'meetingUrl') || null,
       },
     });
   } catch (err) {

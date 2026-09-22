@@ -2,12 +2,12 @@ import { BadRequestException,Injectable,NotFoundException } from "@nestjs/common
 import type { PublicUserDto } from "@lt/shared";
 import { UsersRepository } from "../users/users.repository.js";
 import { toPublicUserDto } from "../users/users.mapper.js";
-import { FollowsRepositoty } from "./follows.repository.js";
+import { FollowsRepository } from "./follows.repository.js";
 
 @Injectable()
 export class FollowsService{
     constructor(
-        private readonly follows: FollowsRepositoty,
+        private readonly follows: FollowsRepository,
         private readonly users:UsersRepository,
     ){}
 

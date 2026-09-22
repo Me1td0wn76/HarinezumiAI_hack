@@ -12,7 +12,7 @@ export default async function UserPofilePage(props:PageProps<"/users/[id]">)
     try{
         profile = await apiFetch<PublicUserDto>(`/users/${id}`,{auth:false});
     }catch(err){
-        if(err instanceof ApiError && err.status === 404)notFound();
+        if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
         throw err;
     }
 
@@ -26,7 +26,7 @@ export default async function UserPofilePage(props:PageProps<"/users/[id]">)
     const isFollowing = !isOwnProfile && me ? (await apiFetch<{isFollowing:boolean}>(`/users/${id}/follow-status`)).isFollowing:false;
 
     return (
-        <div className = "mx-auto max-w-md space-y-4">
+        <div className = "mx-auto max-w-md space-y-4 px-4 py-8">
             <h1 className="text-xl font-bold">{profile.displayName}</h1>
             <p className="text-sm text-stone-500">
                 フォロワー {followers.length} ・ フォロー中{following.length}

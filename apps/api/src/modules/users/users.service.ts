@@ -17,7 +17,7 @@ export class UsersService {
     const user = await this.users.findById(id);
     if(!user)
     {
-      throw new NotFoundException('ユーザが見つからん');
+      throw new NotFoundException('ユーザが見つかりません');
     }
     return toPublicUserDto(user);
   }

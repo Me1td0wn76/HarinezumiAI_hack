@@ -7,7 +7,7 @@ const PUBLIC_USER_SELECT = {id:true,displayName:true} as const;
 type PublicUserRow = { id:string;displayName:string};
 
 @Injectable()
-export class FollowsRepositoty{
+export class FollowsRepository{
     constructor(private readonly prisma:PrismaService){}
 
     /** フォローする */

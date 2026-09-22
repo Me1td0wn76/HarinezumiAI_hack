@@ -5,7 +5,6 @@ import { useActionState } from "react";
 import { confirmEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
-import { CopyButton } from "./copy-button";
 import { ShareButtons } from "./share-buttons";
 import { FormMessage } from "./form-message";
 
@@ -22,10 +21,7 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
       {shareUrl && (
         <div>
           <p className="label">共有URL（ログインなしで回答できます）</p>
-          <div className="flex gap-2">
-            <input className="input" readOnly value={shareUrl} onFocus={(e) => e.target.select()} />
-            <CopyButton text={shareUrl} />
-          </div>
+          <input className="input" readOnly value={shareUrl} onFocus={(e) => e.target.select()} aria-label="共有URL" />
           <p className="mt-1 text-xs text-stone-500">Discord や LINE に貼って参加者に回答してもらいましょう。</p>
           <div className="mt-2">
             <ShareButtons url={shareUrl} text={`「${detail.title}」参加できる日を回答してください`} compact />

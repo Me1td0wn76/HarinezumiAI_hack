@@ -1,6 +1,7 @@
 import type { EventDetailDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EventPlace } from "@/components/event-place";
 import { EventStatusBadge } from "@/components/event-status-badge";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
@@ -48,6 +49,8 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
           </p>
         )}
       </header>
+
+      <EventPlace detail={detail} />
 
       {detail.description && (
         <section className="card">

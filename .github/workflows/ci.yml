@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lt
+          POSTGRES_PASSWORD: lt
+          POSTGRES_DB: lt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lt -d lt_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://lt:lt@localhost:5432/lt_test
+      JWT_SECRET: ci-secret-key-not-for-production-use
+      JWT_EXPIRES_IN: 1h
+      WEB_ORIGIN: http://localhost:3000
+      WEB_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prisma Client を生成
+        run: pnpm --filter @lt/api prisma:generate
+
+      - run: pnpm lint
+
+      - name: lt_test にマイグレーションを適用
+        run: pnpm --filter @lt/api prisma:deploy
+
+      - run: pnpm test
+
+      - run: pnpm --filter @lt/api test:e2e

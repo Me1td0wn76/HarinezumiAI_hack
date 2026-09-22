@@ -6,6 +6,7 @@ import { confirmEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
 import { CopyButton } from "./copy-button";
+import { ShareButtons } from "./share-buttons";
 import { FormMessage } from "./form-message";
 
 /** 主催者だけに見せる操作パネル: 共有URL、開催日の決定、候補日の追加・削除 */
@@ -26,6 +27,9 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
             <CopyButton text={shareUrl} />
           </div>
           <p className="mt-1 text-xs text-stone-500">Discord や LINE に貼って参加者に回答してもらいましょう。</p>
+          <div className="mt-2">
+            <ShareButtons url={shareUrl} text={`「${detail.title}」参加できる日を回答してください`} compact />
+          </div>
         </div>
       )}
 

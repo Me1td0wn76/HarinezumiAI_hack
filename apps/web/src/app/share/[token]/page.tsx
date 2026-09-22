@@ -1,22 +1,49 @@
 import type { EventDetailDto } from "@lt/shared";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EventStatusBadge } from "@/components/event-status-badge";
 import { GuestResponseForm } from "@/components/guest-response-form";
 import { ResponseGrid } from "@/components/response-grid";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ShareButtons } from "@/components/share-buttons";
+import { ApiError } from "@/lib/api";
+import { getSharedEvent, webUrl } from "@/lib/events";
 import { formatDateRange } from "@/lib/format";
+import { eventDescription } from "@/lib/og-image";
 
-/** 共有URL から開くページ。ログイン不要で回答できる */
-export default async function SharePage(props: PageProps<"/share/[token]">) {
-  const { token } = await props.params;
-
-  let detail: EventDetailDto;
+async function loadShared(token: string): Promise<EventDetailDto> {
   try {
-    detail = await apiFetch<EventDetailDto>(`/share/${token}`, { auth: false });
+    return await getSharedEvent(token);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   }
+}
+
+/**
+ * OGP は付けるが、共有URL は回答用の非公開リンクなので検索エンジンには載せない。
+ * canonical は公開の詳細ページに向ける
+ */
+export async function generateMetadata(props: PageProps<"/share/[token]">): Promise<Metadata> {
+  const { token } = await props.params;
+  const detail = await loadShared(token);
+  const description = eventDescription(detail);
+  return {
+    title: detail.title,
+    description,
+    robots: { index: false, follow: false },
+    alternates: { canonical: `/events/${detail.id}` },
+    openGraph: { title: detail.title, description, type: "article", url: `/share/${token}` },
+    twitter: { card: "summary_large_image", title: detail.title, description },
+  };
+}
+
+/** 共有URL から開くページ。ログイン不要で回答できる */
+export default async function SharePage(props: PageProps<"/share/[token]">) {
+  const { token } = await props.params;
+  const detail = await loadShared(token);
+  const shareText = detail.confirmedDate
+    ? `「${detail.title}」${formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)} 開催`
+    : `「${detail.title}」参加できる日を回答しよう`;
 
   return (
     <div className="space-y-6">
@@ -26,6 +53,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
           <EventStatusBadge status={detail.status} />
         </div>
         <p className="text-sm text-stone-500">主催: {detail.organizer.displayName}</p>
+        <ShareButtons url={webUrl(`/share/${token}`)} text={shareText} compact />
         {detail.confirmedDate && (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
             📅 開催日: <strong>{formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}</strong>

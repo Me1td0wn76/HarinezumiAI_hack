@@ -5,6 +5,7 @@ import { EventStatusBadge } from "@/components/event-status-badge";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
+import { TagChip } from "@/components/tag-chip";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDateRange } from "@/lib/format";
@@ -34,6 +35,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
           <EventStatusBadge status={detail.status} />
         </div>
         <p className="text-sm text-stone-500">主催: {detail.organizer.displayName}</p>
+        {detail.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {detail.tags.map((tag) => (
+              <TagChip key={tag} tag={tag} />
+            ))}
+          </div>
+        ) : null}
         {detail.confirmedDate && (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
             📅 開催日: <strong>{formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}</strong>

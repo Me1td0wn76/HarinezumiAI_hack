@@ -1,4 +1,12 @@
-import { EVENT_PAGE_SIZE, EVENT_PAGE_SIZE_MAX, EVENT_STATUS, type EventListQuery, type EventStatus } from '@lt/shared';
+import {
+  EVENT_FORMAT,
+  EVENT_PAGE_SIZE,
+  EVENT_PAGE_SIZE_MAX,
+  EVENT_STATUS,
+  type EventFormat,
+  type EventListQuery,
+  type EventStatus,
+} from '@lt/shared';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
@@ -29,6 +37,10 @@ export class ListEventsQueryDto implements EventListQuery {
   @IsOptional()
   @IsIn(EVENT_STATUS)
   status?: EventStatus;
+
+  @IsOptional()
+  @IsIn(EVENT_FORMAT)
+  format?: EventFormat;
 
   @IsOptional()
   @IsUUID()

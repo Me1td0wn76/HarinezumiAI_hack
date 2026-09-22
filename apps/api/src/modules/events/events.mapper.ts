@@ -35,6 +35,7 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
     confirmedDate: event.confirmedDate ? toEventDateDto(event.confirmedDate) : null,
     candidateDateCount: event.candidateDates.length,
     responderCount: responders.size,
+    tags: event.tags.map((t) => t.tag),
     createdAt: event.createdAt.toISOString(),
   };
 }
@@ -80,6 +81,7 @@ export function toEventDetailDto(event: EventDetail, viewerId: string | null): E
     tallies,
     responders: [...rows.values()],
     shareToken: viewerId === event.organizerId ? event.shareToken : null,
+    tags: event.tags.map((t) => t.tag),
     createdAt: event.createdAt.toISOString(),
   };
 }

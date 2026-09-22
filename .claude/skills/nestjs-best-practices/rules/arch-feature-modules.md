@@ -26,7 +26,7 @@ src/
 │   ├── user.entity.ts
 │   ├── order.entity.ts
 │   └── product.entity.ts
-└── app.module.ts  // Imports everything directly
+└──   // Imports everything directly
 ```
 
 **Correct (feature module organization):**

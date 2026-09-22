@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import type { UserDto } from '@lt/shared';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { PublicUserDto, UserDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { UsersRepository } from './users.repository.js';
-import { toUserDto } from './users.mapper.js';
+import { toPublicUserDto, toUserDto } from './users.mapper.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 @Injectable()
@@ -11,6 +11,15 @@ export class UsersService {
 
   getMe(user: User): UserDto {
     return toUserDto(user);
+  }
+
+  async getPublicProfile(id:string):Promise<PublicUserDto>{
+    const user = await this.users.findById(id);
+    if(!user)
+    {
+      throw new NotFoundException('ユーザが見つからん');
+    }
+    return toPublicUserDto(user);
   }
 
   async updateProfile(user: User, dto: UpdateProfileDto): Promise<UserDto> {

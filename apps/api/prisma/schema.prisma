@@ -23,7 +23,31 @@ model User {
   organizedEvents Event[]
   responses       DateResponse[]
 
+  /// 自分がフォローしている relations (自分 -> 相手)
+  following Follow[] @relation("Following")
+  /// 自分をフォローしている relations (相手 -> 自分)
+  followers Follow[] @relation("Followers")
+
   @@map("users")
+}
+
+/// フォロー関係(一方向)
+model Follow{
+  id String @id @default(uuid())
+
+  followerId String @map("follower_id")
+  follower   User   @relation("Following",fields:[followerId],references:[id],onDelete:Cascade)
+
+  followingId String @map("following_id")
+  following   User   @relation("Followers",fields:[followingId], references:[id],onDelete:Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 同じ相手を二重にフォローできないよう制御
+  @@unique([followerId,followingId])
+  
+  @@index([followingId])
+  @@map("follows")
 }
 
 /// LT会の状態

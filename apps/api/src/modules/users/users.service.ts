@@ -1,25 +1,48 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { PublicUserDto, UserDto } from '@lt/shared';
+import type { UserDto,UserProfileDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
+import { EventsService } from '../events/events.service.js';
 import { UsersRepository } from './users.repository.js';
-import { toPublicUserDto, toUserDto } from './users.mapper.js';
+import { toUserDto } from './users.mapper.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly users: UsersRepository) {}
+  constructor(
+    private readonly users: UsersRepository,
+    private readonly events: EventsService,
+  ) {}
 
   getMe(user: User): UserDto {
     return toUserDto(user);
   }
 
-  async getPublicProfile(id:string):Promise<PublicUserDto>{
-    const user = await this.users.findById(id);
-    if(!user)
-    {
-      throw new NotFoundException('ユーザが見つかりません');
+  /**
+   * 他人のプロフィール画面用。ログイン中なら isFollowing も含めて1回で返す。
+   * @param viewer 閲覧者。未ログインなら null
+   */
+  async getPublicProfile(id: string, viewer: User | null): Promise<UserProfileDto> {
+    const profile = await this.users.findProfileById(id);
+    if (!profile) {
+      throw new NotFoundException('ユーザーが見つかりません');
     }
-    return toPublicUserDto(user);
+
+    const isViewingSelf = viewer?.id === id;
+    const [isFollowing, organizedEvents] = await Promise.all([
+      viewer && !isViewingSelf ? this.users.isFollowedBy(viewer.id, id) : Promise.resolve(false),
+      this.events.listByOrganizer(id),
+    ]);
+
+    return {
+      id: profile.id,
+      displayName: profile.displayName,
+      bio: profile.bio,
+      followerCount: profile._count.followers,
+      followingCount: profile._count.following,
+      isFollowing,
+      organizedEvents,
+    };
   }
 
   async updateProfile(user: User, dto: UpdateProfileDto): Promise<UserDto> {

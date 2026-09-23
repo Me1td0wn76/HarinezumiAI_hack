@@ -46,6 +46,15 @@ export class EventsRepository {
     });
   }
 
+    /** 特定ユーザーが主催したLT会一覧。公開プロフィール画面用 */
+  findManyByOrganizer(organizerId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: { organizerId },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+  
   findDetailById(id: string): Promise<EventDetail | null> {
     return this.prisma.event.findUnique({ where: { id }, include: eventDetailInclude });
   }

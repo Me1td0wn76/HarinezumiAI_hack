@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 import { apiFetch,errorMessage } from "@/lib/api"
+import type { ActionState } from './types';
 import{str}from './form'
 
-export type FollowActionState = {error?:string;isFollowing?:boolean} | undefined;
+/** ActionState に isFollowing を足しただけ。ActionState 側の変更に追従できるよう派生させる */
+export type FollowActionState = (NonNullable<ActionState> & { isFollowing?: boolean }) | undefined;
 
 /**
  * フォロー/フォロー解除を1つのActionで扱う
@@ -22,7 +24,8 @@ export async function toggleFollow(_prev:FollowActionState,formData:FormData):Pr
             await apiFetch(`/users/${targetUserId}/follow`,{method:'POST'});
         }
     }catch(err){
-        return {error:errorMessage(err),isFollowing:currentlyFollowing};
+        // 失敗時は状態を変えず、元のisFollowingのままエラーだけ返す
+        return { error: errorMessage(err), isFollowing: currentlyFollowing };
     }
 
     revalidatePath(`/users/${targetUserId}`);

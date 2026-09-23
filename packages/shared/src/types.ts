@@ -39,6 +39,18 @@ export interface PublicUserDto {
   displayName: string;
 }
 
+/** 公開プロフィール画面用。閲覧者に応じて isFollowing が変わる */
+export interface UserProfileDto {
+  id: string;
+  displayName: string;
+  bio: string | null;
+  followerCount: number;
+  followingCount: number;
+  /** 閲覧者が未ログイン、または自分自身のプロフィールを見ている場合は false */
+  isFollowing: boolean;
+  organizedEvents: EventSummaryDto[];
+}
+
 // ---------- LT会 ----------
 
 export interface CreateEventRequest {

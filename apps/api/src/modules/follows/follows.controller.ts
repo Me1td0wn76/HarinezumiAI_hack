@@ -33,12 +33,4 @@ export class FollowsController{
     following(@Param('id',ParseUUIDPipe)targetId:string){
         return this.followsService.listFollowing(targetId);
     }
-
-    /** ログイン中のユーザが対象ユーザをフォロー中か */
-    @Get(':id/follow-status')
-    @UseGuards(JwtAuthGuard)
-    async followStatus(@CurrentUser() user:User,@Param('id',ParseUUIDPipe)targetId:string)
-    {
-        return {isFollowing:await this.followsService.isFollowing(user.id,targetId)};
-    }
 }

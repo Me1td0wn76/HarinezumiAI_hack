@@ -30,10 +30,6 @@ export class FollowsService{
         await this.follows.deleteFollow(followerId,followingId);
     }
 
-    async isFollowing(followerId:string,followingId:string):Promise<boolean>{
-        return this.follows.exists(followerId,followingId);
-    }
-
     async listFollowers(userId:string):Promise<PublicUserDto[]>{
         const rows = await this.follows.findFollowers(userId);
         return rows.map((row) => toPublicUserDto(row.follower));

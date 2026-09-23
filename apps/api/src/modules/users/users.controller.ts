@@ -1,6 +1,7 @@
 import { Body, Controller, Get,Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard.js';
 import type { User } from '../../generated/prisma/client.js';
 import { UsersService } from './users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -21,9 +22,10 @@ export class UsersController {
     return this.usersService.updateProfile(user, dto);
   }
 
-  /** 他人のプロフィールページ用。ログイン不要で見られる公開情報のみ返す */
+  /** 他人のプロフィールページ用。ログイン不要で見られるが、ログインしていれば isFollowing も返す */
   @Get(':id')
-  getPublicProfile(@Param('id',ParseUUIDPipe)id:string){
-    return this.usersService.getPublicProfile(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  getPublicProfile(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() viewer: User | null) {
+    return this.usersService.getPublicProfile(id, viewer);
   }
 }

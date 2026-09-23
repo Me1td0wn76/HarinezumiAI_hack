@@ -22,6 +22,12 @@ export class EventsService {
     return events.map(toEventSummaryDto);
   }
 
+  /** 公開プロフィール画面用。特定ユーザーが主催したLT会一覧 */
+  async listByOrganizer(organizerId: string): Promise<EventSummaryDto[]> {
+    const events = await this.events.findManyByOrganizer(organizerId);
+    return events.map(toEventSummaryDto);
+  }
+
   async create(organizer: User, dto: CreateEventDto): Promise<EventDetailDto> {
     const event = await this.events.create({
       title: dto.title,

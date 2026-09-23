@@ -53,6 +53,18 @@ export async function confirmEvent(_prev: ActionState, formData: FormData): Prom
   return { success: true };
 }
 
+export async function closeEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const eventId = str(formData, 'eventId');
+  try {
+    await apiFetch(`/events/${eventId}/close`, { method: 'POST' });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath('/');
+  return { success: true };
+}
+
 export async function addDates(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const eventId = str(formData, 'eventId');
   const candidateDates = parseCandidateDates(formData);

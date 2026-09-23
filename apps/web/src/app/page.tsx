@@ -7,9 +7,8 @@ import { getCurrentUser } from "@/lib/auth";
 export default async function HomePage() {
   const [events, user] = await Promise.all([apiFetch<EventSummaryDto[]>("/events"), getCurrentUser()]);
   const open = events.filter((e) => e.status === "OPEN");
-  const others = events.filter((e) => e.status !== "OPEN");
-  // 統計バー（ヒーロー下の黄色い帯）の「開催確定」件数に使う
   const confirmed = events.filter((e) => e.status === "CONFIRMED");
+  const closed = events.filter((e) => e.status === "CLOSED");
   // 統計バーに表示する4項目。EventSummaryDto から取得済みのデータだけで集計する（追加のAPI呼び出しはしない）。
   // 「回答数」は responderCount の単純合計。同じ人が複数のLT会に回答すると重複してカウントされるため
   // （サマリーDTOにはユーザー単位で重複排除する情報がない）、「回答者」ではなく「回答数」と表記する
@@ -99,18 +98,33 @@ export default async function HomePage() {
           )}
         </section>
 
-        {others.length > 0 && (
+        {confirmed.length > 0 && (
           <section>
             <div className="mb-5 flex items-baseline justify-between">
-              <h2 className="font-display text-2xl font-extrabold text-foreground">開催決定・終了</h2>
-              <span className="badge bg-success-bg text-success-foreground">{others.length} 件</span>
+              <h2 className="font-display text-2xl font-extrabold text-foreground">開催決定</h2>
+              <span className="badge bg-success-bg text-success-foreground">{confirmed.length} 件</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {others.map((e) => (
+              {confirmed.map((e) => (
                 <EventCard key={e.id} event={e} />
               ))}
             </div>
           </section>
+        )}
+
+        {closed.length > 0 && (
+          // 終了したLT会は一覧の主役ではないので折りたたんでおく
+          <details>
+            <summary className="mb-5 flex cursor-pointer list-none items-baseline justify-between">
+              <h2 className="font-display text-2xl font-extrabold text-foreground">終了したLT会</h2>
+              <span className="badge bg-muted text-muted-foreground">{closed.length} 件</span>
+            </summary>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {closed.map((e) => (
+                <EventCard key={e.id} event={e} />
+              ))}
+            </div>
+          </details>
         )}
       </div>
     </>

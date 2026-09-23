@@ -2,7 +2,7 @@
 
 import type { EventDetailDto } from "@lt/shared";
 import { useActionState } from "react";
-import { confirmEvent, removeDate } from "@/actions/events";
+import { closeEvent, confirmEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
 import { CopyButton } from "./copy-button";
@@ -12,7 +12,9 @@ import { FormMessage } from "./form-message";
 export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; shareUrl: string | null }) {
   const [confirmState, confirmAction, confirming] = useActionState(confirmEvent, undefined);
   const [removeState, removeAction, removing] = useActionState(removeDate, undefined);
+  const [closeState, closeAction, closing] = useActionState(closeEvent, undefined);
   const isOpen = detail.status === "OPEN";
+  const isClosed = detail.status === "CLOSED";
   // 候補日ごとの○△×棒グラフの分母。0除算を避けるため未回答時は1として扱う
   const totalResponders = detail.responders.length || 1;
 
@@ -86,13 +88,17 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <FormMessage state={confirmState} />
           <FormMessage state={removeState} />
         </div>
-      ) : (
+      ) : detail.confirmedDate ? (
         <div className="rounded-[1.25rem] border-[1.5px] border-success bg-success-bg p-4 text-sm text-success-foreground">
           🎉 開催日は{" "}
           <strong className="font-display">
-            {detail.confirmedDate && formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}
+            {formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}
           </strong>{" "}
           に決定済みです。
+        </div>
+      ) : (
+        <div className="rounded-[1.25rem] border-[1.5px] border-card-border bg-muted p-4 text-sm text-muted-foreground">
+          このLT会は終了しました。
         </div>
       )}
 
@@ -100,6 +106,19 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
         <div>
           <p className="label">候補日を追加</p>
           <AddDatesForm eventId={detail.id} />
+        </div>
+      )}
+
+      {!isClosed && (
+        <div className="border-t border-card-border pt-4">
+          <form action={closeAction} className="flex items-center justify-between gap-3">
+            <input type="hidden" name="eventId" value={detail.id} />
+            <p className="text-xs text-muted-foreground">開催が終わった・中止になったLT会は終了にできます。</p>
+            <button type="submit" className="btn-secondary text-xs" disabled={closing}>
+              終了にする
+            </button>
+          </form>
+          <FormMessage state={closeState} />
         </div>
       )}
     </section>

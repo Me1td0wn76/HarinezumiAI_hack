@@ -81,6 +81,16 @@ export class EventsService {
     return toEventDetailDto(confirmed, user.id);
   }
 
+  /** 主催者がLT会を終了する（開催済み・中止など） */
+  async close(id: string, user: User): Promise<EventDetailDto> {
+    const event = await this.findOwnedOrThrow(id, user);
+    if (event.status === 'CLOSED') {
+      throw new BadRequestException('すでに終了しています');
+    }
+    const closed = await this.events.update(id, { status: 'CLOSED' });
+    return toEventDetailDto(closed, user.id);
+  }
+
   async findOrThrow(id: string): Promise<EventDetail> {
     const event = await this.events.findDetailById(id);
     if (!event) throw new NotFoundException('LT会が見つかりません');

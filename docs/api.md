@@ -19,6 +19,7 @@
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
 | POST | `/events/:id/confirm` | 主催者 | 開催日決定（`ConfirmEventRequest`）。Discord 通知 | `EventDetailDto` |
+| POST | `/events/:id/close` | 主催者 | LT会を終了（`status` を `CLOSED` に） | `EventDetailDto` |
 | PUT | `/events/:id/responses` | 必須 | 自分の回答を一括登録・更新（`SubmitResponsesRequest`）。OPEN のときのみ | `EventDetailDto` |
 | GET | `/share/:token` | - | 共有URL からの閲覧 | `EventDetailDto`（`shareToken` は null） |
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
@@ -33,7 +34,7 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 
 | ステータス | 主な原因 |
 | --- | --- |
-| 400 | バリデーションエラー、締め切り後の回答、決定済み候補日の削除 |
+| 400 | バリデーションエラー、締め切り後の回答、決定済み候補日の削除、終了済みLT会の再終了 |
 | 401 | トークンなし・無効、ログイン失敗 |
 | 403 | 主催者以外による操作 |
 | 404 | LT会・候補日が存在しない |

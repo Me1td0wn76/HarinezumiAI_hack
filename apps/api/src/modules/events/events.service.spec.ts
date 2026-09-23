@@ -88,6 +88,17 @@ describe('EventsService', () => {
       await expect(service.create(organizer, dto)).rejects.toThrow(BadRequestException);
       expect(repo.create).not.toHaveBeenCalled();
     });
+
+    it('終了日時が開始日時と同じ（境界値）だと 400', async () => {
+      const dto: CreateEventDto = {
+        title: 'タイトル',
+        description: '説明',
+        candidateDates: [{ startsAt: '2026-02-01T10:00:00.000Z', endsAt: '2026-02-01T10:00:00.000Z' }],
+      };
+
+      await expect(service.create(organizer, dto)).rejects.toThrow(BadRequestException);
+      expect(repo.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {

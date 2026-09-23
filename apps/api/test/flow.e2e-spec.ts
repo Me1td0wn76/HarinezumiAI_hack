@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
+import { configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 interface EventDateDto {
@@ -36,7 +37,7 @@ describe('LT会のフロー (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    configureApp(app);
     await app.init();
 
     prisma = moduleFixture.get(PrismaService);
@@ -50,7 +51,9 @@ describe('LT会のフロー (e2e)', () => {
     if (organizerId) {
       await prisma.user.delete({ where: { id: organizerId } }).catch(() => undefined);
     }
-    await app.close();
+    // beforeAll 自体が失敗すると app が undefined のまま残る。ここで app.close() を呼ぶと
+    // 本当の失敗原因（DB接続エラー等）が TypeError で隠れてしまうため、? を付けて回避する
+    await app?.close();
   });
 
   it('登録 → ログイン → 作成 → 回答 → 決定 → ゲスト回答 の一連が動く', async () => {
@@ -99,6 +102,19 @@ describe('LT会のフロー (e2e)', () => {
     const tally = responded.tallies.find((t) => t.eventDate.id === dateId);
     expect(tally?.yes).toBe(1);
 
+    // ゲスト回答（決定前なので通り、集計に反映される）
+    const guestRes = await request(app.getHttpServer())
+      .put(`/share/${shareToken}/responses`)
+      .send({
+        guestKey: `guest-${randomUUID()}`,
+        guestName: 'ゲスト参加者',
+        responses: [{ eventDateId: dateId, availability: 'YES' }],
+      })
+      .expect(200);
+    const guestResponded = guestRes.body as EventDetailDto;
+    const guestTally = guestResponded.tallies.find((t) => t.eventDate.id === dateId);
+    expect(guestTally?.yes).toBe(2);
+
     // 決定
     const confirmRes = await request(app.getHttpServer())
       .post(`/events/${eventId}/confirm`)
@@ -110,14 +126,14 @@ describe('LT会のフロー (e2e)', () => {
     expect(confirmed.confirmedDate?.id).toBe(dateId);
 
     // ゲスト回答: 開催日決定後は回答を締め切っているので 400（締め切り後の回答拒否）
-    const guestRes = await request(app.getHttpServer())
+    const closedGuestRes = await request(app.getHttpServer())
       .put(`/share/${shareToken}/responses`)
       .send({
         guestKey: `guest-${randomUUID()}`,
-        guestName: 'ゲスト参加者',
+        guestName: 'ゲスト参加者2',
         responses: [{ eventDateId: dateId, availability: 'YES' }],
       })
       .expect(400);
-    expect(guestRes.body.message).toContain('締め切っています');
+    expect(closedGuestRes.body.message).toContain('締め切っています');
   });
 });

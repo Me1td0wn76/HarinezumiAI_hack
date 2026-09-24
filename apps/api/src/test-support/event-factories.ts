@@ -9,6 +9,7 @@ export function buildUser(overrides: Partial<User> = {}): User {
     passwordHash: 'hashed-password',
     displayName: '主催者',
     bio: null,
+    termsAcceptedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,

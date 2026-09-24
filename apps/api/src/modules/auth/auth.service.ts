@@ -27,6 +27,7 @@ export class AuthService {
       email,
       passwordHash: await hash(dto.password, BCRYPT_ROUNDS),
       displayName: dto.displayName,
+      termsAcceptedAt: new Date(),
     });
     return this.issue(user);
   }

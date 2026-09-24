@@ -7,7 +7,7 @@
 | メソッド | パス | 認証 | 内容 | レスポンス |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
-| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`） | `AuthResponse` |
+| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
@@ -70,6 +70,30 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 | 403 | 主催者以外による操作 |
 | 404 | LT会・候補日が存在しない |
 | 409 | メールアドレス重複 |
+| 429 | レート制限超過（下記） |
+
+## レート制限
+
+`@nestjs/throttler` で IP ごとに制限する（設定は `apps/api/src/common/throttle.ts`）。
+web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_PROXY` で信頼したプロキシからの値だけを `req.ip` に使う。
+
+| 対象 | 上限 |
+| --- | --- |
+| 全エンドポイント（`GET /health` を除く） | 120 回 / 分 |
+| `POST /auth/register` | 20 回 / 10 分 |
+| `POST /auth/login` | 10 回 / 分 |
+| `POST /events` | 10 回 / 時 |
+| `PUT /events/:id/responses` | 30 回 / 分 |
+| `PUT /share/:token/responses` | 30 回 / 分 |
+| `POST /events/:id/comments` | 10 回 / 分 |
+
+会場 Wi-Fi など NAT 配下では参加者全員が同じ IP になるため、その場で数十人が一斉に登録・回答しても詰まらない上限にしている。
+
+**デプロイ時の注意**
+
+- `TRUST_PROXY` はホップ数ではなく web サーバーの IP / CIDR で指定する。ホップ数だと接続元に関係なく `X-Forwarded-For` の末尾を信じるので、api に直接届くリクエストが値を偽装して制限を回避できる
+- api は外部に公開せず、web からだけ届くようにする（CORS を開けているのは将来の直接利用に備えたもの）
+- `TRUST_PROXY` を設定し忘れると、全利用者が web サーバーの IP 1 つを共有し、サービス全体で上限を分け合うことになる（登録が全体で 10 分に 20 件など）
 
 ## 回答者の識別
 

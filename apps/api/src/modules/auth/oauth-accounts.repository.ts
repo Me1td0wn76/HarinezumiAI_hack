@@ -28,7 +28,13 @@ export class OAuthAccountsRepository {
     const { email, displayName, provider, providerAccountId } = input;
     try {
       return await this.prisma.user.create({
-        data: { email, displayName, oauthAccounts: { create: { provider, providerAccountId } } },
+        data: {
+          email,
+          displayName,
+          // 利用規約への同意の扱いは未決定（暫定で未同意のまま作る）
+          termsAcceptedAt: null,
+          oauthAccounts: { create: { provider, providerAccountId } },
+        },
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return null;

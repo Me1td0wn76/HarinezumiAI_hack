@@ -55,7 +55,8 @@ export class OAuthService {
    * 2. 同じメールアドレスのユーザーが既にいれば 409。既存アカウントへの自動紐付けはしない。
    *    /auth/register はメールアドレスの所有を確認しないので、攻撃者が他人のメールで先に登録しておくと、
    *    本人の Google ログインが攻撃者のアカウントに紐付き、攻撃者はパスワードで入り続けられてしまう（事前乗っ取り）
-   * 3. どちらでもなければ新規登録（パスワードなし）。プロバイダがメールを確認済みの場合に限る
+   * 3. どちらでもなければ新規登録（パスワードなし）。プロバイダがメールを確認済みの場合に限る。
+   *    利用規約への同意の扱いは未決定のため、暫定で termsAcceptedAt は null のまま作る
    */
   async findOrCreateUser(profile: OAuthProfile): Promise<User> {
     const linked = await this.accounts.findUser(profile.provider, profile.providerAccountId);

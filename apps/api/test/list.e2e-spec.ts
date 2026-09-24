@@ -42,7 +42,12 @@ describe('LT会一覧のページネーション (e2e)', () => {
   it('前ページ最後のイベントが削除されても、続きを取得できる', async () => {
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: `e2e-list-${randomUUID()}@example.com`, password: 'password123', displayName: 'E2E一覧' })
+      .send({
+        email: `e2e-list-${randomUUID()}@example.com`,
+        password: 'password123',
+        displayName: 'E2E一覧',
+        agreeToTerms: true,
+      })
       .expect(201);
     organizerId = registerRes.body.user.id as string;
     const accessToken = registerRes.body.accessToken as string;

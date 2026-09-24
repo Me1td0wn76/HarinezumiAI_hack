@@ -6,7 +6,7 @@
 - 参加者が候補日ごとに ○ / △ / × で回答する（共有URL ならログイン不要）
 - 主催者が集計を見て開催日を決める → Discord に通知
 
-設計の背景は [docs/design.md](./docs/design.md)、決めた／決めていないことは [docs/open-questions.md](./docs/open-questions.md)、API 一覧は [docs/api.md](./docs/api.md) を参照。
+設計の背景は [docs/design.md](./docs/design.md)、決めた／決めていないことは [docs/open-questions.md](./docs/open-questions.md)、API 一覧は [docs/api.md](./docs/api.md)、本番環境（Neon / Render / Vercel）の手順は [docs/deploy.md](./docs/deploy.md) を参照。
 
 ## 構成
 

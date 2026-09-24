@@ -15,6 +15,7 @@ function user(overrides: Partial<User>): User {
     passwordHash: 'hash',
     displayName: '太郎',
     bio: null,
+    termsAcceptedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

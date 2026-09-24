@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type {
   DateTallyDto,
   EventDateDto,
@@ -17,9 +18,16 @@ export function toEventDateDto(date: EventDate): EventDateDto {
   };
 }
 
-/** ログインユーザーとゲストを同じ表で扱うためのキー */
+/**
+ * ログインユーザーとゲストを同じ表で扱うためのキー。
+ * guestKey はゲストの合言葉（知っていれば回答の上書きや配信URL の取得ができる）なので、公開する一覧にはハッシュだけを載せる。
+ * web 側（apps/web/src/lib/guest-key.ts）も同じ計算で自分の行を見つける
+ */
 function responderKeyOf(r: { userId: string | null; guestKey: string | null }): string {
-  return r.userId ?? `guest:${r.guestKey ?? ''}`;
+  if (r.userId) return r.userId;
+  return `guest:${createHash('sha256')
+    .update(r.guestKey ?? '')
+    .digest('hex')}`;
 }
 
 export function toEventSummaryDto(event: EventSummary): EventSummaryDto {

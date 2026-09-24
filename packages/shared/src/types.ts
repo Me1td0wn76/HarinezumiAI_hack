@@ -138,7 +138,7 @@ export interface DateTallyDto {
 
 /** 回答者1人分（グリッド表の1行） */
 export interface ResponderRowDto {
-  /** ログインユーザーなら user.id、ゲストなら "guest:<guestKey>" */
+  /** ログインユーザーなら user.id、ゲストなら "guest:<guestKey の SHA-256（16進）>"。guestKey そのものは公開しない */
   responderKey: string;
   displayName: string;
   isGuest: boolean;

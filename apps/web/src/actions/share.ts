@@ -29,10 +29,19 @@ export async function submitGuestResponses(_prev: ActionState, formData: FormDat
   return { success: true };
 }
 
-/** 回答済みゲストの配信URL。未回答や未決定なら null */
-export async function fetchGuestMeetingUrl(token: string, guestKey: string): Promise<string | null> {
-  const detail = await apiFetch<EventDetailDto>(`/share/${token}?guestKey=${encodeURIComponent(guestKey)}`, {
-    auth: false,
-  });
-  return detail.meetingUrl;
+export type GuestMeetingUrlResult = { meetingUrl: string | null } | { error: string };
+
+/**
+ * 回答済みゲストの配信URL。未回答や未決定なら meetingUrl: null。
+ * 例外を投げるとページ全体がエラー画面になるので、失敗（削除済み・API 停止など）は値として返す
+ */
+export async function fetchGuestMeetingUrl(token: string, guestKey: string): Promise<GuestMeetingUrlResult> {
+  try {
+    const detail = await apiFetch<EventDetailDto>(`/share/${token}?guestKey=${encodeURIComponent(guestKey)}`, {
+      auth: false,
+    });
+    return { meetingUrl: detail.meetingUrl };
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
 }

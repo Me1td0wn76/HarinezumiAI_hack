@@ -69,5 +69,6 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 
 ## 回答者の識別
 
-`EventDetailDto.responders[].responderKey` は、ログインユーザーなら `user.id`、ゲストなら `guest:<guestKey>`。
+`EventDetailDto.responders[].responderKey` は、ログインユーザーなら `user.id`、ゲストなら `guest:<guestKey の SHA-256（16進）>`。
+guestKey は知っていれば回答の上書きや配信URL の取得ができる合言葉なので、公開する一覧にはハッシュだけを載せる。
 web 側はこれで「自分の行」を見つけて強調表示・初期値の復元をしている。

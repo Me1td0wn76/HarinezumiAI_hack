@@ -37,6 +37,8 @@ async function main() {
       title: '第1回 LT会',
       description: '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
       organizer: { connect: { id: demo.id } },
+      format: 'ONLINE',
+      meetingUrl: 'https://meet.example.com/lt-1',
       tags: { create: [{ tag: 'web' }, { tag: 'typescript' }, { tag: '初心者歓迎' }] },
       candidateDates: {
         create: [
@@ -61,16 +63,49 @@ async function main() {
   });
 
   // 発見画面（タグ・検索・ページング）の確認用に、タグ違いのLT会をいくつか足す
-  const extras: { title: string; description: string; tags: string[]; organizer: string }[] = [
-    { title: 'Rust もくもく LT', description: 'Rust で作った CLI やライブラリの話。所有権の話も歓迎', tags: ['rust', 'cli'], organizer: taro.id },
-    { title: 'AI ツール活用 LT', description: 'Claude や Copilot を開発でどう使っているか', tags: ['ai', 'web'], organizer: demo.id },
-    { title: 'インフラ雑談 LT', description: 'Docker、Kubernetes、家のサーバーの話', tags: ['infra', 'docker'], organizer: taro.id },
+  const extras: {
+    title: string;
+    description: string;
+    tags: string[];
+    organizer: string;
+    format: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+    venue?: string;
+    meetingUrl?: string;
+  }[] = [
+    {
+      title: 'Rust もくもく LT',
+      description: 'Rust で作った CLI やライブラリの話。所有権の話も歓迎',
+      tags: ['rust', 'cli'],
+      organizer: taro.id,
+      format: 'ONLINE',
+      meetingUrl: 'https://discord.gg/example-rust',
+    },
+    {
+      title: 'AI ツール活用 LT',
+      description: 'Claude や Copilot を開発でどう使っているか',
+      tags: ['ai', 'web'],
+      organizer: demo.id,
+      format: 'HYBRID',
+      venue: '東京都渋谷区 コワーキングスペース A 会議室',
+      meetingUrl: 'https://meet.example.com/ai-lt',
+    },
+    {
+      title: 'インフラ雑談 LT',
+      description: 'Docker、Kubernetes、家のサーバーの話',
+      tags: ['infra', 'docker'],
+      organizer: taro.id,
+      format: 'OFFLINE',
+      venue: '大阪市北区 カフェ B 2F',
+    },
   ];
   for (const [i, e] of extras.entries()) {
     await prisma.event.create({
       data: {
         title: e.title,
         description: e.description,
+        format: e.format,
+        venue: e.venue ?? null,
+        meetingUrl: e.meetingUrl ?? null,
         organizer: { connect: { id: e.organizer } },
         tags: { create: e.tags.map((tag) => ({ tag })) },
         candidateDates: { create: [{ startsAt: nextWeek(14 + i * 2, 19), endsAt: nextWeek(14 + i * 2, 20) }] },

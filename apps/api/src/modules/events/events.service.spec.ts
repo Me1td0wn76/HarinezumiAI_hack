@@ -147,8 +147,12 @@ describe('EventsService', () => {
 
       const result = await service.update('event-1', organizer, dto);
 
-      // tags を送らなかったときは第3引数が undefined（タグは変更しない）
-      expect(repo.update).toHaveBeenCalledWith('event-1', { title: '新タイトル', description: undefined }, undefined);
+      // 形式・会場・URL は現在値で正規化し直して渡す。tags を送らなかったときは第3引数が undefined（タグは変更しない）
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        { title: '新タイトル', description: undefined, format: undefined, venue: null, meetingUrl: null },
+        undefined,
+      );
       expect(result.title).toBe('新タイトル');
     });
 

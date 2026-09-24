@@ -1,6 +1,7 @@
 import type { EventSummaryDto } from "@lt/shared";
 import Link from "next/link";
 import { formatDateRange } from "@/lib/format";
+import { EventFormatBadge } from "./event-format-badge";
 import { EventStatusBadge } from "./event-status-badge";
 import { TagChip } from "./tag-chip";
 
@@ -14,7 +15,10 @@ export function EventCard({ event }: { event: EventSummaryDto }) {
       <Link href={`/events/${event.id}`} className="block">
         <div className="mb-2 flex items-start justify-between gap-3">
           <h2 className="font-display text-lg font-extrabold leading-snug text-foreground">{event.title}</h2>
-          <EventStatusBadge status={event.status} />
+          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+            <EventFormatBadge format={event.format} />
+            <EventStatusBadge status={event.status} />
+          </div>
         </div>
         {/* 開催日が決まっていれば緑のボックスで日時を、未定なら黄色のボックスで候補日数・回答者数を出す */}
         <div

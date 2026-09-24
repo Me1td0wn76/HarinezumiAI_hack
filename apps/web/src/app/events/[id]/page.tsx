@@ -2,6 +2,7 @@ import type { EventDetailDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventHeader } from "@/components/event-header";
+import { EventPlace } from "@/components/event-place";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
@@ -35,6 +36,8 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
       />
+
+      <EventPlace detail={detail} />
 
       {detail.description && (
         <section className="card">

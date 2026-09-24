@@ -36,6 +36,13 @@ enum EventStatus {
   CLOSED    // 終了・中止
 }
 
+/// 開催形式
+enum EventFormat {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
 /// LT会
 model Event {
   id          String      @id @default(uuid())
@@ -43,6 +50,11 @@ model Event {
   /// 発表内容
   description String
   status      EventStatus @default(OPEN)
+  format      EventFormat @default(ONLINE)
+  /// 会場名・住所（OFFLINE / HYBRID）
+  venue       String?
+  /// 配信URL（ONLINE / HYBRID）。開催日決定後に回答者へ公開する
+  meetingUrl  String?     @map("meeting_url")
   /// 共有URL 用トークン。ログインなしで回答できる
   shareToken  String      @unique @default(cuid()) @map("share_token")
 
@@ -61,6 +73,7 @@ model Event {
 
   @@index([organizerId])
   @@index([status, createdAt])
+  @@index([format])
   // 新着順のカーソルページネーション用
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   // 部分一致検索用（pg_trgm）

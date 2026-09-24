@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
 import { CandidateDatesField } from "./candidate-dates-field";
 import { FormMessage } from "./form-message";
+import { FormatFields } from "./format-fields";
 
 /**
  * フォームの見出し付きカード枠。
@@ -59,6 +60,10 @@ export function EventForm() {
           />
           <p className="mt-1 text-xs text-subtle">カンマか空白で区切ります。興味のある人に見つけてもらいやすくなります。</p>
         </div>
+      </Section>
+
+      <Section title="📍 開催形式">
+        <FormatFields />
       </Section>
 
       <Section title="🗓 候補日">

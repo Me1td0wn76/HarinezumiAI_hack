@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { EventStatus, TagCountDto } from '@lt/shared';
+import type { EventFormat, EventStatus, TagCountDto } from '@lt/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EventDate, Prisma } from '../../generated/prisma/client.js';
+import type { FormatFields } from './format.js';
 
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
@@ -44,6 +45,7 @@ export interface EventListFilter {
   /** タイトル・説明の部分一致（大文字小文字を区別しない） */
   q?: string;
   status?: EventStatus;
+  format?: EventFormat;
   organizerId?: string;
 }
 
@@ -94,6 +96,7 @@ export class EventsRepository {
       ];
     }
     if (filter.status) where.status = filter.status;
+    if (filter.format) where.format = filter.format;
     if (filter.organizerId) where.organizerId = filter.organizerId;
     if (filter.tag) where.tags = { some: { tag: filter.tag } };
     if (filter.q) {
@@ -141,11 +144,13 @@ export class EventsRepository {
     organizerId: string;
     candidateDates: NewCandidateDate[];
     tags: string[];
+    formatFields: FormatFields;
   }): Promise<EventDetail> {
     return this.prisma.event.create({
       data: {
         title: input.title,
         description: input.description,
+        ...input.formatFields,
         organizer: { connect: { id: input.organizerId } },
         candidateDates: { create: input.candidateDates },
         tags: { create: input.tags.map((tag) => ({ tag })) },
@@ -157,7 +162,7 @@ export class EventsRepository {
   /** tags を渡した場合は丸ごと置き換える */
   update(
     id: string,
-    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>,
+    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl'>,
     tags?: string[],
   ): Promise<EventDetail> {
     return this.prisma.event.update({

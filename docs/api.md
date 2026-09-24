@@ -9,6 +9,8 @@
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
 | POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
+| POST | `/auth/password-reset/request` | - | パスワード再設定メールを送る（`RequestPasswordResetRequest`）。登録の有無に関係なく 204 | 204 |
+| POST | `/auth/password-reset/confirm` | - | 新しいパスワードを設定（`ConfirmPasswordResetRequest`）。以前の JWT は無効になる | 204 |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件） | `MyEventsDto` |
@@ -80,7 +82,7 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 
 | ステータス | 主な原因 |
 | --- | --- |
-| 400 | バリデーションエラー、締め切り後の回答、決定済み候補日の削除 |
+| 400 | バリデーションエラー、無効・期限切れのパスワード再設定リンク、締め切り後の回答、決定済み候補日の削除 |
 | 401 | トークンなし・無効、ログイン失敗 |
 | 403 | 主催者以外による操作、運営以外による `/admin` の操作 |
 | 404 | LT会・候補日が存在しない |
@@ -97,6 +99,8 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 | 全エンドポイント（`GET /health` を除く） | 120 回 / 分 |
 | `POST /auth/register` | 20 回 / 10 分 |
 | `POST /auth/login` | 10 回 / 分 |
+| `POST /auth/password-reset/request` | 5 回 / 10 分（1 回ごとにメールが飛ぶので特に厳しくする） |
+| `POST /auth/password-reset/confirm` | 10 回 / 10 分 |
 | `POST /events` | 10 回 / 時 |
 | `PUT /events/:id/responses` | 30 回 / 分 |
 | `PUT /share/:token/responses` | 30 回 / 分 |

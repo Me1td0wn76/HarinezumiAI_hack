@@ -12,6 +12,7 @@ import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { MailModule } from './modules/mail/mail.module.js';
 import { BlocksModule } from './modules/blocks/blocks.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
@@ -23,6 +24,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module.js';
     ThrottlerModule.forRoot(throttlerOptions),
     PrismaModule,
     NotificationsModule,
+    MailModule,
     AuthModule,
     UsersModule,
     EventsModule,

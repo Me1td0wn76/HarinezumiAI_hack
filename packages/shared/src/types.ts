@@ -210,6 +210,19 @@ export interface ConfirmEventRequest {
   eventDateId: string;
 }
 
+// ---------- パスワード再設定 ----------
+
+export interface RequestPasswordResetRequest {
+  email: string;
+}
+
+export interface ConfirmPasswordResetRequest {
+  /** メールのリンクに含まれるトークン */
+  token: string;
+  /** 新しいパスワード（8文字以上） */
+  password: string;
+}
+
 // ---------- 通報・ブロック・運営 ----------
 
 /** LT会・ユーザーの通報。同じ対象への再通報は理由の更新になる */

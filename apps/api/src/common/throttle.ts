@@ -23,6 +23,17 @@ export const THROTTLE = {
   submitResponses: { default: { ttl: MINUTE, limit: 30 } },
   /** 共有URL はログイン不要。懇親会の場で URL を配って一斉に回答されても詰まらない程度 */
   guestResponses: { default: { ttl: MINUTE, limit: 30 } },
+  /**
+   * パスワード再設定メールの送信。1 回ごとに外部へメールが飛ぶので、第三者の受信箱へのメール爆撃や
+   * 送信サービス（Resend）の枠・送信元ドメインの評判を守るため、ほかより大幅に厳しくする。
+   * 正規の利用者が同じ IP から短時間に何度も必要とすることはまず無い（会場で一斉に使う操作でもない）
+   */
+  passwordResetRequest: { default: { ttl: 10 * MINUTE, limit: 5 } },
+  /**
+   * 新しいパスワードの設定。トークンは 256bit なので総当たりは現実的でないが、1 回ごとに bcrypt を回すので
+   * 負荷をかける目的の連打を止める。入力ミスの再送には十分な回数にする
+   */
+  passwordResetConfirm: { default: { ttl: 10 * MINUTE, limit: 10 } },
   /** コメントの連投を防ぐ */
   comment: { default: { ttl: MINUTE, limit: 10 } },
   /** 通報の連投で運営画面を埋められないようにする（同じ対象への再通報は理由の更新なので件数は増えない） */

@@ -9,6 +9,8 @@ interface EventForNotification {
   organizer: { id: string; displayName: string };
   candidateDates: { startsAt: Date; responses: { userId: string | null }[] }[];
   confirmedDate: { startsAt: Date } | null;
+  /** 主催者が設定したLT会ごとの送り先 */
+  webhookUrl: string | null;
 }
 
 const dateFormat = new Intl.DateTimeFormat('ja-JP', {
@@ -46,16 +48,16 @@ export class NotificationsService {
       dates,
       `参加できる日を回答してください → ${this.eventUrl(event.id)}`,
     ].join('\n');
-    void this.discord.send(content);
+    void this.discord.send(content, event.webhookUrl);
 
-    // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー
+    // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー（主催者をブロックした人は除く）
     const data: NewNotification = {
       type: 'EVENT_CREATED',
       title: `新しいLT会「${event.title}」`,
       body: `${event.organizer.displayName} さんがLT会を作成しました。候補日 ${event.candidateDates.length} 件から参加できる日を回答しましょう`,
       link: this.eventPath(event.id),
     };
-    this.saveInApp(() => this.notifications.createForAllUsersExcept(event.organizer.id, data));
+    this.saveInApp(() => this.notifications.createForEventAudience(event.organizer.id, data));
   }
 
   /** 開催日が決定した */
@@ -66,7 +68,7 @@ export class NotificationsService {
       `📅 ${dateFormat.format(event.confirmedDate.startsAt)}`,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content);
+    void this.discord.send(content, event.webhookUrl);
 
     const data: NewNotification = {
       type: 'EVENT_CONFIRMED',
@@ -75,6 +77,22 @@ export class NotificationsService {
       link: this.eventPath(event.id),
     };
     this.saveInApp(() => this.notifications.createForUsers(respondentIds(event), data));
+  }
+
+  /** LT会にコメントが付いた */
+  commentPosted(
+    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl'>,
+    authorName: string,
+    body: string,
+  ): void {
+    // 長文をそのまま流すとチャンネルが埋まるので先頭だけ
+    const excerpt = body.length > 100 ? `${body.slice(0, 100)}…` : body;
+    const content = [
+      `💬 LT会「${event.title}」に ${authorName} さんがコメントしました`,
+      excerpt,
+      this.eventUrl(event.id),
+    ].join('\n');
+    void this.discord.send(content, event.webhookUrl);
   }
 
   /**

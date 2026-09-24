@@ -16,18 +16,19 @@ function makeEvent(overrides: Partial<Parameters<NotificationsService['eventCrea
       { startsAt: new Date('2026-10-06T09:00:00Z'), responses: [] },
     ],
     confirmedDate: null,
+    webhookUrl: null,
     ...overrides,
   };
 }
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let repo: { createForUsers: ReturnType<typeof vi.fn>; createForAllUsersExcept: ReturnType<typeof vi.fn> };
+  let repo: { createForUsers: ReturnType<typeof vi.fn>; createForEventAudience: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     repo = {
       createForUsers: vi.fn().mockResolvedValue(undefined),
-      createForAllUsersExcept: vi.fn().mockResolvedValue(undefined),
+      createForEventAudience: vi.fn().mockResolvedValue(undefined),
     };
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -43,8 +44,8 @@ describe('NotificationsService', () => {
   it('LT会作成: 主催者以外の全ユーザーに通知を作る', async () => {
     service.eventCreated(makeEvent());
 
-    await vi.waitFor(() => expect(repo.createForAllUsersExcept).toHaveBeenCalled());
-    expect(repo.createForAllUsersExcept).toHaveBeenCalledWith(
+    await vi.waitFor(() => expect(repo.createForEventAudience).toHaveBeenCalled());
+    expect(repo.createForEventAudience).toHaveBeenCalledWith(
       'organizer',
       expect.objectContaining({ type: 'EVENT_CREATED', link: '/events/event-1' }),
     );
@@ -55,7 +56,10 @@ describe('NotificationsService', () => {
       makeEvent({
         candidateDates: [
           { startsAt: new Date('2026-10-05T09:00:00Z'), responses: [{ userId: 'u1' }, { userId: null }] },
-          { startsAt: new Date('2026-10-06T09:00:00Z'), responses: [{ userId: 'u1' }, { userId: 'organizer' }, { userId: 'u3' }] },
+          {
+            startsAt: new Date('2026-10-06T09:00:00Z'),
+            responses: [{ userId: 'u1' }, { userId: 'organizer' }, { userId: 'u3' }],
+          },
         ],
         confirmedDate: { startsAt: new Date('2026-10-06T09:00:00Z') },
       }),
@@ -74,8 +78,8 @@ describe('NotificationsService', () => {
   });
 
   it('保存に失敗しても例外を投げない', async () => {
-    repo.createForAllUsersExcept.mockRejectedValue(new Error('db down'));
+    repo.createForEventAudience.mockRejectedValue(new Error('db down'));
     expect(() => service.eventCreated(makeEvent())).not.toThrow();
-    await vi.waitFor(() => expect(repo.createForAllUsersExcept).toHaveBeenCalled());
+    await vi.waitFor(() => expect(repo.createForEventAudience).toHaveBeenCalled());
   });
 });

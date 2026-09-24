@@ -1,5 +1,5 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cookies, headers as requestHeaders } from 'next/headers';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3001';
 
@@ -33,6 +33,8 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   const headers = new Headers(rest.headers);
   headers.set('Accept', 'application/json');
   if (body !== undefined) headers.set('Content-Type', 'application/json');
+  const clientIp = await getClientIp();
+  if (clientIp) headers.set('X-Forwarded-For', clientIp);
   if (auth) {
     const token = (await cookies()).get(TOKEN_COOKIE)?.value;
     if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -49,6 +51,23 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   const json: unknown = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, extractMessage(json, res.status));
   return json as T;
+}
+
+/**
+ * ブラウザの IP。API のレート制限を利用者ごとに掛けるために X-Forwarded-For で渡す（API 側は trust proxy で受け取る）。
+ * プロキシが付け足していくヘッダーなので、Next.js の直前のプロキシが付けた末尾の値を使う
+ * （先頭はブラウザが自由に書けるため信用しない）。
+ */
+async function getClientIp(): Promise<string | null> {
+  // headers() はリクエストの外（ビルド時・after() の中など）では投げる。その場合は IP を付けずに呼ぶ
+  let h: Headers;
+  try {
+    h = await requestHeaders();
+  } catch {
+    return null;
+  }
+  const forwarded = h.get('x-forwarded-for')?.split(',').at(-1)?.trim();
+  return forwarded || h.get('x-real-ip');
 }
 
 /** NestJS のエラーレスポンス（message が string | string[]）から表示用メッセージを取り出す */

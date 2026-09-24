@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { NotificationDto, NotificationListDto, UnreadCountDto } from '@lt/shared';
+import type { NotificationDto, PageDto, UnreadCountDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsRepository } from './notifications.repository.js';
 import { toNotificationDto } from './notifications.mapper.js';
@@ -15,11 +15,11 @@ export const PAGE_SIZE = 30;
 export class InboxService {
   constructor(private readonly notifications: NotificationsRepository) {}
 
-  /** 新しい順に1ページ分。before を渡すとその通知より古いものを返す */
-  async list(user: User, before?: string): Promise<NotificationListDto> {
+  /** 新しい順に1ページ分。cursor（通知 ID）を渡すとその通知より古いものを返す */
+  async list(user: User, cursorId?: string): Promise<PageDto<NotificationDto>> {
     let cursor;
-    if (before) {
-      cursor = await this.notifications.findOwned(before, user.id);
+    if (cursorId) {
+      cursor = await this.notifications.findOwned(cursorId, user.id);
       if (!cursor) throw new NotFoundException('通知が見つかりません');
     }
     // 1件多く取り、続きがあるかを判定する

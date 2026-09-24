@@ -41,13 +41,13 @@ describe('InboxService.list', () => {
     expect(res.nextCursor).toBe(`n${PAGE_SIZE - 1}`);
   });
 
-  it('before が自分の通知でなければ 404', async () => {
+  it('cursor が自分の通知でなければ 404', async () => {
     const { service, repo } = setup([], null);
     await expect(service.list(user, 'other')).rejects.toBeInstanceOf(NotFoundException);
     expect(repo.findOwned).toHaveBeenCalledWith('other', 'me');
   });
 
-  it('before の通知を起点に続きを取る', async () => {
+  it('cursor の通知を起点に続きを取る', async () => {
     const cursor = row(3);
     const { service, repo } = setup([row(4)], cursor);
     await service.list(user, 'n3');

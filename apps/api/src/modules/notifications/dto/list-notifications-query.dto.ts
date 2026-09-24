@@ -1,8 +1,8 @@
 import { IsOptional, IsUUID } from 'class-validator';
 
 export class ListNotificationsQueryDto {
-  /** この通知より古いものを返す（前ページの nextCursor） */
+  /** 前ページの nextCursor。この通知より古いものを返す */
   @IsOptional()
   @IsUUID()
-  before?: string;
+  cursor?: string;
 }

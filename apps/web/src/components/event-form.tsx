@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
 import { CandidateDatesField } from "./candidate-dates-field";
+import { WebhookUrlField } from "./webhook-url-field";
 import { FormMessage } from "./form-message";
+import { FormatFields } from "./format-fields";
+import { TagsField } from "./tags-field";
 
 /**
  * フォームの見出し付きカード枠。
@@ -45,11 +48,20 @@ export function EventForm() {
             placeholder="発表テーマや持ち時間、参加者へのメッセージなど"
           />
         </div>
+        <TagsField />
+      </Section>
+
+      <Section title="📍 開催形式">
+        <FormatFields />
       </Section>
 
       <Section title="🗓 候補日">
         <p className="-mt-2 text-xs text-subtle">終了時刻は任意です</p>
         <CandidateDatesField min={1} />
+      </Section>
+
+      <Section title="🔔 通知">
+        <WebhookUrlField id="webhookUrl" />
       </Section>
 
       <FormMessage state={state} />

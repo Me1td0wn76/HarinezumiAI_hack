@@ -34,12 +34,18 @@ export class NotificationsRepository {
     }
   }
 
-  /** 同じ内容の通知を1人を除く全ユーザーに作る。ユーザー数が増えてもメモリを食わないよう ID 順に区切って処理する */
-  async createForAllUsersExcept(excludeUserId: string, data: NewNotification): Promise<void> {
+  /**
+   * 新しいLT会の通知を、主催者本人と主催者をブロックしている人を除く全ユーザーに作る。
+   * ユーザー数が増えてもメモリを食わないよう ID 順に区切って処理する
+   */
+  async createForEventAudience(organizerId: string, data: NewNotification): Promise<void> {
     let after: string | undefined;
     for (;;) {
       const users = await this.prisma.user.findMany({
-        where: { id: after ? { not: excludeUserId, gt: after } : { not: excludeUserId } },
+        where: {
+          id: after ? { not: organizerId, gt: after } : { not: organizerId },
+          blocking: { none: { blockedId: organizerId } },
+        },
         select: { id: true },
         orderBy: { id: 'asc' },
         take: BATCH_SIZE,
@@ -55,12 +61,12 @@ export class NotificationsRepository {
   }
 
   /** 新しい順に最大 take 件。createdAt が同じ通知は id で順序を決める */
-  findPageByUser(userId: string, take: number, before?: NotificationCursor): Promise<Notification[]> {
+  findPageByUser(userId: string, take: number, cursor?: NotificationCursor): Promise<Notification[]> {
     return this.prisma.notification.findMany({
       where: {
         userId,
-        ...(before && {
-          OR: [{ createdAt: { lt: before.createdAt } }, { createdAt: before.createdAt, id: { lt: before.id } }],
+        ...(cursor && {
+          OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }],
         }),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],

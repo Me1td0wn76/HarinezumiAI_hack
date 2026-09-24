@@ -1,4 +1,4 @@
-import type { NotificationListDto, NotificationType } from "@lt/shared";
+import type { NotificationDto, NotificationType, PageDto } from "@lt/shared";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { markAllNotificationsRead, openNotification } from "@/actions/notifications";
@@ -14,19 +14,19 @@ const TYPE_ICON: Record<NotificationType, string> = {
 
 export default async function NotificationsPage(props: PageProps<"/notifications">) {
   await requireUser();
-  const { before } = await props.searchParams;
-  // 1ページずつ取得する。?before=<通知ID> でそれより古い通知を表示する
-  const cursor = typeof before === "string" && before ? before : undefined;
+  const { cursor: cursorParam } = await props.searchParams;
+  // 1ページずつ取得する。?cursor=<通知ID> でそれより古い通知を表示する
+  const cursor = typeof cursorParam === "string" && cursorParam ? cursorParam : undefined;
 
-  let list: NotificationListDto;
+  let list: PageDto<NotificationDto>;
   let unread: number;
   try {
     [list, unread] = await Promise.all([
-      apiFetch<NotificationListDto>(`/notifications${cursor ? `?before=${encodeURIComponent(cursor)}` : ""}`),
+      apiFetch<PageDto<NotificationDto>>(`/notifications${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`),
       getUnreadNotificationCount(),
     ]);
   } catch (err) {
-    // URL を手で書き換えた等で before が不正なら、最新の通知に戻す
+    // URL を手で書き換えた等で cursor が不正なら、最新の通知に戻す
     if (cursor && err instanceof ApiError && (err.status === 400 || err.status === 404)) redirect("/notifications");
     throw err;
   }
@@ -91,7 +91,7 @@ export default async function NotificationsPage(props: PageProps<"/notifications
 
       {list.nextCursor && (
         <div className="text-center">
-          <Link href={`/notifications?before=${encodeURIComponent(list.nextCursor)}`} className="btn-secondary text-xs">
+          <Link href={`/notifications?cursor=${encodeURIComponent(list.nextCursor)}`} className="btn-secondary text-xs">
             古い通知を見る
           </Link>
         </div>

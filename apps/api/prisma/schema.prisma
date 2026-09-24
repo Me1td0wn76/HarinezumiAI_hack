@@ -2,27 +2,49 @@
 // enum は packages/shared/src/enums.ts と一致させること
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  // pg_trgm: 日本語の部分一致検索（ILIKE '%...%'）を GIN index で高速化する
+  extensions = [pg_trgm]
+}
+
+/// ユーザーの権限
+enum UserRole {
+  USER  // 一般ユーザー
+  ADMIN // 運営。通報の確認とLT会の非表示ができる
 }
 
 /// ユーザー
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  displayName  String   @map("display_name")
-  bio          String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  email             String    @unique
+  /// ソーシャルログインだけで登録したユーザーは NULL
+  passwordHash      String?   @map("password_hash")
+  displayName       String    @map("display_name")
+  bio               String?
+  role              UserRole  @default(USER)
+  /// 利用規約・プライバシーポリシーに同意した日時。登録時に必須
+  termsAcceptedAt   DateTime? @map("terms_accepted_at")
+  /// パスワードを再設定した日時。これより前に発行した JWT は無効にする
+  passwordChangedAt DateTime? @map("password_changed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  organizedEvents Event[]
-  responses       DateResponse[]
-  notifications   Notification[]
+  organizedEvents     Event[]
+  responses           DateResponse[]
+  reports             Report[]
+  blocking            Block[]              @relation("Blocker")
+  blockedBy           Block[]              @relation("Blocked")
+  moderationLogs      ModerationLog[]
+  passwordResetTokens PasswordResetToken[]
+  oauthAccounts       OAuthAccount[]
+  comments            EventComment[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -34,6 +56,13 @@ enum EventStatus {
   CLOSED    // 終了・中止
 }
 
+/// 開催形式
+enum EventFormat {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
 /// LT会
 model Event {
   id          String      @id @default(uuid())
@@ -41,8 +70,15 @@ model Event {
   /// 発表内容
   description String
   status      EventStatus @default(OPEN)
+  format      EventFormat @default(ONLINE)
+  /// 会場名・住所（OFFLINE / HYBRID）
+  venue       String?
+  /// 配信URL（ONLINE / HYBRID）。開催日決定後に回答者へ公開する
+  meetingUrl  String?     @map("meeting_url")
   /// 共有URL 用トークン。ログインなしで回答できる
   shareToken  String      @unique @default(cuid()) @map("share_token")
+  /// 主催者が設定する Discord Webhook URL（任意）。主催者以外には返さない
+  webhookUrl  String?     @map("webhook_url")
 
   organizerId String @map("organizer_id")
   organizer   User   @relation(fields: [organizerId], references: [id])
@@ -51,14 +87,36 @@ model Event {
   confirmedDateId String?    @unique @map("confirmed_date_id")
   confirmedDate   EventDate? @relation("ConfirmedDate", fields: [confirmedDateId], references: [id], onDelete: SetNull)
 
-  candidateDates EventDate[] @relation("CandidateDates")
+  candidateDates EventDate[]    @relation("CandidateDates")
+  tags           EventTag[]
+  comments       EventComment[]
+
+  /// 運営が非表示にした日時。NULL なら公開。非表示のLT会は主催者と運営にしか見えない
+  hiddenAt DateTime? @map("hidden_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([organizerId])
   @@index([status, createdAt])
+  @@index([format])
+  // 新着順のカーソルページネーション用
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  // 部分一致検索用（pg_trgm）
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("events")
+}
+
+/// LT会に付けるタグ。正規化済み（前後空白・先頭 # を除去、小文字）の文字列をそのまま持つ
+model EventTag {
+  eventId String @map("event_id")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag     String
+
+  @@id([eventId, tag])
+  @@index([tag])
+  @@map("event_tags")
 }
 
 /// 開催候補日
@@ -106,6 +164,115 @@ model DateResponse {
   @@unique([eventDateId, userId])
   @@unique([eventDateId, guestKey])
   @@map("date_responses")
+}
+
+/// ソーシャルログインの連携。provider は "google"（今後 "github" / "x" を追加する）
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  /// プロバイダ側のユーザー ID（Google なら ID トークンの sub）
+  providerAccountId String   @map("provider_account_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+/// パスワード再設定用のトークン。平文はメールでだけ送り、DB にはハッシュを保存する
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 のハッシュ（hex）
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+/// 通報の対象
+enum ReportTargetType {
+  EVENT
+  USER
+}
+
+/// 通報の理由
+enum ReportReason {
+  SPAM          // スパム・宣伝
+  HARASSMENT    // 誹謗中傷・嫌がらせ
+  INAPPROPRIATE // 不適切な内容
+  OTHER         // その他
+}
+
+/// LT会・ユーザーへの通報。対象は削除されても判断の記録として残すため、外部キーにしない
+model Report {
+  id         String           @id @default(uuid())
+  reporterId String           @map("reporter_id")
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id")
+  reason     ReportReason
+  /// 自由記述の補足
+  detail     String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  // 同じ人が同じ対象を何度も通報して件数を水増しできないようにする（再通報は理由の更新になる）
+  @@unique([reporterId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+/// ブロック。ブロックした相手が主催するLT会を一覧から除外する
+model Block {
+  blockerId String   @map("blocker_id")
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String   @map("blocked_id")
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([blockerId, blockedId])
+  @@map("blocks")
+}
+
+/// 運営の操作
+enum ModerationAction {
+  HIDE_EVENT
+  UNHIDE_EVENT
+}
+
+/// 運営の操作ログ。後から判断の根拠を追えるように残す
+model ModerationLog {
+  id         String           @id @default(uuid())
+  adminId    String           @map("admin_id")
+  admin      User             @relation(fields: [adminId], references: [id])
+  action     ModerationAction
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id")
+  note       String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@map("moderation_logs")
+}
+
+/// LT会へのコメント（主催者・参加者間の連絡）。当面はログインユーザーのみ投稿できる
+model EventComment {
+  id      String @id @default(uuid())
+  eventId String @map("event_id")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String @map("user_id")
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body    String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([eventId, createdAt])
+  @@map("event_comments")
 }
 
 /// アプリ内通知の種類

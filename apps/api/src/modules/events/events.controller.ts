@@ -8,8 +8,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../../common/throttle.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard.js';
@@ -19,18 +22,22 @@ import { CreateEventDto } from './dto/create-event.dto.js';
 import { UpdateEventDto } from './dto/update-event.dto.js';
 import { AddDatesDto } from './dto/add-dates.dto.js';
 import { ConfirmEventDto } from './dto/confirm-event.dto.js';
+import { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 
 @Controller('events')
 export class EventsController {
   constructor(private readonly events: EventsService) {}
 
+  /** 新着順。cursor / limit / tag / q / status / organizerId で絞り込む。ログインしていればブロックした相手のLT会を除く */
   @Get()
-  list() {
-    return this.events.list();
+  @UseGuards(OptionalJwtAuthGuard)
+  list(@CurrentUser() user: User | null, @Query() query: ListEventsQueryDto) {
+    return this.events.list(query, user);
   }
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Throttle(THROTTLE.createEvent)
   create(@CurrentUser() user: User, @Body() dto: CreateEventDto) {
     return this.events.create(user, dto);
   }

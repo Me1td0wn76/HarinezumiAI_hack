@@ -13,7 +13,7 @@ export class NotificationsController {
   /** 自分宛ての通知（新しい順、1ページ分） */
   @Get()
   list(@CurrentUser() user: User, @Query() query: ListNotificationsQueryDto) {
-    return this.inbox.list(user, query.before);
+    return this.inbox.list(user, query.cursor);
   }
 
   /** ヘッダーのバッジ用 */

@@ -13,9 +13,10 @@ export class ShareService {
     private readonly responses: ResponsesService,
   ) {}
 
-  async getByToken(token: string): Promise<EventDetailDto> {
+  /** @param guestKey 渡されると、そのゲストが回答済みかを見て配信URL の出し分けをする */
+  async getByToken(token: string, guestKey?: string): Promise<EventDetailDto> {
     const event = await this.findOrThrow(token);
-    return toEventDetailDto(event, null);
+    return toEventDetailDto(event, { guestKey });
   }
 
   async respond(token: string, dto: SubmitGuestResponsesDto): Promise<EventDetailDto> {
@@ -25,7 +26,8 @@ export class ShareService {
 
   private async findOrThrow(token: string): Promise<EventDetail> {
     const event = await this.events.findDetailByShareToken(token);
-    if (!event) throw new NotFoundException('LT会が見つかりません');
+    // 運営が非表示にしたLT会は共有URL からも見せない
+    if (!event || event.hiddenAt) throw new NotFoundException('LT会が見つかりません');
     return event;
   }
 }

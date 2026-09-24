@@ -22,6 +22,35 @@ export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
   CLOSED: '終了',
 };
 
+/** ユーザーの権限 */
+export const USER_ROLE = ['USER', 'ADMIN'] as const;
+export type UserRole = (typeof USER_ROLE)[number];
+
+/** 通報の対象 */
+export const REPORT_TARGET_TYPE = ['EVENT', 'USER'] as const;
+export type ReportTargetType = (typeof REPORT_TARGET_TYPE)[number];
+
+/** 通報の理由 */
+export const REPORT_REASON = ['SPAM', 'HARASSMENT', 'INAPPROPRIATE', 'OTHER'] as const;
+export type ReportReason = (typeof REPORT_REASON)[number];
+
+export const REPORT_REASON_LABEL: Record<ReportReason, string> = {
+  SPAM: 'スパム・宣伝',
+  HARASSMENT: '誹謗中傷・嫌がらせ',
+  INAPPROPRIATE: '不適切な内容',
+  OTHER: 'その他',
+};
+
+/** 開催形式 */
+export const EVENT_FORMAT = ['ONLINE', 'OFFLINE', 'HYBRID'] as const;
+export type EventFormat = (typeof EVENT_FORMAT)[number];
+
+export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
+  ONLINE: 'オンライン',
+  OFFLINE: 'オフライン',
+  HYBRID: 'ハイブリッド',
+};
+
 /** アプリ内通知の種類 */
 export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPE)[number];

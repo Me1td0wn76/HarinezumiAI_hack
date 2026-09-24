@@ -1,17 +1,20 @@
 "use client";
 
 import type { EventDetailDto } from "@lt/shared";
+import Link from "next/link";
 import { useActionState } from "react";
-import { confirmEvent, removeDate } from "@/actions/events";
+import { confirmEvent, deleteEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
-import { CopyButton } from "./copy-button";
+import { WebhookForm } from "./webhook-form";
 import { FormMessage } from "./form-message";
+import { ShareButtons } from "./share-buttons";
 
 /** 主催者だけに見せる操作パネル: 共有URL、開催日の決定、候補日の追加・削除 */
 export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; shareUrl: string | null }) {
   const [confirmState, confirmAction, confirming] = useActionState(confirmEvent, undefined);
   const [removeState, removeAction, removing] = useActionState(removeDate, undefined);
+  const [deleteState, deleteAction, deleting] = useActionState(deleteEvent, undefined);
   const isOpen = detail.status === "OPEN";
   // 候補日ごとの○△×棒グラフの分母。0除算を避けるため未回答時は1として扱う
   const totalResponders = detail.responders.length || 1;
@@ -28,11 +31,11 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <p className="mb-1.5 font-display text-xs font-bold text-secondary-foreground">
             共有URL（ログインなしで回答できます）
           </p>
-          <div className="flex gap-2">
-            <input className="input" readOnly value={shareUrl} onFocus={(e) => e.target.select()} />
-            <CopyButton text={shareUrl} />
-          </div>
+          <input className="input" readOnly value={shareUrl} onFocus={(e) => e.target.select()} aria-label="共有URL" />
           <p className="mt-1.5 text-xs text-muted-foreground">Discord や LINE に貼って参加者に回答してもらいましょう。</p>
+          <div className="mt-2">
+            <ShareButtons url={shareUrl} text={`「${detail.title}」参加できる日を回答してください`} compact />
+          </div>
         </div>
       )}
 
@@ -102,6 +105,35 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <AddDatesForm eventId={detail.id} />
         </div>
       )}
+
+      <div>
+        <p className="label">Discord への通知</p>
+        <WebhookForm eventId={detail.id} webhookUrl={detail.webhookUrl} />
+      </div>
+
+      <div className="border-t border-card-border pt-4">
+        <p className="label">LT会の管理</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/events/${detail.id}/edit`} className="btn-secondary text-xs">
+            タイトル・内容を編集
+          </Link>
+          <form
+            action={deleteAction}
+            onSubmit={(e) => {
+              // 回答もすべて消えるため、送信前に確認する
+              if (!window.confirm(`「${detail.title}」を削除します。回答もすべて削除され、元に戻せません。よろしいですか？`)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="eventId" value={detail.id} />
+            <button type="submit" className="btn-danger text-xs" disabled={deleting}>
+              {deleting ? "削除中…" : "LT会を削除"}
+            </button>
+          </form>
+        </div>
+        <FormMessage state={deleteState} />
+      </div>
     </section>
   );
 }

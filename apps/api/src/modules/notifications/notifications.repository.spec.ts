@@ -34,10 +34,10 @@ describe('NotificationsRepository', () => {
     expect(createMany).not.toHaveBeenCalled();
   });
 
-  it('createForAllUsersExcept: 全ユーザーを漏れなく重複なく、除外ユーザー以外に作る', async () => {
+  it('createForEventAudience: 全ユーザーを漏れなく重複なく、除外ユーザー以外に作る', async () => {
     const all = ids(2001);
     const { repo, createMany } = setup(all);
-    await repo.createForAllUsersExcept(all[10], data);
+    await repo.createForEventAudience(all[10], data);
 
     const created = createMany.mock.calls.flatMap(([arg]) => arg.data.map((d: { userId: string }) => d.userId));
     expect(created).toHaveLength(2000);
@@ -47,9 +47,9 @@ describe('NotificationsRepository', () => {
     expect(Math.max(...createMany.mock.calls.map(([arg]) => arg.data.length))).toBeLessThanOrEqual(1000);
   });
 
-  it('createForAllUsersExcept: ちょうど1000人でも無限ループしない', async () => {
+  it('createForEventAudience: ちょうど1000人でも無限ループしない', async () => {
     const { repo, findMany } = setup(ids(1001, 'a'));
-    await repo.createForAllUsersExcept('a00000', data);
+    await repo.createForEventAudience('a00000', data);
     expect(findMany).toHaveBeenCalledTimes(2);
   });
 });

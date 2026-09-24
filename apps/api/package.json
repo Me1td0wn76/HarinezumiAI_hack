@@ -25,7 +25,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "nest build && node dist/prisma/seed.js"
+    "prisma:seed": "nest build && node dist/prisma/seed.js",
+    "db:test:up": "node ./scripts/create-test-db.mjs",
+    "db:test:migrate": "node ./scripts/migrate-test-db.mjs"
   },
   "dependencies": {
     "@lt/shared": "workspace:*",

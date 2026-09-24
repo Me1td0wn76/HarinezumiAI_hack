@@ -4,6 +4,7 @@ import { LegalPage } from "@/components/legal-page";
 export const metadata: Metadata = { title: "プライバシーポリシー | LT会支援アプリ" };
 
 // 公開前に運営チームで内容を確認すること（運営者名・問い合わせ窓口・外部サービスの一覧など）
+// TODO: 「5. 削除」の問い合わせ先が未記載。公開前に窓口（フォームやメールアドレス）を決めて書く
 export default function PrivacyPage() {
   return (
     <LegalPage title="プライバシーポリシー" updatedAt="2026年9月24日">
@@ -51,7 +52,9 @@ export default function PrivacyPage() {
 
       <section>
         <h2>6. 変更</h2>
-        <p>本ポリシーは必要に応じて変更します。変更後の内容は本ページに掲載した時点から効力を生じます。</p>
+        <p>
+          本ポリシーは必要に応じて変更します。変更するときは、変更後の内容と効力発生日を、効力発生日より前に本サービス上で告知します。
+        </p>
       </section>
     </LegalPage>
   );

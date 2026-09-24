@@ -59,7 +59,13 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
  * （先頭はブラウザが自由に書けるため信用しない）。
  */
 async function getClientIp(): Promise<string | null> {
-  const h = await requestHeaders();
+  // headers() はリクエストの外（ビルド時・after() の中など）では投げる。その場合は IP を付けずに呼ぶ
+  let h: Headers;
+  try {
+    h = await requestHeaders();
+  } catch {
+    return null;
+  }
   const forwarded = h.get('x-forwarded-for')?.split(',').at(-1)?.trim();
   return forwarded || h.get('x-real-ip');
 }

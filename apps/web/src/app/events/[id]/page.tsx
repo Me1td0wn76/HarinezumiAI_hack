@@ -1,29 +1,64 @@
-import type { EventDetailDto } from "@lt/shared";
+import type { EventCommentDto, EventDetailDto } from "@lt/shared";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentSection } from "@/components/comment-section";
 import { EventHeader } from "@/components/event-header";
+import { EventPlace } from "@/components/event-place";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
+import { ShareButtons } from "@/components/share-buttons";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { eventShareText, getEventDetail, webUrl } from "@/lib/events";
+import { eventDescription } from "@/lib/og-image";
 
-export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
-  const { id } = await props.params;
-
-  let detail: EventDetailDto;
+/** 見つからない・不正な ID は 404 に寄せる */
+async function loadDetail(id: string): Promise<EventDetailDto> {
   try {
     // Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
-    detail = await apiFetch<EventDetailDto>(`/events/${id}`);
+    return await getEventDetail(id);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-  const user = await getCurrentUser();
+}
+
+/** OGP。X / LINE / Discord に貼ったときのカード表示に使われる */
+export async function generateMetadata(props: PageProps<"/events/[id]">): Promise<Metadata> {
+  const { id } = await props.params;
+  const detail = await loadDetail(id);
+  const description = eventDescription(detail);
+  return {
+    title: detail.title,
+    description,
+    openGraph: { title: detail.title, description, type: "article", url: `/events/${id}` },
+    twitter: { card: "summary_large_image", title: detail.title, description },
+  };
+}
+
+export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
+  const { id } = await props.params;
+
+  // detail は generateMetadata と同じ関数なので React.cache で 1 回しか取得されない
+  let detail: EventDetailDto;
+  let comments: EventCommentDto[];
+  let user: Awaited<ReturnType<typeof getCurrentUser>>;
+  try {
+    [detail, comments, user] = await Promise.all([
+      loadDetail(id),
+      apiFetch<EventCommentDto[]>(`/events/${id}/comments`),
+      getCurrentUser(),
+    ]);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
+    throw err;
+  }
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
-  const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
-  const shareUrl = detail.shareToken ? `${webUrl}/share/${detail.shareToken}` : null;
+  const shareUrl = detail.shareToken ? webUrl(`/share/${detail.shareToken}`) : null;
+  const shareText = eventShareText(detail);
 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
@@ -33,7 +68,11 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         status={detail.status}
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
+        tags={detail.tags}
       />
+      <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />
+
+      <EventPlace detail={detail} />
 
       {detail.description && (
         <section className="card">
@@ -67,6 +106,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
       )}
 
       {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
+
+      <CommentSection
+        eventId={detail.id}
+        organizerId={detail.organizer.id}
+        comments={comments}
+        viewerId={user?.id ?? null}
+      />
     </div>
   );
 }

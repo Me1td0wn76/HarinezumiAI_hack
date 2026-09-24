@@ -10,7 +10,9 @@ import { UsersModule } from './modules/users/users.module.js';
 import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
+import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { ScheduleModule } from './modules/schedule/schedule.module.js';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     EventsModule,
     ResponsesModule,
     ShareModule,
+    CommentsModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   // 全エンドポイントにレート制限を掛ける（上限は common/throttle.ts）

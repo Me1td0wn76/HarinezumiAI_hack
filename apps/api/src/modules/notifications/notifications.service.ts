@@ -59,6 +59,22 @@ export class NotificationsService {
     void this.discord.send(content, event.webhookUrl);
   }
 
+  /** LT会にコメントが付いた */
+  commentPosted(
+    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl'>,
+    authorName: string,
+    body: string,
+  ): void {
+    // 長文をそのまま流すとチャンネルが埋まるので先頭だけ
+    const excerpt = body.length > 100 ? `${body.slice(0, 100)}…` : body;
+    const content = [
+      `💬 LT会「${event.title}」に ${authorName} さんがコメントしました`,
+      excerpt,
+      this.eventUrl(event.id),
+    ].join('\n');
+    void this.discord.send(content, event.webhookUrl);
+  }
+
   private eventUrl(id: string): string {
     return `${this.webUrl}/events/${id}`;
   }

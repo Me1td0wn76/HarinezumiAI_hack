@@ -1,10 +1,11 @@
 'use server';
 
-import type { EventDetailDto, UserDto } from '@lt/shared';
+import type { EventDetailDto, EventListQuery, EventSummaryDto, PageDto, UserDto } from '@lt/shared';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { apiFetch, errorMessage } from '@/lib/api';
-import { parseCandidateDates, parseResponses, str } from './form';
+import { toEventsSearchParams } from '@/lib/events-query';
+import { parseCandidateDates, parseResponses, parseTags, str } from './form';
 import type { ActionState } from './types';
 
 export async function createEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -20,6 +21,10 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
         description: str(formData, 'description'),
         candidateDates,
         webhookUrl: str(formData, 'webhookUrl') || null,
+        tags: parseTags(formData),
+        format: str(formData, 'format') || undefined,
+        venue: str(formData, 'venue') || null,
+        meetingUrl: str(formData, 'meetingUrl') || null,
       },
     });
   } catch (err) {
@@ -27,6 +32,21 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
   }
   revalidatePath('/');
   redirect(`/events/${created.id}`);
+}
+
+export async function updateEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const eventId = str(formData, 'eventId');
+  try {
+    await apiFetch<EventDetailDto>(`/events/${eventId}`, {
+      method: 'PATCH',
+      body: { title: str(formData, 'title'), description: str(formData, 'description') },
+    });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath('/');
+  redirect(`/events/${eventId}`);
 }
 
 /** LT会ごとの Discord 通知先を設定・解除する（空欄で解除） */
@@ -42,6 +62,16 @@ export async function updateWebhook(_prev: ActionState, formData: FormData): Pro
   }
   revalidatePath(`/events/${eventId}`);
   return { success: true };
+}
+
+export async function deleteEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await apiFetch(`/events/${str(formData, 'eventId')}`, { method: 'DELETE' });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath('/');
+  redirect('/');
 }
 
 export async function submitResponses(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -108,4 +138,10 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
   }
   revalidatePath('/', 'layout');
   return { success: true };
+}
+
+/** 「もっと見る」用。EventList（Client Component）から呼ばれる */
+export async function loadMoreEvents(query: EventListQuery, cursor: string): Promise<PageDto<EventSummaryDto>> {
+  const qs = toEventsSearchParams({ ...query, cursor });
+  return apiFetch<PageDto<EventSummaryDto>>(`/events?${qs}`, { auth: false });
 }

@@ -1,4 +1,4 @@
-import type { Availability, EventFormat, EventStatus } from './enums.js';
+import type { Availability, EventFormat, EventStatus, ReportReason, ReportTargetType, UserRole } from './enums.js';
 
 // ---------- 認証 ----------
 
@@ -27,6 +27,7 @@ export interface UserDto {
   email: string;
   displayName: string;
   bio: string | null;
+  role: UserRole;
   createdAt: string;
 }
 
@@ -168,6 +169,8 @@ export interface EventDetailDto {
   responders: ResponderRowDto[];
   /** 主催者にのみ返す。共有URL の組み立てに使う */
   shareToken: string | null;
+  /** 運営が非表示にしたか。非表示のLT会は主催者と運営にしか返らない */
+  hidden: boolean;
   /** 主催者にのみ返す。LT会ごとの Discord 通知先 */
   webhookUrl: string | null;
   tags: string[];
@@ -205,6 +208,34 @@ export interface SubmitGuestResponsesRequest {
 
 export interface ConfirmEventRequest {
   eventDateId: string;
+}
+
+// ---------- 通報・ブロック・運営 ----------
+
+/** LT会・ユーザーの通報。同じ対象への再通報は理由の更新になる */
+export interface ReportRequest {
+  reason: ReportReason;
+  detail?: string | null;
+}
+
+/** 運営画面: 対象ごとにまとめた通報 */
+export interface AdminReportDto {
+  targetType: ReportTargetType;
+  targetId: string;
+  /** LT会ならタイトル、ユーザーなら表示名。対象が削除済みなら null */
+  label: string | null;
+  /** LT会の場合の非表示状態。ユーザーなら null */
+  hidden: boolean | null;
+  reportCount: number;
+  reasonCounts: Partial<Record<ReportReason, number>>;
+  /** 新しい順の通報（補足つき）。最大 5 件 */
+  recent: { reason: ReportReason; detail: string | null; createdAt: string }[];
+  lastReportedAt: string;
+}
+
+export interface ModerateEventRequest {
+  /** 操作の理由。ログに残す */
+  note?: string | null;
 }
 
 // ---------- 履歴 ----------

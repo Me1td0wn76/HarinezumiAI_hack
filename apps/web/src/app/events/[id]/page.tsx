@@ -1,4 +1,4 @@
-import type { EventCommentDto, EventDetailDto } from "@lt/shared";
+import type { EventCommentDto, EventDetailDto, PublicUserDto } from "@lt/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,9 +8,10 @@ import { EventPlace } from "@/components/event-place";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
+import { SafetyMenu } from "@/components/safety-menu";
 import { ShareButtons } from "@/components/share-buttons";
 import { ApiError, apiFetch } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getMyBlocks } from "@/lib/auth";
 import { eventShareText, getEventDetail, webUrl } from "@/lib/events";
 import { eventDescription } from "@/lib/og-image";
 
@@ -45,11 +46,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   let detail: EventDetailDto;
   let comments: EventCommentDto[];
   let user: Awaited<ReturnType<typeof getCurrentUser>>;
+  let blocks: PublicUserDto[];
   try {
-    [detail, comments, user] = await Promise.all([
+    [detail, comments, user, blocks] = await Promise.all([
       loadDetail(id),
       apiFetch<EventCommentDto[]>(`/events/${id}/comments`),
       getCurrentUser(),
+      getMyBlocks(),
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
@@ -63,6 +66,12 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+      {/* 非表示のLT会は主催者と運営にしか返らないので、見えている人に状態を知らせる */}
+      {detail.hidden && (
+        <p role="status" className="rounded-xl border border-danger bg-danger-bg px-4 py-3 text-sm text-danger-foreground">
+          このLT会は運営により非表示になっています。一覧や共有URLからは閲覧できません。
+        </p>
+      )}
       <EventHeader
         title={detail.title}
         status={detail.status}
@@ -70,7 +79,8 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
       />
-      <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />
+      {/* 非表示のLT会は主催者と運営以外に見えないので、共有ボタンは出さない */}
+      {!detail.hidden && <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />}
 
       <EventPlace detail={detail} />
 
@@ -107,6 +117,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
 
       {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
 
+      {user && !isOrganizer && (
+        <SafetyMenu
+          eventId={detail.id}
+          organizer={detail.organizer}
+          organizerBlocked={blocks.some((b) => b.id === detail.organizer.id)}
+        />
+      )}
       <CommentSection
         eventId={detail.id}
         organizerId={detail.organizer.id}

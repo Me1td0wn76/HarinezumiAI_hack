@@ -10,13 +10,17 @@ import type { SubmitGuestResponsesDto } from './dto/submit-guest-responses.dto.j
 describe('ResponsesService', () => {
   let service: ResponsesService;
   let repo: { upsertForUser: ReturnType<typeof vi.fn>; upsertForGuest: ReturnType<typeof vi.fn> };
-  let events: { findOrThrow: ReturnType<typeof vi.fn>; getDetail: ReturnType<typeof vi.fn> };
+  let events: {
+    findOrThrow: ReturnType<typeof vi.fn>;
+    findVisibleOrThrow: ReturnType<typeof vi.fn>;
+    getDetail: ReturnType<typeof vi.fn>;
+  };
 
   const user = buildUser();
 
   beforeEach(async () => {
     repo = { upsertForUser: vi.fn(), upsertForGuest: vi.fn() };
-    events = { findOrThrow: vi.fn(), getDetail: vi.fn() };
+    events = { findOrThrow: vi.fn(), findVisibleOrThrow: vi.fn(), getDetail: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,7 +39,7 @@ describe('ResponsesService', () => {
 
   describe('submitForUser', () => {
     it('CLOSED のLT会への回答は 400（締め切り後の回答拒否）', async () => {
-      events.findOrThrow.mockResolvedValue(buildEvent({ status: 'CLOSED' }));
+      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'CLOSED' }));
       const dto: SubmitResponsesDto = { responses: [{ eventDateId: 'date-1', availability: 'YES' }] };
 
       await expect(service.submitForUser('event-1', user, dto)).rejects.toThrow(BadRequestException);
@@ -43,7 +47,7 @@ describe('ResponsesService', () => {
     });
 
     it('CONFIRMED のLT会への回答は 400（締め切り後の回答拒否）', async () => {
-      events.findOrThrow.mockResolvedValue(buildEvent({ status: 'CONFIRMED' }));
+      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'CONFIRMED' }));
       const dto: SubmitResponsesDto = { responses: [{ eventDateId: 'date-1', availability: 'YES' }] };
 
       await expect(service.submitForUser('event-1', user, dto)).rejects.toThrow(BadRequestException);
@@ -51,7 +55,7 @@ describe('ResponsesService', () => {
     });
 
     it('このLT会の候補日でなければ 400', async () => {
-      events.findOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
+      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
       const dto: SubmitResponsesDto = { responses: [{ eventDateId: 'other-event-date', availability: 'YES' }] };
 
       await expect(service.submitForUser('event-1', user, dto)).rejects.toThrow(BadRequestException);
@@ -59,7 +63,7 @@ describe('ResponsesService', () => {
     });
 
     it('同じ候補日への回答が重複していると 400', async () => {
-      events.findOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
+      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
       const dto: SubmitResponsesDto = {
         responses: [
           { eventDateId: 'date-1', availability: 'YES' },
@@ -72,7 +76,7 @@ describe('ResponsesService', () => {
     });
 
     it('OPEN のLT会なら回答を upsert して最新の詳細を返す', async () => {
-      events.findOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
+      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'OPEN' }));
       repo.upsertForUser.mockResolvedValue(undefined);
       const detail = { id: 'event-1' };
       events.getDetail.mockResolvedValue(detail);

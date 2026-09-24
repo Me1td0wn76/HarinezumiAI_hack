@@ -13,16 +13,24 @@
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件） | `MyEventsDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
-| GET | `/events` | - | LT会一覧（新しい順、カーソルページネーション）。クエリは下記 | `PageDto<EventSummaryDto>` |
+| GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 | `EventDetailDto` |
-| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める | `EventDetailDto` |
+| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
 | PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
 | POST | `/events/:id/confirm` | 主催者 | 開催日決定（`ConfirmEventRequest`）。Discord 通知 | `EventDetailDto` |
 | PUT | `/events/:id/responses` | 必須 | 自分の回答を一括登録・更新（`SubmitResponsesRequest`）。OPEN のときのみ | `EventDetailDto` |
+| POST | `/events/:id/report` | 必須 | LT会を通報（`ReportRequest`）。同じ対象への再通報は理由の更新 | 204 |
+| POST | `/users/:id/report` | 必須 | ユーザーを通報（`ReportRequest`） | 204 |
+| GET | `/users/me/blocks` | 必須 | ブロック中のユーザー | `PublicUserDto[]` |
+| POST | `/users/:id/block` | 必須 | ブロック | 204 |
+| DELETE | `/users/:id/block` | 必須 | ブロック解除 | 204 |
+| GET | `/admin/reports` | 運営 | 通報を対象ごとに集計（多い順、最大50件） | `AdminReportDto[]` |
+| POST | `/admin/events/:id/hide` | 運営 | LT会を非表示（`ModerateEventRequest`）。操作ログを残す | 204 |
+| POST | `/admin/events/:id/unhide` | 運営 | LT会を再表示。操作ログを残す | 204 |
 | GET | `/events/:id/comments` | - | コメント一覧（古い順） | `EventCommentDto[]` |
 | POST | `/events/:id/comments` | 必須 | コメント投稿（`CreateCommentRequest`、1〜1000文字）。Discord 通知 | `EventCommentDto` |
 | DELETE | `/events/:id/comments/:commentId` | 投稿者・主催者 | コメント削除 | 204 |
@@ -74,7 +82,7 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 | --- | --- |
 | 400 | バリデーションエラー、締め切り後の回答、決定済み候補日の削除 |
 | 401 | トークンなし・無効、ログイン失敗 |
-| 403 | 主催者以外による操作 |
+| 403 | 主催者以外による操作、運営以外による `/admin` の操作 |
 | 404 | LT会・候補日が存在しない |
 | 409 | メールアドレス重複 |
 | 429 | レート制限超過（下記） |
@@ -101,6 +109,12 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 - `TRUST_PROXY` はホップ数ではなく web サーバーの IP / CIDR で指定する。ホップ数だと接続元に関係なく `X-Forwarded-For` の末尾を信じるので、api に直接届くリクエストが値を偽装して制限を回避できる
 - api は外部に公開せず、web からだけ届くようにする（CORS を開けているのは将来の直接利用に備えたもの）
 - `TRUST_PROXY` を設定し忘れると、全利用者が web サーバーの IP 1 つを共有し、サービス全体で上限を分け合うことになる（登録が全体で 10 分に 20 件など）
+
+## 運営ユーザー
+
+`users.role = 'ADMIN'` のユーザーが `/admin` を使える。シードでは `admin@example.com / password123`。
+本番で付与するときは DB で直接更新する: `UPDATE users SET role = 'ADMIN' WHERE email = '...';`
+操作は `moderation_logs` に残る。
 
 ## 回答者の識別
 

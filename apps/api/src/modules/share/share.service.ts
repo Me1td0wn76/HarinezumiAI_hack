@@ -26,7 +26,8 @@ export class ShareService {
 
   private async findOrThrow(token: string): Promise<EventDetail> {
     const event = await this.events.findDetailByShareToken(token);
-    if (!event) throw new NotFoundException('LT会が見つかりません');
+    // 運営が非表示にしたLT会は共有URL からも見せない
+    if (!event || event.hiddenAt) throw new NotFoundException('LT会が見つかりません');
     return event;
   }
 }

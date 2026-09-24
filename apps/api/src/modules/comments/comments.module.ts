@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { BlocksModule } from '../blocks/blocks.module.js';
 import { EventsModule } from '../events/events.module.js';
 import { CommentsController } from './comments.controller.js';
 import { CommentsService } from './comments.service.js';
 import { CommentsRepository } from './comments.repository.js';
 
 @Module({
-  imports: [EventsModule],
+  imports: [EventsModule, BlocksModule],
   controllers: [CommentsController],
   providers: [CommentsService, CommentsRepository],
 })

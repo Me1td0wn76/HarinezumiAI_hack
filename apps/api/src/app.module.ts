@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
+import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { BlocksModule } from './modules/blocks/blocks.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
@@ -26,6 +27,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module.js';
     BlocksModule,
     ReportsModule,
     AdminModule,
+    CommentsModule,
     ScheduleModule,
   ],
   controllers: [AppController],

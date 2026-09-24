@@ -40,3 +40,13 @@ export const REPORT_REASON_LABEL: Record<ReportReason, string> = {
   INAPPROPRIATE: '不適切な内容',
   OTHER: 'その他',
 };
+
+/** 開催形式 */
+export const EVENT_FORMAT = ['ONLINE', 'OFFLINE', 'HYBRID'] as const;
+export type EventFormat = (typeof EVENT_FORMAT)[number];
+
+export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
+  ONLINE: 'オンライン',
+  OFFLINE: 'オフライン',
+  HYBRID: 'ハイブリッド',
+};

@@ -1,21 +1,48 @@
 import type { EventDetailDto } from "@lt/shared";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EventHeader } from "@/components/event-header";
+import { EventPlace } from "@/components/event-place";
+import { GuestMeetingUrl } from "@/components/guest-meeting-url";
 import { GuestResponseForm } from "@/components/guest-response-form";
 import { ResponseGrid } from "@/components/response-grid";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ShareButtons } from "@/components/share-buttons";
+import { ApiError } from "@/lib/api";
+import { eventShareText, getSharedEvent, webUrl } from "@/lib/events";
+import { eventDescription } from "@/lib/og-image";
 
-/** 共有URL から開くページ。ログイン不要で回答できる */
-export default async function SharePage(props: PageProps<"/share/[token]">) {
-  const { token } = await props.params;
-
-  let detail: EventDetailDto;
+async function loadShared(token: string): Promise<EventDetailDto> {
   try {
-    detail = await apiFetch<EventDetailDto>(`/share/${token}`, { auth: false });
+    return await getSharedEvent(token);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   }
+}
+
+/**
+ * OGP は付けるが、共有URL は回答用の非公開リンクなので検索エンジンには載せない。
+ * canonical は公開の詳細ページに向ける
+ */
+export async function generateMetadata(props: PageProps<"/share/[token]">): Promise<Metadata> {
+  const { token } = await props.params;
+  const detail = await loadShared(token);
+  const description = eventDescription(detail);
+  return {
+    title: detail.title,
+    description,
+    robots: { index: false, follow: false },
+    alternates: { canonical: `/events/${detail.id}` },
+    openGraph: { title: detail.title, description, type: "article", url: `/share/${token}` },
+    twitter: { card: "summary_large_image", title: detail.title, description },
+  };
+}
+
+/** 共有URL から開くページ。ログイン不要で回答できる */
+export default async function SharePage(props: PageProps<"/share/[token]">) {
+  const { token } = await props.params;
+  const detail = await loadShared(token);
+  const shareText = eventShareText(detail);
 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
@@ -27,6 +54,14 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
       />
+
+      {/* サーバー側はゲストを識別できないので、開催日決定後は回答済みゲスト向けの取得ボタンを差し込む */}
+      <EventPlace
+        detail={detail}
+        reveal={detail.status === "CONFIRMED" && detail.hasMeetingUrl ? <GuestMeetingUrl token={token} /> : undefined}
+      />
+      {/* 共有URL（/share/…）はログインなしで回答できる非公開URLなので、SNS には公開ページの URL を載せる */}
+      <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />
 
       {detail.description && (
         <section className="card">

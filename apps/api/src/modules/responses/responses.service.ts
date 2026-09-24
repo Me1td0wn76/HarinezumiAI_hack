@@ -29,7 +29,7 @@ export class ResponsesService {
     const values = this.validate(event, dto.responses);
     await this.responses.upsertForGuest(dto.guestKey, dto.guestName.trim(), values);
     const updated = await this.events.findOrThrow(event.id);
-    return toEventDetailDto(updated, null);
+    return toEventDetailDto(updated, { guestKey: dto.guestKey });
   }
 
   /** 回答先が本当にこのLT会の候補日か、まだ回答を受け付けているかを確認する */

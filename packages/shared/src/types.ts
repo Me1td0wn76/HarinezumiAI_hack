@@ -1,4 +1,4 @@
-import type { Availability, EventStatus, ReportReason, ReportTargetType, UserRole } from './enums.js';
+import type { Availability, EventFormat, EventStatus, ReportReason, ReportTargetType, UserRole } from './enums.js';
 
 // ---------- 認証 ----------
 
@@ -49,6 +49,12 @@ export interface CreateEventRequest {
   candidateDates: CandidateDateInput[];
   /** 最大 TAG_MAX_PER_EVENT 個。先頭の # や前後の空白は API 側で正規化する */
   tags?: string[];
+  /** 省略時は ONLINE */
+  format?: EventFormat;
+  /** 会場名・住所。OFFLINE / HYBRID のとき */
+  venue?: string | null;
+  /** 配信URL。ONLINE / HYBRID のとき。開催日決定後に回答者へ公開される */
+  meetingUrl?: string | null;
 }
 
 export interface CandidateDateInput {
@@ -61,6 +67,9 @@ export interface UpdateEventRequest {
   description?: string;
   /** 指定した場合はタグを丸ごと置き換える */
   tags?: string[];
+  format?: EventFormat;
+  venue?: string | null;
+  meetingUrl?: string | null;
 }
 
 export interface EventDateDto {
@@ -79,6 +88,7 @@ export interface EventSummaryDto {
   candidateDateCount: number;
   responderCount: number;
   tags: string[];
+  format: EventFormat;
   createdAt: string;
 }
 
@@ -104,6 +114,7 @@ export interface EventListQuery {
   /** タイトル・説明の部分一致検索 */
   q?: string;
   status?: EventStatus;
+  format?: EventFormat;
   /** 主催者で絞り込む（ユーザーページやフォロー中フィードの土台） */
   organizerId?: string;
 }
@@ -131,7 +142,7 @@ export interface DateTallyDto {
 
 /** 回答者1人分（グリッド表の1行） */
 export interface ResponderRowDto {
-  /** ログインユーザーなら user.id、ゲストなら "guest:<guestKey>" */
+  /** ログインユーザーなら user.id、ゲストなら "guest:<guestKey の SHA-256（16進）>"。guestKey そのものは公開しない */
   responderKey: string;
   displayName: string;
   isGuest: boolean;
@@ -155,6 +166,14 @@ export interface EventDetailDto {
   /** 運営が非表示にしたか。非表示のLT会は主催者と運営にしか返らない */
   hidden: boolean;
   tags: string[];
+  format: EventFormat;
+  venue: string | null;
+  /**
+   * 配信URL。主催者にはいつでも、回答者には開催日決定後にのみ返す。それ以外は null。
+   * 設定されているが閲覧者に見せられない場合は hasMeetingUrl が true になる
+   */
+  meetingUrl: string | null;
+  hasMeetingUrl: boolean;
   createdAt: string;
 }
 
@@ -209,6 +228,20 @@ export interface AdminReportDto {
 export interface ModerateEventRequest {
   /** 操作の理由。ログに残す */
   note?: string | null;
+}
+
+// ---------- コメント ----------
+
+/** LT会へのコメント（主催者・参加者間の連絡） */
+export interface EventCommentDto {
+  id: string;
+  body: string;
+  author: PublicUserDto;
+  createdAt: string;
+}
+
+export interface CreateCommentRequest {
+  body: string;
 }
 
 // ---------- カレンダー ----------

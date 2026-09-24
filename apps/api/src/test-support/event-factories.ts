@@ -28,6 +28,9 @@ export function buildEvent(overrides: Partial<EventDetail> = {}): EventDetail {
     organizer: { id: 'user-1', displayName: '主催者' },
     confirmedDateId: null,
     confirmedDate: null,
+    format: 'ONLINE',
+    venue: null,
+    meetingUrl: null,
     hiddenAt: null,
     tags: [],
     candidateDates: [

@@ -1,9 +1,11 @@
 import {
+  EVENT_FORMAT,
   EVENT_PAGE_SIZE,
   EVENT_PAGE_SIZE_MAX,
   EVENT_SEARCH_MAX_LENGTH,
   EVENT_STATUS,
   TAG_MAX_LENGTH,
+  type EventFormat,
   type EventListQuery,
   type EventStatus,
 } from '@lt/shared';
@@ -38,6 +40,10 @@ export class ListEventsQueryDto implements EventListQuery {
   @IsOptional()
   @IsIn(EVENT_STATUS)
   status?: EventStatus;
+
+  @IsOptional()
+  @IsIn(EVENT_FORMAT)
+  format?: EventFormat;
 
   @IsOptional()
   @IsUUID()

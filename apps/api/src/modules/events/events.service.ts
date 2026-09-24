@@ -6,6 +6,7 @@ import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
+import { normalizeFormatFields } from './format.js';
 import { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 import { CandidateDateDto } from './dto/candidate-date.dto.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
@@ -31,6 +32,7 @@ export class EventsService {
         tag: query.tag?.trim().toLowerCase() || undefined,
         q: query.q?.trim() || undefined,
         status: query.status,
+        format: query.format,
         organizerId: query.organizerId,
       },
       query.limit,
@@ -51,24 +53,31 @@ export class EventsService {
       organizerId: organizer.id,
       candidateDates: parseCandidateDates(dto.candidateDates),
       tags: normalizeTags(dto.tags),
+      formatFields: normalizeFormatFields(dto.format ?? 'ONLINE', dto.venue, dto.meetingUrl),
     });
     this.notifications.eventCreated(event);
-    return toEventDetailDto(event, organizer.id);
+    return toEventDetailDto(event, { userId: organizer.id });
   }
 
   async getDetail(id: string, viewer: User | null): Promise<EventDetailDto> {
     const event = await this.findVisibleOrThrow(id, viewer);
-    return toEventDetailDto(event, viewer?.id ?? null);
+    return toEventDetailDto(event, { userId: viewer?.id });
   }
 
   async update(id: string, user: User, dto: UpdateEventDto): Promise<EventDetailDto> {
-    await this.findOwnedOrThrow(id, user);
+    const current = await this.findOwnedOrThrow(id, user);
+    // 形式・会場・URL は「指定された値 or 現在値」で正規化し直す（形式が変わると不要な項目が落ちる）
+    const formatFields = normalizeFormatFields(
+      dto.format ?? current.format,
+      dto.venue !== undefined ? dto.venue : current.venue,
+      dto.meetingUrl !== undefined ? dto.meetingUrl : current.meetingUrl,
+    );
     const updated = await this.events.update(
       id,
-      { title: dto.title, description: dto.description },
+      { title: dto.title, description: dto.description, ...formatFields },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
-    return toEventDetailDto(updated, user.id);
+    return toEventDetailDto(updated, { userId: user.id });
   }
 
   async remove(id: string, user: User): Promise<void> {
@@ -105,7 +114,7 @@ export class EventsService {
     }
     const confirmed = await this.events.confirm(id, dto.eventDateId);
     this.notifications.eventConfirmed(confirmed);
-    return toEventDetailDto(confirmed, user.id);
+    return toEventDetailDto(confirmed, { userId: user.id });
   }
 
   async findOrThrow(id: string): Promise<EventDetail> {

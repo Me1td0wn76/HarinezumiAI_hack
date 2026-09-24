@@ -1,6 +1,6 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { configureApp } from './configure-app.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,13 +11,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // DTO のデコレータに基づいてリクエストボディを検証する
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // DTO に無いプロパティは落とす
-      transform: true, // プリミティブ型・ネストした DTO を変換する
-    }),
-  );
+  configureApp(app);
 
   await app.listen(process.env.PORT ?? 3001);
 }

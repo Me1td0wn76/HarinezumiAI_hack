@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "dev": "nest start --watch",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -25,7 +25,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "nest build && node dist/prisma/seed.js"
+    "prisma:seed": "nest build && node dist/prisma/seed.js",
+    "start:deploy": "prisma migrate deploy && node dist/main.js"
   },
   "dependencies": {
     "@lt/shared": "workspace:*",

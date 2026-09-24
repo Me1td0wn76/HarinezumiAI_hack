@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventsService } from './events.service.js';
-import { EventsRepository } from './events.repository.js';
+import { EventsRepository, encodeEventCursor } from './events.repository.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { buildEvent, buildUser } from '../../test-support/event-factories.js';
 import type { CreateEventDto } from './dto/create-event.dto.js';
+import type { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 import type { UpdateEventDto } from './dto/update-event.dto.js';
 import type { AddDatesDto } from './dto/add-dates.dto.js';
 import type { ConfirmEventDto } from './dto/confirm-event.dto.js';
@@ -12,7 +13,7 @@ import type { ConfirmEventDto } from './dto/confirm-event.dto.js';
 describe('EventsService', () => {
   let service: EventsService;
   let repo: {
-    findManyForList: ReturnType<typeof vi.fn>;
+    findPage: ReturnType<typeof vi.fn>;
     findDetailById: ReturnType<typeof vi.fn>;
     findDetailByShareToken: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -30,7 +31,7 @@ describe('EventsService', () => {
 
   beforeEach(async () => {
     repo = {
-      findManyForList: vi.fn(),
+      findPage: vi.fn(),
       findDetailById: vi.fn(),
       findDetailByShareToken: vi.fn(),
       create: vi.fn(),
@@ -56,6 +57,34 @@ describe('EventsService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('list', () => {
+    it('条件を正規化し、nextCursor から戻した (createdAt, id) を Repository に渡す', async () => {
+      repo.findPage.mockResolvedValue({ items: [], nextCursor: null });
+      const createdAt = new Date('2026-01-02T03:04:05.678Z');
+      const query = {
+        limit: 20,
+        tag: ' Web ',
+        q: '  react ',
+        cursor: encodeEventCursor({ createdAt, id: 'event-9' }),
+      } as ListEventsQueryDto;
+
+      await service.list(query);
+
+      expect(repo.findPage).toHaveBeenCalledWith(
+        { tag: 'web', q: 'react', status: undefined, organizerId: undefined },
+        20,
+        { createdAt, id: 'event-9' },
+      );
+    });
+
+    it('壊れた cursor は 400', async () => {
+      const query = { limit: 20, cursor: 'not-a-cursor' } as ListEventsQueryDto;
+
+      await expect(service.list(query)).rejects.toThrow(BadRequestException);
+      expect(repo.findPage).not.toHaveBeenCalled();
+    });
   });
 
   describe('create', () => {
@@ -118,7 +147,8 @@ describe('EventsService', () => {
 
       const result = await service.update('event-1', organizer, dto);
 
-      expect(repo.update).toHaveBeenCalledWith('event-1', { title: '新タイトル', description: undefined });
+      // tags を送らなかったときは第3引数が undefined（タグは変更しない）
+      expect(repo.update).toHaveBeenCalledWith('event-1', { title: '新タイトル', description: undefined }, undefined);
       expect(result.title).toBe('新タイトル');
     });
 

@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../../common/throttle.js';
 import { ShareService } from './share.service.js';
 import { SubmitGuestResponsesDto } from '../responses/dto/submit-guest-responses.dto.js';
 
@@ -12,6 +14,7 @@ export class ShareController {
   }
 
   @Put(':token/responses')
+  @Throttle(THROTTLE.guestResponses)
   respond(@Param('token') token: string, @Body() dto: SubmitGuestResponsesDto) {
     return this.share.respond(token, dto);
   }

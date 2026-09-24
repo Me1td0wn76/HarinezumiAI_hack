@@ -6,6 +6,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   displayName: string;
+  /** 利用規約・プライバシーポリシーへの同意。true でないと登録できない */
+  agreeToTerms: boolean;
 }
 
 export interface LoginRequest {

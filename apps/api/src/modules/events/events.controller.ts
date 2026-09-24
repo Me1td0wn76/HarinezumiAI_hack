@@ -10,6 +10,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../../common/throttle.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard.js';
@@ -31,6 +33,7 @@ export class EventsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Throttle(THROTTLE.createEvent)
   create(@CurrentUser() user: User, @Body() dto: CreateEventDto) {
     return this.events.create(user, dto);
   }

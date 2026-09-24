@@ -31,6 +31,7 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
         email: str(formData, 'email'),
         password: formData.get('password'),
         displayName: str(formData, 'displayName'),
+        agreeToTerms: formData.get('agreeToTerms') === 'on',
       },
     });
     await setTokenCookie(res.accessToken);

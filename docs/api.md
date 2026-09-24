@@ -7,7 +7,7 @@
 | メソッド | パス | 認証 | 内容 | レスポンス |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
-| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`） | `AuthResponse` |
+| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
@@ -38,6 +38,21 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 | 403 | 主催者以外による操作 |
 | 404 | LT会・候補日が存在しない |
 | 409 | メールアドレス重複 |
+| 429 | レート制限超過（下記） |
+
+## レート制限
+
+`@nestjs/throttler` で IP ごとに制限する（設定は `apps/api/src/common/throttle.ts`）。
+web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_PROXY` で信頼したプロキシからの値だけを `req.ip` に使う。
+
+| 対象 | 上限 |
+| --- | --- |
+| 全エンドポイント | 120 回 / 分 |
+| `POST /auth/register` | 5 回 / 10 分 |
+| `POST /auth/login` | 10 回 / 分 |
+| `POST /events` | 10 回 / 時 |
+| `PUT /events/:id/responses` | 30 回 / 分 |
+| `PUT /share/:token/responses` | 10 回 / 分 |
 
 ## 回答者の識別
 

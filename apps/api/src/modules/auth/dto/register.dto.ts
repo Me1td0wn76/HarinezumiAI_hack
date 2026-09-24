@@ -1,5 +1,5 @@
 import type { RegisterRequest } from '@lt/shared';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto implements RegisterRequest {
   @IsEmail()
@@ -14,4 +14,7 @@ export class RegisterDto implements RegisterRequest {
   @MinLength(1)
   @MaxLength(50)
   displayName: string;
+
+  @Equals(true, { message: '利用規約とプライバシーポリシーへの同意が必要です' })
+  agreeToTerms: boolean;
 }

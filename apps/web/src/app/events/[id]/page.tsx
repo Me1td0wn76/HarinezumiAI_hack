@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/comment-section";
 import { EventHeader } from "@/components/event-header";
+import { EventPlace } from "@/components/event-place";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
@@ -39,7 +40,10 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         status={detail.status}
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
+        tags={detail.tags}
       />
+
+      <EventPlace detail={detail} />
 
       {detail.description && (
         <section className="card">

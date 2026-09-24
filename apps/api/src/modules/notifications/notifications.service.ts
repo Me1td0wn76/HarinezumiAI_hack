@@ -57,6 +57,18 @@ export class NotificationsService {
     void this.discord.send(content);
   }
 
+  /** LT会にコメントが付いた */
+  commentPosted(event: { id: string; title: string }, authorName: string, body: string): void {
+    // 長文をそのまま流すとチャンネルが埋まるので先頭だけ
+    const excerpt = body.length > 100 ? `${body.slice(0, 100)}…` : body;
+    const content = [
+      `💬 LT会「${event.title}」に ${authorName} さんがコメントしました`,
+      excerpt,
+      this.eventUrl(event.id),
+    ].join('\n');
+    void this.discord.send(content);
+  }
+
   private eventUrl(id: string): string {
     return `${this.webUrl}/events/${id}`;
   }

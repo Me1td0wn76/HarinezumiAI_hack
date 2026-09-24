@@ -25,7 +25,8 @@ export class DiscordWebhookService {
       const res = await fetch(this.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        // 本文にユーザー入力（タイトル・コメント）が入るので、@everyone / @here / ロールなどのメンションは無効にする
+        body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
       });
       if (!res.ok) this.logger.warn(`Discord webhook が ${res.status} を返しました`);
     } catch (err) {

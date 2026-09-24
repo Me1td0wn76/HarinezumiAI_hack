@@ -1,14 +1,15 @@
-import type { EventDetailDto } from "@lt/shared";
+import type { EventCommentDto, EventDetailDto } from "@lt/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentSection } from "@/components/comment-section";
 import { EventHeader } from "@/components/event-header";
 import { EventPlace } from "@/components/event-place";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
 import { ShareButtons } from "@/components/share-buttons";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { eventShareText, getEventDetail, webUrl } from "@/lib/events";
 import { eventDescription } from "@/lib/og-image";
@@ -40,8 +41,20 @@ export async function generateMetadata(props: PageProps<"/events/[id]">): Promis
 export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
   const { id } = await props.params;
 
-  // generateMetadata と同じ関数なので React.cache で 1 回しか取得されない
-  const [detail, user] = await Promise.all([loadDetail(id), getCurrentUser()]);
+  // detail は generateMetadata と同じ関数なので React.cache で 1 回しか取得されない
+  let detail: EventDetailDto;
+  let comments: EventCommentDto[];
+  let user: Awaited<ReturnType<typeof getCurrentUser>>;
+  try {
+    [detail, comments, user] = await Promise.all([
+      loadDetail(id),
+      apiFetch<EventCommentDto[]>(`/events/${id}/comments`),
+      getCurrentUser(),
+    ]);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
+    throw err;
+  }
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
   const shareUrl = detail.shareToken ? webUrl(`/share/${detail.shareToken}`) : null;
@@ -93,6 +106,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
       )}
 
       {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
+
+      <CommentSection
+        eventId={detail.id}
+        organizerId={detail.organizer.id}
+        comments={comments}
+        viewerId={user?.id ?? null}
+      />
     </div>
   );
 }

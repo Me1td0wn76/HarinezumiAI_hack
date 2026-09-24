@@ -199,6 +199,20 @@ export interface ConfirmEventRequest {
   eventDateId: string;
 }
 
+// ---------- コメント ----------
+
+/** LT会へのコメント（主催者・参加者間の連絡） */
+export interface EventCommentDto {
+  id: string;
+  body: string;
+  author: PublicUserDto;
+  createdAt: string;
+}
+
+export interface CreateCommentRequest {
+  body: string;
+}
+
 // ---------- カレンダー ----------
 
 /** 個人カレンダーの1件。確定したLT会は確定日1件、調整中は候補日ごとに1件 */

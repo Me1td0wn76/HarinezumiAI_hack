@@ -18,11 +18,20 @@ export class PasswordResetRepository {
     return this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
   }
 
-  /** パスワードを更新し、そのユーザーのトークンをすべて消す（リンクは1回しか使えない） */
-  async resetPassword(userId: string, passwordHash: string): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash, passwordChangedAt: new Date() } }),
-      this.prisma.passwordResetToken.deleteMany({ where: { userId } }),
-    ]);
+  /**
+   * トークンを消費してパスワードを更新し、そのユーザーのトークンをすべて消す（リンクは1回しか使えない）。
+   * トークンの削除件数で消費を判定するので、同じリンクで同時に送信されても成功するのは1回だけ。
+   * トークンが無い・期限切れなら何もせず false を返す。
+   */
+  async resetPasswordWithToken(tokenHash: string, passwordHash: string, now: Date): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const record = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      if (!record) return false;
+      const { count } = await tx.passwordResetToken.deleteMany({ where: { id: record.id, expiresAt: { gt: now } } });
+      if (count === 0) return false;
+      await tx.user.update({ where: { id: record.userId }, data: { passwordHash, passwordChangedAt: now } });
+      await tx.passwordResetToken.deleteMany({ where: { userId: record.userId } });
+      return true;
+    });
   }
 }

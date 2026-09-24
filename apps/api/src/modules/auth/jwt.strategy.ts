@@ -27,10 +27,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.users.findById(payload.sub);
     if (!user) throw new UnauthorizedException();
-    // パスワード再設定より前に発行したトークンは使えなくする（乗っ取られたセッションを切るため）
-    if (user.passwordChangedAt && payload.iat !== undefined && payload.iat * 1000 < user.passwordChangedAt.getTime() - 1000) {
-      throw new UnauthorizedException();
-    }
+    if (isIssuedBeforePasswordChange(payload, user.passwordChangedAt)) throw new UnauthorizedException();
     return user;
   }
+}
+
+/**
+ * パスワード再設定より前に発行したトークンか（乗っ取られたセッションを切るため）。
+ * iat は秒単位なので、再設定と同じ秒に発行したもの（再設定直後のログイン）は有効として扱う
+ */
+export function isIssuedBeforePasswordChange(payload: JwtPayload, passwordChangedAt: Date | null): boolean {
+  if (!passwordChangedAt) return false;
+  if (payload.iat === undefined) return true;
+  return payload.iat < Math.floor(passwordChangedAt.getTime() / 1000);
 }

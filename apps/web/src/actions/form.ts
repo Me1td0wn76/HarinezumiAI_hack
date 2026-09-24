@@ -37,3 +37,11 @@ export function parseResponses(formData: FormData): ResponseInput[] {
   }
   return responses;
 }
+
+/** タグ入力欄（カンマ・空白区切り）を配列にする。正規化と上限チェックは API 側で行う */
+export function parseTags(formData: FormData): string[] {
+  return str(formData, 'tags')
+    .split(/[,、，\s]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+}

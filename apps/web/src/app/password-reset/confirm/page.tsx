@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PasswordResetConfirmForm } from "@/components/password-reset-confirm-form";
 
-export const metadata: Metadata = { title: "新しいパスワードの設定 | LT会支援アプリ" };
+export const metadata: Metadata = {
+  title: "新しいパスワードの設定 | LT会支援アプリ",
+  // URL にトークンが含まれるので、外部へのリクエストに Referer として漏らさない
+  referrer: "no-referrer",
+  robots: { index: false },
+};
 
 export default async function PasswordResetConfirmPage(props: PageProps<"/password-reset/confirm">) {
   const { token } = await props.searchParams;

@@ -1,10 +1,12 @@
 "use client";
 
+import { TAG_MAX_LENGTH, TAG_MAX_PER_EVENT } from "@lt/shared";
 import type { ReactNode } from "react";
 import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
 import { CandidateDatesField } from "./candidate-dates-field";
 import { FormMessage } from "./form-message";
+import { FormatFields } from "./format-fields";
 
 /**
  * フォームの見出し付きカード枠。
@@ -45,6 +47,23 @@ export function EventForm() {
             placeholder="発表テーマや持ち時間、参加者へのメッセージなど"
           />
         </div>
+        <div>
+          <label className="label" htmlFor="tags">
+            タグ（任意・{TAG_MAX_PER_EVENT}つまで）
+          </label>
+          <input
+            id="tags"
+            name="tags"
+            className="input"
+            placeholder="web, typescript, 初心者歓迎"
+            maxLength={(TAG_MAX_LENGTH + 2) * TAG_MAX_PER_EVENT}
+          />
+          <p className="mt-1 text-xs text-subtle">カンマか空白で区切ります。興味のある人に見つけてもらいやすくなります。</p>
+        </div>
+      </Section>
+
+      <Section title="📍 開催形式">
+        <FormatFields />
       </Section>
 
       <Section title="🗓 候補日">

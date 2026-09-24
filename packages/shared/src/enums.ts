@@ -21,3 +21,7 @@ export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
   CONFIRMED: '開催日決定',
   CLOSED: '終了',
 };
+
+/** アプリ内通知の種類 */
+export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED'] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPE)[number];

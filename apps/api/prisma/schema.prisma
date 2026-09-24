@@ -22,6 +22,7 @@ model User {
 
   organizedEvents Event[]
   responses       DateResponse[]
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -105,4 +106,31 @@ model DateResponse {
   @@unique([eventDateId, userId])
   @@unique([eventDateId, guestKey])
   @@map("date_responses")
+}
+
+/// アプリ内通知の種類
+enum NotificationType {
+  EVENT_CREATED   // 新しいLT会が作成された
+  EVENT_CONFIRMED // 回答したLT会の開催日が決まった
+}
+
+/// アプリ内通知。受け取るユーザーごとに1行
+model Notification {
+  id     String           @id @default(uuid())
+  userId String           @map("user_id")
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   NotificationType
+  title  String
+  body   String
+  /// 遷移先。web のパス（例: /events/<id>）
+  link   String?
+  /// 既読にした日時。未読なら NULL
+  readAt DateTime?        @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 「自分宛てを新しい順」「未読件数」の取得用
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
 }

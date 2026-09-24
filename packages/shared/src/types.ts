@@ -1,4 +1,4 @@
-import type { Availability, EventStatus } from './enums.js';
+import type { Availability, EventStatus, NotificationType } from './enums.js';
 
 // ---------- 認証 ----------
 
@@ -133,4 +133,29 @@ export interface SubmitGuestResponsesRequest {
 
 export interface ConfirmEventRequest {
   eventDateId: string;
+}
+
+// ---------- 通知 ----------
+
+export interface NotificationDto {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  /** web のパス（例: /events/<id>）。遷移先がなければ null */
+  link: string | null;
+  /** 既読にした日時。未読なら null */
+  readAt: string | null;
+  createdAt: string;
+}
+
+/** 通知一覧の1ページ分。nextCursor を GET /notifications?before= に渡すと続き（より古い通知）を取れる */
+export interface NotificationListDto {
+  items: NotificationDto[];
+  /** さらに古い通知がなければ null */
+  nextCursor: string | null;
+}
+
+export interface UnreadCountDto {
+  count: number;
 }

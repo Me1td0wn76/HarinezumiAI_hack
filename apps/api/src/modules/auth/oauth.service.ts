@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AuthResponse, OAuthAuthorizeUrlDto, OAuthProvidersDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
@@ -32,11 +32,12 @@ export class OAuthService {
 
   authorizeUrl(name: string, query: OAuthAuthorizeQueryDto): OAuthAuthorizeUrlDto {
     const provider = this.getProvider(name);
-    return { url: provider.authorizeUrl({
-        state: query.state,
-        codeChallenge: query.codeChallenge,
-        redirectUri: this.redirectUri(name),
-      }) };
+    const url = provider.authorizeUrl({
+      state: query.state,
+      codeChallenge: query.codeChallenge,
+      redirectUri: this.redirectUri(name),
+    });
+    return { url };
   }
 
   async login(name: string, dto: OAuthLoginDto): Promise<AuthResponse> {
@@ -51,31 +52,33 @@ export class OAuthService {
 
   /**
    * 1. 連携済みならそのユーザー
-   * 2. 同じメールアドレスのユーザーがいて、プロバイダがメールを確認済みなら紐付ける
-   *    （未確認のメールで紐付けると、他人のメールアドレスを名乗ってアカウントを乗っ取れてしまう）
-   * 3. どちらでもなければ新規登録（パスワードなし）
+   * 2. 同じメールアドレスのユーザーが既にいれば 409。既存アカウントへの自動紐付けはしない。
+   *    /auth/register はメールアドレスの所有を確認しないので、攻撃者が他人のメールで先に登録しておくと、
+   *    本人の Google ログインが攻撃者のアカウントに紐付き、攻撃者はパスワードで入り続けられてしまう（事前乗っ取り）
+   * 3. どちらでもなければ新規登録（パスワードなし）。プロバイダがメールを確認済みの場合に限る
    */
   async findOrCreateUser(profile: OAuthProfile): Promise<User> {
     const linked = await this.accounts.findUser(profile.provider, profile.providerAccountId);
     if (linked) return linked;
 
-    const existing = await this.users.findByEmail(profile.email);
-    if (existing) {
-      if (!profile.emailVerified) {
-        throw new ConflictException(
-          'このメールアドレスは既に登録されています。メールアドレスとパスワードでログインしてください',
-        );
-      }
-      await this.accounts.link(existing.id, profile.provider, profile.providerAccountId);
-      return existing;
+    if (await this.users.findByEmail(profile.email)) throw emailConflict();
+    // 未確認のメールで登録させると、本人がそのメールで登録できなくなる
+    if (!profile.emailVerified) {
+      throw new ForbiddenException('メールアドレスが確認されていないアカウントでは登録できません');
     }
 
-    return this.accounts.createUser({
+    const created = await this.accounts.createUser({
       email: profile.email,
       displayName: (profile.name ?? profile.email.split('@')[0]).slice(0, 50),
       provider: profile.provider,
       providerAccountId: profile.providerAccountId,
     });
+    if (created) return created;
+
+    // 一意制約違反（同時に届いたコールバックなど）。同じ連携が先に作られていればそのユーザーでログインさせる
+    const raced = await this.accounts.findUser(profile.provider, profile.providerAccountId);
+    if (raced) return raced;
+    throw emailConflict();
   }
 
   /** web のコールバック。WEB_URL から組み立て、外から渡させない（任意の URL にコードを送らせないため） */
@@ -89,4 +92,10 @@ export class OAuthService {
     if (!provider.enabled) throw new ServiceUnavailableException('このログイン方法は現在使えません');
     return provider;
   }
+}
+
+function emailConflict(): ConflictException {
+  return new ConflictException(
+    'このメールアドレスは既に登録されています。メールアドレスとパスワードでログインしてください',
+  );
 }

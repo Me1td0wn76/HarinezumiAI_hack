@@ -4,7 +4,7 @@ export interface OAuthProfile {
   /** プロバイダ側のユーザー ID */
   providerAccountId: string;
   email: string;
-  /** プロバイダがメールアドレスの所有を確認済みか。未確認なら既存ユーザーに紐付けない */
+  /** プロバイダがメールアドレスの所有を確認済みか。未確認なら新規登録させない */
   emailVerified: boolean;
   name: string | null;
 }

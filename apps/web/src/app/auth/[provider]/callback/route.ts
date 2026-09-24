@@ -31,10 +31,21 @@ export async function GET(request: NextRequest, ctx: RouteContext<'/auth/[provid
     });
     await setTokenCookie(res.accessToken);
   } catch (err) {
-    errorCode = err instanceof ApiError && err.status === 409 ? 'oauth_email_conflict' : 'oauth_failed';
+    errorCode = toErrorCode(err);
   }
   // redirect() は例外を投げて遷移するので try の外で呼ぶ
   redirect(errorCode ? `/login?error=${errorCode}` : '/');
+}
+
+/** api のエラーを /login?error= のコードに変える（文言は components/social-login.tsx） */
+function toErrorCode(err: unknown): string {
+  if (err instanceof ApiError) {
+    // 同じメールアドレスのアカウントが既にある（自動では紐付けない）
+    if (err.status === 409) return 'oauth_email_conflict';
+    if (err.status === 403) return 'oauth_email_unverified';
+    if (err.status === 503) return 'oauth_unavailable';
+  }
+  return 'oauth_failed';
 }
 
 function parseSaved(value: string | undefined): { provider: string; state: string; codeVerifier: string } | null {

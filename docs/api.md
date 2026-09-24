@@ -11,7 +11,7 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/auth/oauth/providers` | - | 使えるソーシャルログイン | `OAuthProvidersDto` |
 | GET | `/auth/oauth/:provider/url` | - | 認可画面の URL（`?state=&codeChallenge=`）。未設定なら 503 | `OAuthAuthorizeUrlDto` |
-| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。未確認メールが既存ユーザーと重なると 409 | `AuthResponse` |
+| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。同じメールのアカウントが既にあれば 409（自動では紐付けない）。プロバイダでメール未確認なら 403 | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |

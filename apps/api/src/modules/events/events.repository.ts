@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { EventDate, Prisma } from '../../generated/prisma/client.js';
+import type { Event, EventDate, Prisma } from '../../generated/prisma/client.js';
 
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
@@ -39,8 +39,16 @@ export interface NewCandidateDate {
 export class EventsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findManyForList(): Promise<EventSummary[]> {
+  /**
+   * 一覧用。運営が非表示にしたLT会は含めない
+   * @param excludeOrganizerIds 閲覧者がブロックしているユーザー。そのユーザーが主催するLT会を除く
+   */
+  findManyForList(excludeOrganizerIds: string[] = []): Promise<EventSummary[]> {
     return this.prisma.event.findMany({
+      where: {
+        hiddenAt: null,
+        ...(excludeOrganizerIds.length > 0 && { organizerId: { notIn: excludeOrganizerIds } }),
+      },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
     });
@@ -73,6 +81,10 @@ export class EventsRepository {
 
   update(id: string, data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>): Promise<EventDetail> {
     return this.prisma.event.update({ where: { id }, data, include: eventDetailInclude });
+  }
+
+  findById(id: string): Promise<Event | null> {
+    return this.prisma.event.findUnique({ where: { id } });
   }
 
   async delete(id: string): Promise<void> {

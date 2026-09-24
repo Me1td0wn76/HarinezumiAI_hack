@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import type { EventDetailDto, EventSummaryDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { EventsRepository, type EventDetail, type NewCandidateDate } from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { CandidateDateDto } from './dto/candidate-date.dto.js';
@@ -15,10 +16,13 @@ export class EventsService {
   constructor(
     private readonly events: EventsRepository,
     private readonly notifications: NotificationsService,
+    private readonly blocks: BlocksRepository,
   ) {}
 
-  async list(): Promise<EventSummaryDto[]> {
-    const events = await this.events.findManyForList();
+  /** @param viewer ログインしていれば、ブロックしている相手のLT会を除く */
+  async list(viewer: User | null): Promise<EventSummaryDto[]> {
+    const blockedIds = viewer ? await this.blocks.findBlockedIds(viewer.id) : [];
+    const events = await this.events.findManyForList(blockedIds);
     return events.map(toEventSummaryDto);
   }
 
@@ -34,7 +38,7 @@ export class EventsService {
   }
 
   async getDetail(id: string, viewer: User | null): Promise<EventDetailDto> {
-    const event = await this.findOrThrow(id);
+    const event = await this.findVisibleOrThrow(id, viewer);
     return toEventDetailDto(event, viewer?.id ?? null);
   }
 
@@ -84,6 +88,15 @@ export class EventsService {
   async findOrThrow(id: string): Promise<EventDetail> {
     const event = await this.events.findDetailById(id);
     if (!event) throw new NotFoundException('LT会が見つかりません');
+    return event;
+  }
+
+  /** 運営が非表示にしたLT会は、主催者と運営以外には存在しないものとして扱う */
+  async findVisibleOrThrow(id: string, viewer: User | null): Promise<EventDetail> {
+    const event = await this.findOrThrow(id);
+    if (event.hiddenAt && viewer?.id !== event.organizerId && viewer?.role !== 'ADMIN') {
+      throw new NotFoundException('LT会が見つかりません');
+    }
     return event;
   }
 

@@ -1,6 +1,6 @@
 /**
  * 開発用の初期データ。`pnpm prisma:seed` または `prisma migrate reset` 時に実行される。
- * ログイン: demo@example.com / password123
+ * ログイン: demo@example.com / password123（運営画面は admin@example.com / password123）
  */
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -23,6 +23,13 @@ async function main() {
     where: { email: 'taro@example.com' },
     update: {},
     create: { email: 'taro@example.com', passwordHash, displayName: '山田太郎' },
+  });
+
+  // 運営（通報の確認・LT会の非表示ができる）
+  await prisma.user.upsert({
+    where: { email: 'admin@example.com' },
+    update: { role: 'ADMIN' },
+    create: { email: 'admin@example.com', passwordHash, displayName: '運営', role: 'ADMIN' },
   });
 
   const nextWeek = (days: number, hour: number) => {
@@ -59,7 +66,7 @@ async function main() {
     ],
   });
 
-  console.log(`seeded: users=2 event="${event.title}" (share: /share/${event.shareToken})`);
+  console.log(`seeded: users=3 event="${event.title}" (share: /share/${event.shareToken})`);
 }
 
 main()

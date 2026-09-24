@@ -80,6 +80,7 @@ export function toEventDetailDto(event: EventDetail, viewerId: string | null): E
     tallies,
     responders: [...rows.values()],
     shareToken: viewerId === event.organizerId ? event.shareToken : null,
+    hidden: event.hiddenAt !== null,
     createdAt: event.createdAt.toISOString(),
   };
 }

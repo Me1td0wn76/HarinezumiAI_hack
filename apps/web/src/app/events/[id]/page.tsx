@@ -1,25 +1,31 @@
-import type { EventDetailDto } from "@lt/shared";
+import type { EventDetailDto, PublicUserDto, UserDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventHeader } from "@/components/event-header";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
+import { SafetyMenu } from "@/components/safety-menu";
 import { ApiError, apiFetch } from "@/lib/api";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getMyBlocks } from "@/lib/auth";
 
 export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
   const { id } = await props.params;
 
   let detail: EventDetailDto;
+  let user: UserDto | null;
+  let blocks: PublicUserDto[];
   try {
-    // Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
-    detail = await apiFetch<EventDetailDto>(`/events/${id}`);
+    // 互いに依存しないので並列に取得する。Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
+    [detail, user, blocks] = await Promise.all([
+      apiFetch<EventDetailDto>(`/events/${id}`),
+      getCurrentUser(),
+      getMyBlocks(),
+    ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-  const user = await getCurrentUser();
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
@@ -28,6 +34,12 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+      {/* 非表示のLT会は主催者と運営にしか返らないので、見えている人に状態を知らせる */}
+      {detail.hidden && (
+        <p role="status" className="rounded-xl border border-danger bg-danger-bg px-4 py-3 text-sm text-danger-foreground">
+          このLT会は運営により非表示になっています。一覧や共有URLからは閲覧できません。
+        </p>
+      )}
       <EventHeader
         title={detail.title}
         status={detail.status}
@@ -67,6 +79,14 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
       )}
 
       {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
+
+      {user && !isOrganizer && (
+        <SafetyMenu
+          eventId={detail.id}
+          organizer={detail.organizer}
+          organizerBlocked={blocks.some((b) => b.id === detail.organizer.id)}
+        />
+      )}
     </div>
   );
 }

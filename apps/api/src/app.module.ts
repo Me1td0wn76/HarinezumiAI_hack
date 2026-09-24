@@ -8,6 +8,9 @@ import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { BlocksModule } from './modules/blocks/blocks.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     EventsModule,
     ResponsesModule,
     ShareModule,
+    BlocksModule,
+    ReportsModule,
+    AdminModule,
   ],
   controllers: [AppController],
 })

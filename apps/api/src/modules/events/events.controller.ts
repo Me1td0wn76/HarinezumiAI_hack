@@ -24,9 +24,11 @@ import { ConfirmEventDto } from './dto/confirm-event.dto.js';
 export class EventsController {
   constructor(private readonly events: EventsService) {}
 
+  /** 公開。ログインしていればブロックした相手のLT会を除く */
   @Get()
-  list() {
-    return this.events.list();
+  @UseGuards(OptionalJwtAuthGuard)
+  list(@CurrentUser() user: User | null) {
+    return this.events.list(user);
   }
 
   @Post()

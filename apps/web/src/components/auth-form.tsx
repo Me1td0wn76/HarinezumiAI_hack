@@ -42,6 +42,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isLogin ? "current-password" : "new-password"}
           />
         </div>
+        {isLogin && (
+          <p className="-mt-2 text-right text-xs">
+            <Link href="/password-reset" className="text-subtle underline hover:text-foreground">
+              パスワードを忘れた方
+            </Link>
+          </p>
+        )}
         <FormMessage state={state} />
         <button type="submit" className="btn-primary w-full" disabled={pending}>
           {pending ? "送信中…" : isLogin ? "ログイン" : "登録する"}

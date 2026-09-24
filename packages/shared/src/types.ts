@@ -134,3 +134,16 @@ export interface SubmitGuestResponsesRequest {
 export interface ConfirmEventRequest {
   eventDateId: string;
 }
+
+// ---------- パスワード再設定 ----------
+
+export interface RequestPasswordResetRequest {
+  email: string;
+}
+
+export interface ConfirmPasswordResetRequest {
+  /** メールのリンクに含まれるトークン */
+  token: string;
+  /** 新しいパスワード（8文字以上） */
+  password: string;
+}

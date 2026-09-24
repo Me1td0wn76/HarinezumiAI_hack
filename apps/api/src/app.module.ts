@@ -8,12 +8,14 @@ import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { MailModule } from './modules/mail/mail.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     NotificationsModule,
+    MailModule,
     AuthModule,
     UsersModule,
     EventsModule,

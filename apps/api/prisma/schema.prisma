@@ -12,16 +12,19 @@ datasource db {
 
 /// ユーザー
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  displayName  String   @map("display_name")
-  bio          String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  displayName       String    @map("display_name")
+  bio               String?
+  /// パスワードを再設定した日時。これより前に発行した JWT は無効にする
+  passwordChangedAt DateTime? @map("password_changed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  organizedEvents Event[]
-  responses       DateResponse[]
+  organizedEvents     Event[]
+  responses           DateResponse[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -105,4 +108,18 @@ model DateResponse {
   @@unique([eventDateId, userId])
   @@unique([eventDateId, guestKey])
   @@map("date_responses")
+}
+
+/// パスワード再設定用のトークン。平文はメールでだけ送り、DB にはハッシュを保存する
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 のハッシュ（hex）
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

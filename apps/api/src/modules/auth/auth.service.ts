@@ -9,7 +9,7 @@ import type { JwtPayload } from './jwt.strategy.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
-const BCRYPT_ROUNDS = 10;
+export const BCRYPT_ROUNDS = 10;
 
 @Injectable()
 export class AuthService {

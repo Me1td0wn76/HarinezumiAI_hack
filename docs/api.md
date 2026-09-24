@@ -9,6 +9,8 @@
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
 | POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
+| POST | `/auth/password-reset/request` | - | パスワード再設定メールを送る（`RequestPasswordResetRequest`）。登録の有無に関係なく 204 | 204 |
+| POST | `/auth/password-reset/confirm` | - | 新しいパスワードを設定（`ConfirmPasswordResetRequest`）。以前の JWT は無効になる | 204 |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/events` | - | LT会一覧（新しい順） | `EventSummaryDto[]` |
@@ -33,7 +35,7 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 
 | ステータス | 主な原因 |
 | --- | --- |
-| 400 | バリデーションエラー、締め切り後の回答、決定済み候補日の削除 |
+| 400 | バリデーションエラー、無効・期限切れのパスワード再設定リンク、締め切り後の回答、決定済み候補日の削除 |
 | 401 | トークンなし・無効、ログイン失敗 |
 | 403 | 主催者以外による操作 |
 | 404 | LT会・候補日が存在しない |

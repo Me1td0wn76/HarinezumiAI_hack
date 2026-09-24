@@ -9,6 +9,9 @@
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
 | POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
+| GET | `/auth/oauth/providers` | - | 使えるソーシャルログイン | `OAuthProvidersDto` |
+| GET | `/auth/oauth/:provider/url` | - | 認可画面の URL（`?state=&codeChallenge=`）。未設定なら 503 | `OAuthAuthorizeUrlDto` |
+| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。未確認メールが既存ユーザーと重なると 409 | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/events` | - | LT会一覧（新しい順） | `EventSummaryDto[]` |

@@ -33,14 +33,16 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<AuthResponse> {
     const user = await this.users.findByEmail(dto.email.toLowerCase());
-    // ユーザーの有無で応答を変えない（メールアドレスの存在を推測させない）
-    if (!user || !(await compare(dto.password, user.passwordHash))) {
+    // ユーザーの有無で応答を変えない（メールアドレスの存在を推測させない）。
+    // ソーシャルログインだけで登録したユーザー（passwordHash が NULL）もパスワードではログインできない
+    if (!user?.passwordHash || !(await compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('メールアドレスまたはパスワードが違います');
     }
     return this.issue(user);
   }
 
-  private issue(user: User): AuthResponse {
+  /** JWT を発行する。ソーシャルログイン（OAuthService）からも使う */
+  issue(user: User): AuthResponse {
     const payload: JwtPayload = { sub: user.id };
     return { accessToken: this.jwt.sign(payload), user: toUserDto(user) };
   }

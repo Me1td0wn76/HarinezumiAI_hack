@@ -134,3 +134,21 @@ export interface SubmitGuestResponsesRequest {
 export interface ConfirmEventRequest {
   eventDateId: string;
 }
+
+// ---------- ソーシャルログイン ----------
+
+/** 使えるソーシャルログイン（api 側でクライアント ID が設定されているもの） */
+export interface OAuthProvidersDto {
+  google: boolean;
+}
+
+export interface OAuthAuthorizeUrlDto {
+  url: string;
+}
+
+/** web のコールバックが受け取った認可コードを api に渡す */
+export interface OAuthLoginRequest {
+  code: string;
+  /** PKCE の code_verifier */
+  codeVerifier: string;
+}

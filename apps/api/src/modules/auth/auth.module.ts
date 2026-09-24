@@ -6,6 +6,9 @@ import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { OAuthService } from './oauth.service.js';
+import { OAuthAccountsRepository } from './oauth-accounts.repository.js';
+import { GoogleOAuthProvider } from './providers/google.provider.js';
 
 @Module({
   imports: [
@@ -23,6 +26,6 @@ import { JwtStrategy } from './jwt.strategy.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, OAuthService, OAuthAccountsRepository, GoogleOAuthProvider],
 })
 export class AuthModule {}

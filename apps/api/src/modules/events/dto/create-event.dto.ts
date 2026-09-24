@@ -1,6 +1,7 @@
 import type { CreateEventRequest } from '@lt/shared';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { TAG_MAX_PER_EVENT } from '@lt/shared';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
 
 export class CreateEventDto implements CreateEventRequest {
@@ -19,4 +20,11 @@ export class CreateEventDto implements CreateEventRequest {
   @ValidateNested({ each: true })
   @Type(() => CandidateDateDto)
   candidateDates: CandidateDateDto[];
+
+  /** 正規化前の生の値。個数は正規化後にも検証する */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(TAG_MAX_PER_EVENT * 2)
+  @IsString({ each: true })
+  tags?: string[];
 }

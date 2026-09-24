@@ -33,6 +33,7 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         status={detail.status}
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
+        tags={detail.tags}
       />
 
       {detail.description && (

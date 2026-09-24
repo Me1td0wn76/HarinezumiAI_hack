@@ -46,6 +46,8 @@ export interface CreateEventRequest {
   description: string;
   /** ISO 8601 の日時文字列 */
   candidateDates: CandidateDateInput[];
+  /** 最大 TAG_MAX_PER_EVENT 個。先頭の # や前後の空白は API 側で正規化する */
+  tags?: string[];
 }
 
 export interface CandidateDateInput {
@@ -56,6 +58,8 @@ export interface CandidateDateInput {
 export interface UpdateEventRequest {
   title?: string;
   description?: string;
+  /** 指定した場合はタグを丸ごと置き換える */
+  tags?: string[];
 }
 
 export interface EventDateDto {
@@ -73,7 +77,47 @@ export interface EventSummaryDto {
   confirmedDate: EventDateDto | null;
   candidateDateCount: number;
   responderCount: number;
+  tags: string[];
   createdAt: string;
+}
+
+// ---------- 一覧・発見 ----------
+
+/** 1回のリクエストで返す件数の既定値と上限 */
+export const EVENT_PAGE_SIZE = 20;
+export const EVENT_PAGE_SIZE_MAX = 50;
+
+/** タグの制約。API とフォームの両方で使う */
+export const TAG_MAX_PER_EVENT = 5;
+export const TAG_MAX_LENGTH = 20;
+
+/** 一覧の検索語（q）の最大文字数 */
+export const EVENT_SEARCH_MAX_LENGTH = 100;
+
+/** GET /events のクエリ。空の値は「絞り込みなし」 */
+export interface EventListQuery {
+  /** 前ページの nextCursor をそのまま渡す（不透明な文字列） */
+  cursor?: string;
+  limit?: number;
+  tag?: string;
+  /** タイトル・説明の部分一致検索 */
+  q?: string;
+  status?: EventStatus;
+  /** 主催者で絞り込む（ユーザーページやフォロー中フィードの土台） */
+  organizerId?: string;
+}
+
+/** カーソルページネーションの共通レスポンス */
+export interface PageDto<T> {
+  items: T[];
+  /** 続きがあれば次のリクエストの cursor に渡す。無ければ null */
+  nextCursor: string | null;
+}
+
+/** 使われているタグと件数（人気順） */
+export interface TagCountDto {
+  tag: string;
+  count: number;
 }
 
 /** 候補日ごとの集計 */
@@ -107,6 +151,7 @@ export interface EventDetailDto {
   responders: ResponderRowDto[];
   /** 主催者にのみ返す。共有URL の組み立てに使う */
   shareToken: string | null;
+  tags: string[];
   createdAt: string;
 }
 

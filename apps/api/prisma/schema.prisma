@@ -2,12 +2,15 @@
 // enum は packages/shared/src/enums.ts と一致させること
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  // pg_trgm: 日本語の部分一致検索（ILIKE '%...%'）を GIN index で高速化する
+  extensions = [pg_trgm]
 }
 
 /// ユーザー
@@ -51,13 +54,30 @@ model Event {
   confirmedDate   EventDate? @relation("ConfirmedDate", fields: [confirmedDateId], references: [id], onDelete: SetNull)
 
   candidateDates EventDate[] @relation("CandidateDates")
+  tags           EventTag[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([organizerId])
   @@index([status, createdAt])
+  // 新着順のカーソルページネーション用
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  // 部分一致検索用（pg_trgm）
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("events")
+}
+
+/// LT会に付けるタグ。正規化済み（前後空白・先頭 # を除去、小文字）の文字列をそのまま持つ
+model EventTag {
+  eventId String @map("event_id")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag     String
+
+  @@id([eventId, tag])
+  @@index([tag])
+  @@map("event_tags")
 }
 
 /// 開催候補日

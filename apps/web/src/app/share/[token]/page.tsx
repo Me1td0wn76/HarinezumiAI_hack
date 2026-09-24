@@ -25,6 +25,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
         status={detail.status}
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
+        tags={detail.tags}
       />
 
       {detail.description && (

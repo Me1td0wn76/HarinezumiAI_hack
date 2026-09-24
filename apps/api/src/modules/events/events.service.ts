@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import type { EventDetailDto, EventSummaryDto, PageDto, TagCountDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { EventsRepository, type EventDetail, type NewCandidateDate } from './events.repository.js';
+import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
 import { normalizeFormatFields } from './format.js';
@@ -21,6 +21,8 @@ export class EventsService {
   ) {}
 
   async list(query: ListEventsQueryDto): Promise<PageDto<EventSummaryDto>> {
+    const cursor = query.cursor ? decodeEventCursor(query.cursor) : undefined;
+    if (cursor === null) throw new BadRequestException('cursor が不正です');
     const page = await this.events.findPage(
       {
         tag: query.tag?.trim().toLowerCase() || undefined,
@@ -30,7 +32,7 @@ export class EventsService {
         organizerId: query.organizerId,
       },
       query.limit,
-      query.cursor,
+      cursor,
     );
     return { items: page.items.map(toEventSummaryDto), nextCursor: page.nextCursor };
   }

@@ -4,7 +4,7 @@ import { DiscoverControls } from "@/components/discover-controls";
 import { EventList } from "@/components/event-list";
 import { apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { parseEventListQuery, toEventsSearchParams } from "@/lib/events-query";
+import { EMPTY_EVENT_PAGE, canMatchAnyEvent, parseEventListQuery, toEventsSearchParams } from "@/lib/events-query";
 
 export default async function HomePage(props: PageProps<"/">) {
   const query = parseEventListQuery(await props.searchParams);
@@ -13,7 +13,9 @@ export default async function HomePage(props: PageProps<"/">) {
 
   // 3つは互いに依存しないので並列に取る
   const [page, topTags, user] = await Promise.all([
-    apiFetch<PageDto<EventSummaryDto>>(`/events${filtering ? `?${qs}` : ""}`, { auth: false }),
+    canMatchAnyEvent(query)
+      ? apiFetch<PageDto<EventSummaryDto>>(`/events${filtering ? `?${qs}` : ""}`, { auth: false })
+      : EMPTY_EVENT_PAGE,
     apiFetch<TagCountDto[]>("/tags?limit=15", { auth: false }),
     getCurrentUser(),
   ]);

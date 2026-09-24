@@ -33,6 +33,31 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
   redirect(`/events/${created.id}`);
 }
 
+export async function updateEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const eventId = str(formData, 'eventId');
+  try {
+    await apiFetch<EventDetailDto>(`/events/${eventId}`, {
+      method: 'PATCH',
+      body: { title: str(formData, 'title'), description: str(formData, 'description') },
+    });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath('/');
+  redirect(`/events/${eventId}`);
+}
+
+export async function deleteEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    await apiFetch(`/events/${str(formData, 'eventId')}`, { method: 'DELETE' });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath('/');
+  redirect('/');
+}
+
 export async function submitResponses(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const eventId = str(formData, 'eventId');
   const responses = parseResponses(formData);

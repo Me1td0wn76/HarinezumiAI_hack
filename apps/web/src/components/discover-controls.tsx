@@ -30,6 +30,7 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
   return (
     <div className="space-y-3">
       <form action="/" method="get" className="flex gap-2">
+        {query.tag ? <input type="hidden" name="tag" value={query.tag} /> : null}
         {query.status ? <input type="hidden" name="status" value={query.status} /> : null}
         {query.format ? <input type="hidden" name="format" value={query.format} /> : null}
         <input

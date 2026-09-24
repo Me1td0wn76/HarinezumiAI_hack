@@ -11,6 +11,7 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
+| GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
 | GET | `/events` | - | LT会一覧（新しい順、カーソルページネーション）。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE）。Discord 通知 | `EventDetailDto` |
@@ -28,7 +29,7 @@
 
 | パラメータ | 内容 |
 | --- | --- |
-| `cursor` | 前ページの `nextCursor`（最後の event.id）。省略で先頭から |
+| `cursor` | 前ページの `nextCursor`（不透明な文字列。中身は前ページ最後の `createdAt` と `id`）。省略で先頭から。途中のイベントが削除されても続きを取れる |
 | `limit` | 1〜50。既定 20 |
 | `tag` | タグで絞り込み（正規化済みの小文字） |
 | `q` | タイトル・説明の部分一致（大文字小文字を区別しない。pg_trgm の GIN index が効く） |

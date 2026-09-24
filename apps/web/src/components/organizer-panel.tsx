@@ -1,8 +1,9 @@
 "use client";
 
 import type { EventDetailDto } from "@lt/shared";
+import Link from "next/link";
 import { useActionState } from "react";
-import { confirmEvent, removeDate } from "@/actions/events";
+import { confirmEvent, deleteEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
 import { CopyButton } from "./copy-button";
@@ -12,6 +13,7 @@ import { FormMessage } from "./form-message";
 export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; shareUrl: string | null }) {
   const [confirmState, confirmAction, confirming] = useActionState(confirmEvent, undefined);
   const [removeState, removeAction, removing] = useActionState(removeDate, undefined);
+  const [deleteState, deleteAction, deleting] = useActionState(deleteEvent, undefined);
   const isOpen = detail.status === "OPEN";
   // 候補日ごとの○△×棒グラフの分母。0除算を避けるため未回答時は1として扱う
   const totalResponders = detail.responders.length || 1;
@@ -102,6 +104,30 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <AddDatesForm eventId={detail.id} />
         </div>
       )}
+
+      <div className="border-t border-card-border pt-4">
+        <p className="label">LT会の管理</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/events/${detail.id}/edit`} className="btn-secondary text-xs">
+            タイトル・内容を編集
+          </Link>
+          <form
+            action={deleteAction}
+            onSubmit={(e) => {
+              // 回答もすべて消えるため、送信前に確認する
+              if (!window.confirm(`「${detail.title}」を削除します。回答もすべて削除され、元に戻せません。よろしいですか？`)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="eventId" value={detail.id} />
+            <button type="submit" className="btn-danger text-xs" disabled={deleting}>
+              {deleting ? "削除中…" : "LT会を削除"}
+            </button>
+          </form>
+        </div>
+        <FormMessage state={deleteState} />
+      </div>
     </section>
   );
 }

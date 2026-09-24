@@ -108,6 +108,7 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 
 - `TRUST_PROXY` はホップ数ではなく web サーバーの IP / CIDR で指定する。ホップ数だと接続元に関係なく `X-Forwarded-For` の末尾を信じるので、api に直接届くリクエストが値を偽装して制限を回避できる
 - api は外部に公開せず、web からだけ届くようにする（CORS を開けているのは将来の直接利用に備えたもの）
+- Render + Vercel の本番構成では上の2つを満たせないため、`TRUST_PROXY=2` にしている。理由と残るリスクは [deploy.md](deploy.md#trust_proxyレート制限) を参照
 - `TRUST_PROXY` を設定し忘れると、全利用者が web サーバーの IP 1 つを共有し、サービス全体で上限を分け合うことになる（登録が全体で 10 分に 20 件など）
 
 ## 運営ユーザー

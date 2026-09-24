@@ -37,7 +37,7 @@
 | `WEB_URL` | 同上。Discord 通知のリンクに使う |
 | `DISCORD_WEBHOOK_URL` | 任意。空なら通知しない |
 
-`JWT_SECRET` は Render が自動生成する。`PORT` は Render が注入するので設定しない。`NODE_VERSION` は 22 に固定している。
+`JWT_SECRET` は Render が自動生成する。`TRUST_PROXY` は `render.yaml` で `2` に固定している（[下記](#trust_proxyレート制限)）。`PORT` は Render が注入するので設定しない。`NODE_VERSION` は 22 に固定している。
 
 `render.yaml` の中身:
 
@@ -77,6 +77,36 @@
 `NODE_ENV` は Vercel が `production` にするので、ログイン Cookie には `Secure` が付く。
 
 4. Functions のリージョンを Settings → Functions で `sin1`（Singapore）にする
+
+## TRUST_PROXY（レート制限）
+
+api はレート制限を `req.ip` ごとに数え、`req.ip` は Express の `trust proxy`（= `TRUST_PROXY`）で決まる（[api.md のレート制限](api.md#レート制限)）。
+この構成で api に届く `X-Forwarded-For` は次のようになる。
+
+```
+ブラウザ → Vercel（web）→ Render のプロキシ → api
+X-Forwarded-For: <利用者の IP>, <Vercel の送信元 IP>    （接続元 = Render のプロキシ）
+                 └ web が付ける   └ Render が末尾に追加する
+```
+
+Render のプロキシは受け取った `X-Forwarded-For` を消さずに、接続元の IP を末尾に 1 つ足す。
+そのため信頼するのは右から **2 段**（Render のプロキシと web）で、`TRUST_PROXY=2` のとき `req.ip` が利用者の IP になる。
+
+| 値 | `req.ip` | 結果 |
+| --- | --- | --- |
+| `loopback`（既定） | Render のプロキシ | 全利用者が同じ IP になり、サービス全体で上限を分け合う。使わない |
+| `1` | Vercel の送信元 IP | 偽装はできないが、同じ Vercel のインスタンスを通る利用者がまとめて数えられ、混むと無関係の人まで 429 になる |
+| **`2`（推奨）** | 利用者の IP | 利用者ごとに数えられる。ただし下記の注意あり |
+
+api.md が推奨する「web の IP / CIDR で指定する」方法は、この構成では使えない。Vercel の送信元 IP は固定されず（固定するには有料の Static IPs / Secure Compute が要る）、
+Render の Web Service は外部に公開されていて、送信元で絞る Inbound IP Rules は Scale プラン以上だからである。
+
+**`2` の注意**: Render の URL に直接リクエストすれば、`X-Forwarded-For` の先頭を好きな値にしてレート制限を回避できる。
+レート制限は荒らし対策の一段目で、認証や権限はこれに頼っていないので、公開初期はこれを許容する。
+防ぐには、web と api で共有する秘密のヘッダーを付け、それが無いリクエストの `X-Forwarded-For` を無視する（別 Issue で対応）。
+
+デプロイ後の確認: 別々の回線（例: 自宅の Wi-Fi とスマホの回線）からログイン画面で誤ったパスワードを続けて送り、
+片方が 429 になってももう片方はログインできれば、利用者ごとに数えられている。両方が同時に 429 になるなら値が合っていない。
 
 ## 4. 仕上げ
 

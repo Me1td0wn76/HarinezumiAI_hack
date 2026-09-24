@@ -48,6 +48,10 @@ jobs:
 
       - run: pnpm lint
 
+      # e2e（test/）も含めて api 全体を型チェックする。vitest は型エラーでは落ちないため
+      - name: api の型チェック
+        run: pnpm --filter @lt/api exec tsc --noEmit -p tsconfig.json
+
       - name: lt_test にマイグレーションを適用
         run: pnpm --filter @lt/api prisma:deploy
 

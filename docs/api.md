@@ -11,10 +11,12 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
-| GET | `/events` | 任意 | LT会一覧（新しい順）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く | `EventSummaryDto[]` |
-| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`）。Discord 通知 | `EventDetailDto` |
+| GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
+| GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
+| GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
+| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個）。Discord 通知 | `EventDetailDto` |
 | GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明の更新（`UpdateEventRequest`） | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグの更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -30,6 +32,23 @@
 | POST | `/admin/events/:id/unhide` | 運営 | LT会を再表示。操作ログを残す | 204 |
 | GET | `/share/:token` | - | 共有URL からの閲覧 | `EventDetailDto`（`shareToken` は null） |
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
+
+## `GET /events` のクエリ（`EventListQuery`）
+
+| パラメータ | 内容 |
+| --- | --- |
+| `cursor` | 前ページの `nextCursor`（不透明な文字列。中身は前ページ最後の `createdAt` と `id`）。省略で先頭から。途中のイベントが削除されても続きを取れる |
+| `limit` | 1〜50。既定 20 |
+| `tag` | タグで絞り込み（正規化済みの小文字） |
+| `q` | タイトル・説明の部分一致（大文字小文字を区別しない。pg_trgm の GIN index が効く） |
+| `status` | `OPEN` / `CONFIRMED` / `CLOSED` |
+| `organizerId` | 主催者で絞り込み。ユーザーページや「フォロー中」フィード（#8）の土台 |
+
+レスポンスは `{ items, nextCursor }`。`nextCursor` が `null` なら末尾。
+並びは `createdAt desc, id desc` で固定なので、ページをまたいでも重複・欠落しない。
+
+タグは API 側で正規化する: 前後の空白と先頭の `#` を除去、英字は小文字化、重複除去。
+空白・カンマを含むもの、20 文字超、6 個以上は 400。
 
 ## エラー
 

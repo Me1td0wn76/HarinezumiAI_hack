@@ -7,5 +7,8 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    setupFiles: ['./test/setup-e2e.ts'],
+    // 同じ DB に対して直列に実行し、テスト間のデータ競合を避ける
+    fileParallelism: false,
   },
 });

@@ -37,3 +37,22 @@ export function localInputToIso(value: string, tzOffsetMinutes: number): string 
   const utc = Date.UTC(y, mo - 1, d, h, mi) + tzOffsetMinutes * 60_000;
   return new Date(utc).toISOString();
 }
+
+const tokyoParts = new Intl.DateTimeFormat('en-US', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/**
+ * ISO 文字列を日本時間の壁時計の時刻（タイムゾーンなし、"2026-10-05T18:00"）にする。
+ * カレンダー（FullCalendar）を timeZone: 'UTC' で動かし、ブラウザのタイムゾーンに関係なく日本時間で並べるために使う
+ */
+export function toTokyoWallClock(iso: string): string {
+  const p = Object.fromEntries(tokyoParts.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}

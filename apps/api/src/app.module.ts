@@ -11,6 +11,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { BlocksModule } from './modules/blocks/blocks.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { ScheduleModule } from './modules/schedule/schedule.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminModule } from './modules/admin/admin.module.js';
     BlocksModule,
     ReportsModule,
     AdminModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
 })

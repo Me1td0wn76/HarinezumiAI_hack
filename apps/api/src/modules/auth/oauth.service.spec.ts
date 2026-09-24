@@ -29,13 +29,15 @@ function setup({
 }: { linked?: User | null; existing?: User | null; created?: User | null } = {}) {
   const accounts = {
     findUser: vi.fn().mockResolvedValue(linked),
-    createUser: vi.fn().mockImplementation((input: { email: string; displayName: string }) =>
-      Promise.resolve(
-        created !== undefined
-          ? created
-          : user({ id: 'new', email: input.email, displayName: input.displayName, passwordHash: null }),
+    createUser: vi
+      .fn()
+      .mockImplementation((input: { email: string; displayName: string }) =>
+        Promise.resolve(
+          created !== undefined
+            ? created
+            : user({ id: 'new', email: input.email, displayName: input.displayName, passwordHash: null }),
+        ),
       ),
-    ),
   };
   const users = { findByEmail: vi.fn().mockResolvedValue(existing) };
   const google = { name: 'google', enabled: true } as GoogleOAuthProvider;
@@ -69,9 +71,7 @@ describe('OAuthService.findOrCreateUser', () => {
 
   it('同じメールの既存ユーザーがいれば、メールが未確認でも 409', async () => {
     const { service, accounts } = setup({ existing: user({ id: 'existing' }) });
-    await expect(service.findOrCreateUser(profile({ emailVerified: false }))).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(service.findOrCreateUser(profile({ emailVerified: false }))).rejects.toBeInstanceOf(ConflictException);
     expect(accounts.createUser).not.toHaveBeenCalled();
   });
 

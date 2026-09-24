@@ -18,7 +18,12 @@ export class AdminRepository {
   }
 
   /** LT会の表示状態を変え、同じトランザクションで操作ログを残す */
-  async setEventHidden(input: { adminId: string; eventId: string; hidden: boolean; note: string | null }): Promise<void> {
+  async setEventHidden(input: {
+    adminId: string;
+    eventId: string;
+    hidden: boolean;
+    note: string | null;
+  }): Promise<void> {
     const { adminId, eventId, hidden, note } = input;
     await this.prisma.$transaction([
       this.prisma.event.update({ where: { id: eventId }, data: { hiddenAt: hidden ? new Date() : null } }),

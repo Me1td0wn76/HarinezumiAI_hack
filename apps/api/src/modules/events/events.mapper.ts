@@ -1,11 +1,5 @@
 import { createHash } from 'node:crypto';
-import type {
-  DateTallyDto,
-  EventDateDto,
-  EventDetailDto,
-  EventSummaryDto,
-  ResponderRowDto,
-} from '@lt/shared';
+import type { DateTallyDto, EventDateDto, EventDetailDto, EventSummaryDto, ResponderRowDto } from '@lt/shared';
 import type { EventDate } from '../../generated/prisma/client.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
 import type { EventDetail, EventSummary } from './events.repository.js';

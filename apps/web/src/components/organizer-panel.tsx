@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { confirmEvent, deleteEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
+import { WebhookForm } from "./webhook-form";
 import { FormMessage } from "./form-message";
 import { ShareButtons } from "./share-buttons";
 
@@ -104,6 +105,11 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <AddDatesForm eventId={detail.id} />
         </div>
       )}
+
+      <div>
+        <p className="label">Discord への通知</p>
+        <WebhookForm eventId={detail.id} webhookUrl={detail.webhookUrl} />
+      </div>
 
       <div className="border-t border-card-border pt-4">
         <p className="label">LT会の管理</p>

@@ -4,6 +4,9 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { Event, EventDate, Prisma } from '../../generated/prisma/client.js';
 import type { FormatFields } from './format.js';
 
+/** /me の履歴で返す件数の上限（それぞれ新しい順） */
+export const HISTORY_LIMIT = 50;
+
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
   organizer: { select: { id: true, displayName: true } },
@@ -139,6 +142,30 @@ export class EventsRepository {
     return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
   }
 
+  /** 自分が主催したLT会 */
+  findManyByOrganizer(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: { organizerId: userId },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+  }
+
+  /** 候補日に1つ以上回答したLT会（主催したものと、運営が非表示にしたものは除く） */
+  findManyRespondedBy(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: {
+        organizerId: { not: userId },
+        hiddenAt: null,
+        candidateDates: { some: { responses: { some: { userId } } } },
+      },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+  }
+
   findDetailById(id: string): Promise<EventDetail | null> {
     return this.prisma.event.findUnique({ where: { id }, include: eventDetailInclude });
   }
@@ -152,6 +179,7 @@ export class EventsRepository {
     description: string;
     organizerId: string;
     candidateDates: NewCandidateDate[];
+    webhookUrl: string | null;
     tags: string[];
     formatFields: FormatFields;
   }): Promise<EventDetail> {
@@ -159,6 +187,7 @@ export class EventsRepository {
       data: {
         title: input.title,
         description: input.description,
+        webhookUrl: input.webhookUrl,
         ...input.formatFields,
         organizer: { connect: { id: input.organizerId } },
         candidateDates: { create: input.candidateDates },
@@ -171,7 +200,10 @@ export class EventsRepository {
   /** tags を渡した場合は丸ごと置き換える */
   update(
     id: string,
-    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl'>,
+    data: Pick<
+      Prisma.EventUpdateInput,
+      'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl' | 'webhookUrl'
+    >,
     tags?: string[],
   ): Promise<EventDetail> {
     return this.prisma.event.update({

@@ -1,4 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../../common/throttle.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard.js';
@@ -19,6 +21,7 @@ export class CommentsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Throttle(THROTTLE.comment)
   create(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: CreateCommentDto) {
     return this.comments.create(id, user, dto);
   }

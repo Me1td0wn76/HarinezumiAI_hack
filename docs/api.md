@@ -7,16 +7,17 @@
 | メソッド | パス | 認証 | 内容 | レスポンス |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
-| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`） | `AuthResponse` |
+| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
+| GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件） | `MyEventsDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
 | GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
-| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE）。Discord 通知 | `EventDetailDto` |
-| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換） | `EventDetailDto` |
+| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 | `EventDetailDto` |
+| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -63,6 +64,12 @@
   設定されているのに閲覧者に見せられない場合は `hasMeetingUrl: true` になるので、UI は「決定後に表示」と案内できる
 - ゲスト（共有URL）は `GET /share/:token?guestKey=` で回答済みかを判定する
 
+## Discord 通知
+
+送り先は、運営が環境変数 `DISCORD_WEBHOOK_URL` で設定する全体向けの1本と、主催者がLT会ごとに設定する `webhookUrl`（作成時か `PATCH /events/:id`）。
+両方あれば両方に送る（同じ URL なら1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
+`https://discord.com/api/webhooks/...`（`discordapp.com`、`ptb.` / `canary.` を含む）の形式だけを受け付ける。
+
 ## エラー
 
 NestJS 標準の形式。`message` は文字列か、バリデーションエラー時は文字列の配列。
@@ -78,6 +85,30 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 | 403 | 主催者以外による操作、運営以外による `/admin` の操作 |
 | 404 | LT会・候補日が存在しない |
 | 409 | メールアドレス重複 |
+| 429 | レート制限超過（下記） |
+
+## レート制限
+
+`@nestjs/throttler` で IP ごとに制限する（設定は `apps/api/src/common/throttle.ts`）。
+web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_PROXY` で信頼したプロキシからの値だけを `req.ip` に使う。
+
+| 対象 | 上限 |
+| --- | --- |
+| 全エンドポイント（`GET /health` を除く） | 120 回 / 分 |
+| `POST /auth/register` | 20 回 / 10 分 |
+| `POST /auth/login` | 10 回 / 分 |
+| `POST /events` | 10 回 / 時 |
+| `PUT /events/:id/responses` | 30 回 / 分 |
+| `PUT /share/:token/responses` | 30 回 / 分 |
+| `POST /events/:id/comments` | 10 回 / 分 |
+
+会場 Wi-Fi など NAT 配下では参加者全員が同じ IP になるため、その場で数十人が一斉に登録・回答しても詰まらない上限にしている。
+
+**デプロイ時の注意**
+
+- `TRUST_PROXY` はホップ数ではなく web サーバーの IP / CIDR で指定する。ホップ数だと接続元に関係なく `X-Forwarded-For` の末尾を信じるので、api に直接届くリクエストが値を偽装して制限を回避できる
+- api は外部に公開せず、web からだけ届くようにする（CORS を開けているのは将来の直接利用に備えたもの）
+- `TRUST_PROXY` を設定し忘れると、全利用者が web サーバーの IP 1 つを共有し、サービス全体で上限を分け合うことになる（登録が全体で 10 分に 20 件など）
 
 ## 運営ユーザー
 

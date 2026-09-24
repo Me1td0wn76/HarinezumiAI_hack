@@ -21,14 +21,16 @@ enum UserRole {
 
 /// ユーザー
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  displayName  String   @map("display_name")
-  bio          String?
-  role         UserRole @default(USER)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  displayName     String    @map("display_name")
+  bio             String?
+  role            UserRole  @default(USER)
+  /// 利用規約・プライバシーポリシーに同意した日時。登録時に必須
+  termsAcceptedAt DateTime? @map("terms_accepted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   organizedEvents Event[]
   responses       DateResponse[]
@@ -69,6 +71,8 @@ model Event {
   meetingUrl  String?     @map("meeting_url")
   /// 共有URL 用トークン。ログインなしで回答できる
   shareToken  String      @unique @default(cuid()) @map("share_token")
+  /// 主催者が設定する Discord Webhook URL（任意）。主催者以外には返さない
+  webhookUrl  String?     @map("webhook_url")
 
   organizerId String @map("organizer_id")
   organizer   User   @relation(fields: [organizerId], references: [id])

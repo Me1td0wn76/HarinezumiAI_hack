@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { EventDetailDto, EventSummaryDto, PageDto, TagCountDto } from '@lt/shared';
+import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
@@ -46,12 +46,22 @@ export class EventsService {
     return this.events.findTopTags(limit);
   }
 
+  /** 自分の主催・参加履歴 */
+  async history(user: User): Promise<MyEventsDto> {
+    const [organized, participated] = await Promise.all([
+      this.events.findManyByOrganizer(user.id),
+      this.events.findManyRespondedBy(user.id),
+    ]);
+    return { organized: organized.map(toEventSummaryDto), participated: participated.map(toEventSummaryDto) };
+  }
+
   async create(organizer: User, dto: CreateEventDto): Promise<EventDetailDto> {
     const event = await this.events.create({
       title: dto.title,
       description: dto.description,
       organizerId: organizer.id,
       candidateDates: parseCandidateDates(dto.candidateDates),
+      webhookUrl: dto.webhookUrl || null,
       tags: normalizeTags(dto.tags),
       formatFields: normalizeFormatFields(dto.format ?? 'ONLINE', dto.venue, dto.meetingUrl),
     });
@@ -74,7 +84,13 @@ export class EventsService {
     );
     const updated = await this.events.update(
       id,
-      { title: dto.title, description: dto.description, ...formatFields },
+      {
+        title: dto.title,
+        description: dto.description,
+        ...formatFields,
+        // undefined は変更なし、null / 空文字は解除
+        webhookUrl: dto.webhookUrl === undefined ? undefined : dto.webhookUrl || null,
+      },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
     return toEventDetailDto(updated, { userId: user.id });

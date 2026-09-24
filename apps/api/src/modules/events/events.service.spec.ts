@@ -153,10 +153,30 @@ describe('EventsService', () => {
       // 形式・会場・URL は現在値で正規化し直して渡す。tags を送らなかったときは第3引数が undefined（タグは変更しない）
       expect(repo.update).toHaveBeenCalledWith(
         'event-1',
-        { title: '新タイトル', description: undefined, format: 'ONLINE', venue: null, meetingUrl: null },
+        {
+          title: '新タイトル',
+          description: undefined,
+          format: 'ONLINE',
+          venue: null,
+          meetingUrl: null,
+          webhookUrl: undefined,
+        },
         undefined,
       );
       expect(result.title).toBe('新タイトル');
+    });
+
+    it('webhookUrl を空文字で送ると通知先を解除する（null で保存）', async () => {
+      const event = buildEvent({
+        organizerId: organizer.id,
+        webhookUrl: 'https://discord.com/api/webhooks/1/abc',
+      });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue({ ...event, webhookUrl: null });
+
+      await service.update('event-1', organizer, { webhookUrl: '' });
+
+      expect(repo.update).toHaveBeenCalledWith('event-1', expect.objectContaining({ webhookUrl: null }), undefined);
     });
 
     it('LT会が存在しないと 404', async () => {

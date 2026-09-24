@@ -1,6 +1,7 @@
 import type { UpdateEventRequest } from '@lt/shared';
 import { EVENT_FORMAT, TAG_MAX_PER_EVENT, type EventFormat } from '@lt/shared';
 import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
+import { IsOptionalDiscordWebhookUrl } from './webhook-url.validator.js';
 
 export class UpdateEventDto implements UpdateEventRequest {
   @IsOptional()
@@ -14,6 +15,8 @@ export class UpdateEventDto implements UpdateEventRequest {
   @MaxLength(5000)
   description?: string;
 
+  @IsOptionalDiscordWebhookUrl()
+  webhookUrl?: string | null;
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(TAG_MAX_PER_EVENT * 2)

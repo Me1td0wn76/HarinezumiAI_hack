@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
+import { IsOptionalDiscordWebhookUrl } from './webhook-url.validator.js';
 
 export class CreateEventDto implements CreateEventRequest {
   @IsString()
@@ -32,6 +33,8 @@ export class CreateEventDto implements CreateEventRequest {
   @Type(() => CandidateDateDto)
   candidateDates: CandidateDateDto[];
 
+  @IsOptionalDiscordWebhookUrl()
+  webhookUrl?: string | null;
   /** 正規化前の生の値。個数は正規化後にも検証する */
   @IsOptional()
   @IsArray()

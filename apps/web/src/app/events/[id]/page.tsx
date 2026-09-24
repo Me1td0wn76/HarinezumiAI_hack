@@ -1,6 +1,7 @@
-import type { EventDetailDto } from "@lt/shared";
+import type { EventCommentDto, EventDetailDto, UserDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentSection } from "@/components/comment-section";
 import { EventHeader } from "@/components/event-header";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
@@ -12,14 +13,19 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   const { id } = await props.params;
 
   let detail: EventDetailDto;
+  let comments: EventCommentDto[];
+  let user: UserDto | null;
   try {
-    // Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
-    detail = await apiFetch<EventDetailDto>(`/events/${id}`);
+    // 互いに依存しないので並列に取得する。Cookie のトークン付きで取得すると、主催者本人には shareToken が返る
+    [detail, comments, user] = await Promise.all([
+      apiFetch<EventDetailDto>(`/events/${id}`),
+      apiFetch<EventCommentDto[]>(`/events/${id}/comments`),
+      getCurrentUser(),
+    ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-  const user = await getCurrentUser();
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
@@ -67,6 +73,13 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
       )}
 
       {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
+
+      <CommentSection
+        eventId={detail.id}
+        organizerId={detail.organizer.id}
+        comments={comments}
+        viewerId={user?.id ?? null}
+      />
     </div>
   );
 }

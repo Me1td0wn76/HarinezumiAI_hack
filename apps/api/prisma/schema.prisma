@@ -22,6 +22,7 @@ model User {
 
   organizedEvents Event[]
   responses       DateResponse[]
+  comments        EventComment[]
 
   @@map("users")
 }
@@ -50,7 +51,8 @@ model Event {
   confirmedDateId String?    @unique @map("confirmed_date_id")
   confirmedDate   EventDate? @relation("ConfirmedDate", fields: [confirmedDateId], references: [id], onDelete: SetNull)
 
-  candidateDates EventDate[] @relation("CandidateDates")
+  candidateDates EventDate[]    @relation("CandidateDates")
+  comments       EventComment[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -105,4 +107,19 @@ model DateResponse {
   @@unique([eventDateId, userId])
   @@unique([eventDateId, guestKey])
   @@map("date_responses")
+}
+
+/// LT会へのコメント（主催者・参加者間の連絡）。当面はログインユーザーのみ投稿できる
+model EventComment {
+  id      String @id @default(uuid())
+  eventId String @map("event_id")
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String @map("user_id")
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body    String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([eventId, createdAt])
+  @@map("event_comments")
 }

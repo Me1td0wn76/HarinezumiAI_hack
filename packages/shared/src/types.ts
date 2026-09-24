@@ -134,3 +134,17 @@ export interface SubmitGuestResponsesRequest {
 export interface ConfirmEventRequest {
   eventDateId: string;
 }
+
+// ---------- コメント ----------
+
+/** LT会へのコメント（主催者・参加者間の連絡） */
+export interface EventCommentDto {
+  id: string;
+  body: string;
+  author: PublicUserDto;
+  createdAt: string;
+}
+
+export interface CreateCommentRequest {
+  body: string;
+}

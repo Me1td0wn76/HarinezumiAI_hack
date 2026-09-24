@@ -11,6 +11,11 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
+| GET | `/users/:id` | 任意 | 公開プロフィール（表示名・自己紹介・フォロワー数・フォロー中数・主催したLT会・ログイン時は自分がフォロー中か） | `UserProfileDto` |
+| POST | `/users/:id/follow` | 必須 | フォローする | 204 |
+| DELETE | `/users/:id/follow` | 必須 | フォロー解除 | 204 |
+| GET | `/users/:id/followers` | - | フォロワー一覧（直近50件） | `PublicUserDto[]` |
+| GET | `/users/:id/following` | - | フォロー中一覧（直近50件） | `PublicUserDto[]` |
 | GET | `/events` | - | LT会一覧（新しい順） | `EventSummaryDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`）。Discord 通知 | `EventDetailDto` |
 | GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める | `EventDetailDto` |

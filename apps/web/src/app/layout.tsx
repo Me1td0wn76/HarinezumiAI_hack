@@ -22,7 +22,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LT会支援アプリ",
+  // OGP などの相対URL をこのオリジンで絶対URL にする
+  metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000"),
+  title: {
+    default: "LT会支援アプリ",
+    template: "%s | LT会支援",
+  },
   description: "LT会を気軽に立てて、見つけて、参加できるサービス",
 };
 

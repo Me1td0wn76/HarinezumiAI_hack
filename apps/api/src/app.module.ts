@@ -8,6 +8,7 @@ import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { ScheduleModule } from './modules/schedule/schedule.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     EventsModule,
     ResponsesModule,
     ShareModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
 })

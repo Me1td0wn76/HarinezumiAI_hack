@@ -42,6 +42,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isLogin ? "current-password" : "new-password"}
           />
         </div>
+        {isLogin && (
+          <p className="-mt-2 text-right text-xs">
+            <Link href="/password-reset" className="text-subtle underline hover:text-foreground">
+              パスワードを忘れた方
+            </Link>
+          </p>
+        )}
         {!isLogin && (
           <label className="flex items-start gap-2 text-sm text-muted-foreground">
             <input type="checkbox" name="agreeToTerms" required className="mt-1 h-4 w-4 accent-primary" />

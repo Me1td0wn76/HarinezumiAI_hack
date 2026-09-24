@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
@@ -18,11 +19,14 @@ export class EventsService {
   constructor(
     private readonly events: EventsRepository,
     private readonly notifications: NotificationsService,
+    private readonly blocks: BlocksRepository,
   ) {}
 
-  async list(query: ListEventsQueryDto): Promise<PageDto<EventSummaryDto>> {
+  /** @param viewer ログインしていれば、ブロックしている相手のLT会を除く */
+  async list(query: ListEventsQueryDto, viewer: User | null): Promise<PageDto<EventSummaryDto>> {
     const cursor = query.cursor ? decodeEventCursor(query.cursor) : undefined;
     if (cursor === null) throw new BadRequestException('cursor が不正です');
+    const blockedIds = viewer ? await this.blocks.findBlockedIds(viewer.id) : [];
     const page = await this.events.findPage(
       {
         tag: query.tag?.trim().toLowerCase() || undefined,
@@ -33,6 +37,7 @@ export class EventsService {
       },
       query.limit,
       cursor,
+      blockedIds,
     );
     return { items: page.items.map(toEventSummaryDto), nextCursor: page.nextCursor };
   }
@@ -65,7 +70,7 @@ export class EventsService {
   }
 
   async getDetail(id: string, viewer: User | null): Promise<EventDetailDto> {
-    const event = await this.findOrThrow(id);
+    const event = await this.findVisibleOrThrow(id, viewer);
     return toEventDetailDto(event, { userId: viewer?.id });
   }
 
@@ -131,6 +136,15 @@ export class EventsService {
   async findOrThrow(id: string): Promise<EventDetail> {
     const event = await this.events.findDetailById(id);
     if (!event) throw new NotFoundException('LT会が見つかりません');
+    return event;
+  }
+
+  /** 運営が非表示にしたLT会は、主催者と運営以外には存在しないものとして扱う */
+  async findVisibleOrThrow(id: string, viewer: User | null): Promise<EventDetail> {
+    const event = await this.findOrThrow(id);
+    if (event.hiddenAt && viewer?.id !== event.organizerId && viewer?.role !== 'ADMIN') {
+      throw new NotFoundException('LT会が見つかりません');
+    }
     return event;
   }
 

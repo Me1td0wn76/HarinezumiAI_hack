@@ -1,10 +1,11 @@
 import type { EventSummaryDto, MyEventsDto } from "@lt/shared";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BlockButton } from "@/components/block-button";
 import { EventCard } from "@/components/event-card";
 import { ProfileForm } from "@/components/profile-form";
 import { ApiError, apiFetch } from "@/lib/api";
-import { requireUser } from "@/lib/auth";
+import { getMyBlocks, requireUser } from "@/lib/auth";
 
 /** 主催・参加したLT会の一覧 */
 function History({ title, events, empty }: { title: string; events: EventSummaryDto[]; empty: React.ReactNode }) {
@@ -33,8 +34,9 @@ export default async function MePage() {
     if (err instanceof ApiError && err.status === 401) return null;
     throw err;
   });
+  const blocksPromise = getMyBlocks();
   const user = await requireUser();
-  const history = await historyPromise;
+  const [history, blocks] = await Promise.all([historyPromise, blocksPromise]);
   if (!history) redirect("/login");
 
   return (
@@ -61,6 +63,21 @@ export default async function MePage() {
         events={history.participated}
         empty="候補日に回答したLT会がここに表示されます。"
       />
+
+      <section className="card mx-auto max-w-md space-y-3">
+        <h2 className="font-display font-extrabold text-foreground">ブロック中のユーザー</h2>
+        {blocks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">ブロックしているユーザーはいません。</p>
+        ) : (
+          <ul className="divide-y divide-card-border">
+            {blocks.map((b) => (
+              <li key={b.id} className="py-2">
+                <BlockButton userId={b.id} displayName={b.displayName} blocked />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

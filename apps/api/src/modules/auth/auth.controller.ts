@@ -6,12 +6,15 @@ import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { OAuthService } from './oauth.service.js';
 import { OAuthAuthorizeQueryDto, OAuthLoginDto } from './dto/oauth.dto.js';
+import { PasswordResetService } from './password-reset.service.js';
+import { ConfirmPasswordResetDto, RequestPasswordResetDto } from './dto/password-reset.dto.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly oauth: OAuthService,
+    private readonly passwordReset: PasswordResetService,
   ) {}
 
   @Post('register')
@@ -46,5 +49,20 @@ export class AuthController {
   @HttpCode(200)
   oauthLogin(@Param('provider') provider: string, @Body() dto: OAuthLoginDto) {
     return this.oauth.login(provider, dto);
+  }
+
+  /** 登録の有無に関係なく 204 を返す */
+  @Post('password-reset/request')
+  @Throttle(THROTTLE.passwordResetRequest)
+  @HttpCode(204)
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+    return this.passwordReset.request(dto);
+  }
+
+  @Post('password-reset/confirm')
+  @Throttle(THROTTLE.passwordResetConfirm)
+  @HttpCode(204)
+  confirmPasswordReset(@Body() dto: ConfirmPasswordResetDto) {
+    return this.passwordReset.confirm(dto);
   }
 }

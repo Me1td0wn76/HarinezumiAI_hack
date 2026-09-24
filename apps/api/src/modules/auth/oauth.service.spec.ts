@@ -5,21 +5,12 @@ import type { UsersRepository } from '../users/users.repository.js';
 import type { AuthService } from './auth.service.js';
 import type { OAuthAccountsRepository } from './oauth-accounts.repository.js';
 import { OAuthService } from './oauth.service.js';
+import { buildUser } from '../../test-support/event-factories.js';
 import type { GoogleOAuthProvider } from './providers/google.provider.js';
 import type { OAuthProfile } from './providers/oauth-provider.js';
 
 function user(overrides: Partial<User>): User {
-  return {
-    id: 'u1',
-    email: 'taro@example.com',
-    passwordHash: 'hash',
-    displayName: '太郎',
-    bio: null,
-    termsAcceptedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
-  };
+  return buildUser({ id: 'u1', email: 'taro@example.com', displayName: '太郎', ...overrides });
 }
 
 const profile = (overrides: Partial<OAuthProfile> = {}): OAuthProfile => ({

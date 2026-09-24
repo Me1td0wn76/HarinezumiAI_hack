@@ -1,7 +1,7 @@
 import 'server-only';
-import type { UserDto } from '@lt/shared';
+import type { PublicUserDto, UserDto } from '@lt/shared';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ApiError, TOKEN_COOKIE, apiFetch } from './api';
 
 /** ログイン中のユーザー。未ログインやトークン失効なら null */
@@ -14,6 +14,25 @@ export async function getCurrentUser(): Promise<UserDto | null> {
     if (err instanceof ApiError && err.status === 401) return null;
     throw err;
   }
+}
+
+/** 自分がブロックしているユーザー。未ログインなら空 */
+export async function getMyBlocks(): Promise<PublicUserDto[]> {
+  const token = (await cookies()).get(TOKEN_COOKIE)?.value;
+  if (!token) return [];
+  try {
+    return await apiFetch<PublicUserDto[]>('/users/me/blocks');
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return [];
+    throw err;
+  }
+}
+
+/** 運営ページで使う。運営以外は 404 にする（ページの存在を知らせない） */
+export async function requireAdmin(): Promise<UserDto> {
+  const user = await requireUser();
+  if (user.role !== 'ADMIN') notFound();
+  return user;
 }
 
 /** ログイン必須ページで使う。未ログインなら /login へ飛ばす */

@@ -9,6 +9,8 @@ import { JwtStrategy } from './jwt.strategy.js';
 import { OAuthService } from './oauth.service.js';
 import { OAuthAccountsRepository } from './oauth-accounts.repository.js';
 import { GoogleOAuthProvider } from './providers/google.provider.js';
+import { PasswordResetService } from './password-reset.service.js';
+import { PasswordResetRepository } from './password-reset.repository.js';
 
 @Module({
   imports: [
@@ -26,6 +28,14 @@ import { GoogleOAuthProvider } from './providers/google.provider.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, OAuthService, OAuthAccountsRepository, GoogleOAuthProvider],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    PasswordResetService,
+    PasswordResetRepository,
+    OAuthService,
+    OAuthAccountsRepository,
+    GoogleOAuthProvider,
+  ],
 })
 export class AuthModule {}

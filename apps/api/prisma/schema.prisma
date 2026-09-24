@@ -32,29 +32,28 @@ model User {
 }
 
 /// フォロー関係(一方向)
-model Follow{
+model Follow {
   id String @id @default(uuid())
 
   followerId String @map("follower_id")
-  follower   User   @relation("Following",fields:[followerId],references:[id],onDelete:Cascade)
+  follower   User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
 
   followingId String @map("following_id")
-  following   User   @relation("Followers",fields:[followingId], references:[id],onDelete:Cascade)
+  following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
 
   // 同じ相手を二重にフォローできないよう制御
-  @@unique([followerId,followingId])
-  
+  @@unique([followerId, followingId])
   @@index([followingId])
   @@map("follows")
 }
 
 /// LT会の状態
 enum EventStatus {
-  OPEN      // 日程調整中
+  OPEN // 日程調整中
   CONFIRMED // 開催日決定
-  CLOSED    // 終了・中止
+  CLOSED // 終了・中止
 }
 
 /// LT会
@@ -101,9 +100,9 @@ model EventDate {
 
 /// 候補日への回答
 enum Availability {
-  YES   // ○ 参加可能
+  YES // ○ 参加可能
   MAYBE // △ 調整可能
-  NO    // × 不可
+  NO // × 不可
 }
 
 /// 候補日への回答。ログインユーザーは userId、ゲストは guestKey で識別する

@@ -26,7 +26,6 @@ export const metadata: Metadata = {
   description: "LT会を気軽に立てて、見つけて、参加できるサービス",
 };
 
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className={`h-full antialiased ${nunito.variable} ${dmSans.variable}`}>

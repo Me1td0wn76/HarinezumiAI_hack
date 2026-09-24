@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { AuthResponse } from '@lt/shared';
 import { compare, hash } from 'bcryptjs';
@@ -35,7 +39,9 @@ export class AuthService {
     const user = await this.users.findByEmail(dto.email.toLowerCase());
     // ユーザーの有無で応答を変えない（メールアドレスの存在を推測させない）
     if (!user || !(await compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException('メールアドレスまたはパスワードが違います');
+      throw new UnauthorizedException(
+        'メールアドレスまたはパスワードが違います',
+      );
     }
     return this.issue(user);
   }

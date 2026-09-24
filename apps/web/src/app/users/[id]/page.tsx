@@ -5,13 +5,13 @@ import { FollowButton } from "@/components/follow-button";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function UserPofilePage(props:PageProps<"/users/[id]">)
+export default async function UserProfilePage(props:PageProps<"/users/[id]">)
 {
     const {id} = await props.params;
 
     const [profile, me] = await Promise.all([
         apiFetch<UserProfileDto>(`/users/${id}`).catch((err) => {
-        if (err instanceof ApiError && err.status === 404) return null;
+        if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return null;
         throw err;
         }),
         getCurrentUser(),
@@ -22,7 +22,7 @@ export default async function UserPofilePage(props:PageProps<"/users/[id]">)
     const isOwnProfile = me?.id === id;
 
     return (
-        <div className="mx-auto max-w-md space-y-4">
+        <div className="mx-auto max-w-md space-y-4 px-4 py-8">
         <h1 className="text-xl font-bold">{profile.displayName}</h1>
         {profile.bio && <p className="whitespace-pre-wrap text-sm text-stone-600">{profile.bio}</p>}
         <p className="text-sm text-stone-500">
@@ -38,7 +38,7 @@ export default async function UserPofilePage(props:PageProps<"/users/[id]">)
             <ul className="space-y-1">
                 {profile.organizedEvents.map((event) => (
                 <li key={event.id}>
-                    <Link href={`/events/${event.id}`} className="text-emerald-700 underline">
+                    <Link href={`/events/${event.id}`} className="text-success-foreground font-medium underline hover:text-success transition">
                     {event.title}
                     </Link>
                 </li>

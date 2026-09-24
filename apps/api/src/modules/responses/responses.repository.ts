@@ -18,7 +18,12 @@ export class ResponsesRepository {
       values.map((v) =>
         this.prisma.dateResponse.upsert({
           where: { eventDateId_userId: { eventDateId: v.eventDateId, userId } },
-          create: { eventDateId: v.eventDateId, userId, availability: v.availability, comment: v.comment },
+          create: {
+            eventDateId: v.eventDateId,
+            userId,
+            availability: v.availability,
+            comment: v.comment,
+          },
           update: { availability: v.availability, comment: v.comment },
         }),
       ),
@@ -26,11 +31,17 @@ export class ResponsesRepository {
   }
 
   /** ゲストの回答を候補日ごとに upsert する。表示名は毎回上書きする */
-  async upsertForGuest(guestKey: string, guestName: string, values: ResponseValue[]): Promise<void> {
+  async upsertForGuest(
+    guestKey: string,
+    guestName: string,
+    values: ResponseValue[],
+  ): Promise<void> {
     await this.prisma.$transaction(
       values.map((v) =>
         this.prisma.dateResponse.upsert({
-          where: { eventDateId_guestKey: { eventDateId: v.eventDateId, guestKey } },
+          where: {
+            eventDateId_guestKey: { eventDateId: v.eventDateId, guestKey },
+          },
           create: {
             eventDateId: v.eventDateId,
             guestKey,
@@ -38,7 +49,11 @@ export class ResponsesRepository {
             availability: v.availability,
             comment: v.comment,
           },
-          update: { guestName, availability: v.availability, comment: v.comment },
+          update: {
+            guestName,
+            availability: v.availability,
+            comment: v.comment,
+          },
         }),
       ),
     );

@@ -38,13 +38,20 @@ export class EventsController {
   /** 公開。主催者本人がログインして見た場合のみ shareToken が含まれる */
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
-  detail(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User | null) {
+  detail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User | null,
+  ) {
     return this.events.getDetail(id, user);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  update(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: UpdateEventDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+    @Body() dto: UpdateEventDto,
+  ) {
     return this.events.update(id, user, dto);
   }
 
@@ -57,7 +64,11 @@ export class EventsController {
 
   @Post(':id/dates')
   @UseGuards(JwtAuthGuard)
-  addDates(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: AddDatesDto) {
+  addDates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+    @Body() dto: AddDatesDto,
+  ) {
     return this.events.addDates(id, user, dto);
   }
 
@@ -73,7 +84,11 @@ export class EventsController {
 
   @Post(':id/confirm')
   @UseGuards(JwtAuthGuard)
-  confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: ConfirmEventDto) {
+  confirm(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+    @Body() dto: ConfirmEventDto,
+  ) {
     return this.events.confirm(id, user, dto);
   }
 }

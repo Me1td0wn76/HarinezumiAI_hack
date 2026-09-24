@@ -1,6 +1,14 @@
 import type { CreateEventRequest } from '@lt/shared';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
 
 export class CreateEventDto implements CreateEventRequest {

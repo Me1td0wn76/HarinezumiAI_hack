@@ -11,6 +11,8 @@ export function toUserDto(user: User): UserDto {
   };
 }
 
-export function toPublicUserDto(user: Pick<User, 'id' | 'displayName'>): PublicUserDto {
+export function toPublicUserDto(
+  user: Pick<User, 'id' | 'displayName'>,
+): PublicUserDto {
   return { id: user.id, displayName: user.displayName };
 }

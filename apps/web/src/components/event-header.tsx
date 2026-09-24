@@ -1,6 +1,7 @@
 import type { EventDetailDto } from "@lt/shared";
 import { formatDateRange } from "@/lib/format";
 import { EventStatusBadge } from "./event-status-badge";
+import Link from "next/link";
 
 /**
  * イベント詳細ページ（events/[id]）と共有ページ（share/[token]）で共通のヘッダー。
@@ -19,7 +20,12 @@ export function EventHeader({
         <h1 className="font-display text-3xl font-black tracking-tight text-foreground">{title}</h1>
         <EventStatusBadge status={status} />
       </div>
-      <p className="text-sm text-subtle">主催: {organizer.displayName}</p>
+      <p className="text-sm text-subtle">
+        主催: {" "}
+        <Link href={`/users/${organizer.id}`} className="text-emerald-700 underline">
+          {organizer.displayName}
+        </Link>
+      </p>
       {confirmedDate && (
         <div className="flex items-center gap-3 rounded-[1.25rem] border-[1.5px] border-success bg-success-bg px-4 py-3">
           <span className="text-2xl">📅</span>

@@ -1,14 +1,12 @@
 import type { EventDetailDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EventStatusBadge } from "@/components/event-status-badge";
 import { EventHeader } from "@/components/event-header";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDateRange } from "@/lib/format";
 
 export default async function EventDetailPage(props: PageProps<"/events/[id]">) {
   const { id } = await props.params;
@@ -30,30 +28,12 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      {/* <EventHeader
+      <EventHeader
         title={detail.title}
         status={detail.status}
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
-      /> */}
-
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold">{detail.title}</h1>
-          <EventStatusBadge status={detail.status} />
-        </div>
-        <p className="text-sm text-stone-500">
-          主催:{" "}
-          <Link href={`/users/${detail.organizer.id}`} className="text-emerald-700 underline">
-            {detail.organizer.displayName}
-          </Link>
-        </p>
-        {detail.confirmedDate && (
-          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
-            📅 開催日: <strong>{formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)}</strong>
-          </p>
-        )}
-      </header>
+      />
 
       {detail.description && (
         <section className="card">

@@ -17,18 +17,25 @@ export const eventDetailInclude = {
   },
 } satisfies Prisma.EventInclude;
 
-export type EventDetail = Prisma.EventGetPayload<{ include: typeof eventDetailInclude }>;
+export type EventDetail = Prisma.EventGetPayload<{
+  include: typeof eventDetailInclude;
+}>;
 
 /** 一覧表示に必要な最小限の関連 */
 export const eventSummaryInclude = {
   organizer: { select: { id: true, displayName: true } },
   confirmedDate: true,
   candidateDates: {
-    select: { id: true, responses: { select: { userId: true, guestKey: true } } },
+    select: {
+      id: true,
+      responses: { select: { userId: true, guestKey: true } },
+    },
   },
 } satisfies Prisma.EventInclude;
 
-export type EventSummary = Prisma.EventGetPayload<{ include: typeof eventSummaryInclude }>;
+export type EventSummary = Prisma.EventGetPayload<{
+  include: typeof eventSummaryInclude;
+}>;
 
 export interface NewCandidateDate {
   startsAt: Date;
@@ -46,7 +53,7 @@ export class EventsRepository {
     });
   }
 
-    /** 特定ユーザーが主催したLT会一覧。公開プロフィール画面用 */
+  /** 特定ユーザーが主催したLT会一覧。公開プロフィール画面用 */
   findManyByOrganizer(organizerId: string): Promise<EventSummary[]> {
     return this.prisma.event.findMany({
       where: { organizerId },
@@ -54,13 +61,19 @@ export class EventsRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
-  
+
   findDetailById(id: string): Promise<EventDetail | null> {
-    return this.prisma.event.findUnique({ where: { id }, include: eventDetailInclude });
+    return this.prisma.event.findUnique({
+      where: { id },
+      include: eventDetailInclude,
+    });
   }
 
   findDetailByShareToken(shareToken: string): Promise<EventDetail | null> {
-    return this.prisma.event.findUnique({ where: { shareToken }, include: eventDetailInclude });
+    return this.prisma.event.findUnique({
+      where: { shareToken },
+      include: eventDetailInclude,
+    });
   }
 
   create(input: {
@@ -80,8 +93,15 @@ export class EventsRepository {
     });
   }
 
-  update(id: string, data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>): Promise<EventDetail> {
-    return this.prisma.event.update({ where: { id }, data, include: eventDetailInclude });
+  update(
+    id: string,
+    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>,
+  ): Promise<EventDetail> {
+    return this.prisma.event.update({
+      where: { id },
+      data,
+      include: eventDetailInclude,
+    });
   }
 
   async delete(id: string): Promise<void> {
@@ -107,7 +127,10 @@ export class EventsRepository {
   confirm(eventId: string, eventDateId: string): Promise<EventDetail> {
     return this.prisma.event.update({
       where: { id: eventId },
-      data: { status: 'CONFIRMED', confirmedDate: { connect: { id: eventDateId } } },
+      data: {
+        status: 'CONFIRMED',
+        confirmedDate: { connect: { id: eventDateId } },
+      },
       include: eventDetailInclude,
     });
   }

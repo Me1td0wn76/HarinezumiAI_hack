@@ -1,8 +1,17 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { EventDetailDto, EventSummaryDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { EventsRepository, type EventDetail, type NewCandidateDate } from './events.repository.js';
+import {
+  EventsRepository,
+  type EventDetail,
+  type NewCandidateDate,
+} from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { CandidateDateDto } from './dto/candidate-date.dto.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
@@ -44,9 +53,16 @@ export class EventsService {
     return toEventDetailDto(event, viewer?.id ?? null);
   }
 
-  async update(id: string, user: User, dto: UpdateEventDto): Promise<EventDetailDto> {
+  async update(
+    id: string,
+    user: User,
+    dto: UpdateEventDto,
+  ): Promise<EventDetailDto> {
     await this.findOwnedOrThrow(id, user);
-    const updated = await this.events.update(id, { title: dto.title, description: dto.description });
+    const updated = await this.events.update(id, {
+      title: dto.title,
+      description: dto.description,
+    });
     return toEventDetailDto(updated, user.id);
   }
 
@@ -55,16 +71,26 @@ export class EventsService {
     await this.events.delete(id);
   }
 
-  async addDates(id: string, user: User, dto: AddDatesDto): Promise<EventDetailDto> {
+  async addDates(
+    id: string,
+    user: User,
+    dto: AddDatesDto,
+  ): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
     if (event.status !== 'OPEN') {
-      throw new BadRequestException('日程調整中のLT会にのみ候補日を追加できます');
+      throw new BadRequestException(
+        '日程調整中のLT会にのみ候補日を追加できます',
+      );
     }
     await this.events.addDates(id, parseCandidateDates(dto.candidateDates));
     return this.getDetail(id, user);
   }
 
-  async removeDate(id: string, dateId: string, user: User): Promise<EventDetailDto> {
+  async removeDate(
+    id: string,
+    dateId: string,
+    user: User,
+  ): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
     if (!event.candidateDates.some((d) => d.id === dateId)) {
       throw new NotFoundException('候補日が見つかりません');
@@ -77,7 +103,11 @@ export class EventsService {
   }
 
   /** 主催者が開催日を決定する */
-  async confirm(id: string, user: User, dto: ConfirmEventDto): Promise<EventDetailDto> {
+  async confirm(
+    id: string,
+    user: User,
+    dto: ConfirmEventDto,
+  ): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
     if (!event.candidateDates.some((d) => d.id === dto.eventDateId)) {
       throw new NotFoundException('候補日が見つかりません');

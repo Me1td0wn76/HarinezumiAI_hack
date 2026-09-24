@@ -18,7 +18,10 @@ export function toEventDateDto(date: EventDate): EventDateDto {
 }
 
 /** ログインユーザーとゲストを同じ表で扱うためのキー */
-function responderKeyOf(r: { userId: string | null; guestKey: string | null }): string {
+function responderKeyOf(r: {
+  userId: string | null;
+  guestKey: string | null;
+}): string {
   return r.userId ?? `guest:${r.guestKey ?? ''}`;
 }
 
@@ -32,7 +35,9 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
     title: event.title,
     status: event.status,
     organizer: toPublicUserDto(event.organizer),
-    confirmedDate: event.confirmedDate ? toEventDateDto(event.confirmedDate) : null,
+    confirmedDate: event.confirmedDate
+      ? toEventDateDto(event.confirmedDate)
+      : null,
     candidateDateCount: event.candidateDates.length,
     responderCount: responders.size,
     createdAt: event.createdAt.toISOString(),
@@ -42,12 +47,20 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
 /**
  * @param viewerId 閲覧しているユーザー。主催者本人のときだけ shareToken を含める
  */
-export function toEventDetailDto(event: EventDetail, viewerId: string | null): EventDetailDto {
+export function toEventDetailDto(
+  event: EventDetail,
+  viewerId: string | null,
+): EventDetailDto {
   const tallies: DateTallyDto[] = [];
   const rows = new Map<string, ResponderRowDto>();
 
   for (const date of event.candidateDates) {
-    const tally: DateTallyDto = { eventDate: toEventDateDto(date), yes: 0, maybe: 0, no: 0 };
+    const tally: DateTallyDto = {
+      eventDate: toEventDateDto(date),
+      yes: 0,
+      maybe: 0,
+      no: 0,
+    };
     for (const r of date.responses) {
       if (r.availability === 'YES') tally.yes++;
       else if (r.availability === 'MAYBE') tally.maybe++;
@@ -64,7 +77,10 @@ export function toEventDetailDto(event: EventDetail, viewerId: string | null): E
         };
         rows.set(key, row);
       }
-      row.answers[date.id] = { availability: r.availability, comment: r.comment };
+      row.answers[date.id] = {
+        availability: r.availability,
+        comment: r.comment,
+      };
     }
     tallies.push(tally);
   }
@@ -75,7 +91,9 @@ export function toEventDetailDto(event: EventDetail, viewerId: string | null): E
     description: event.description,
     status: event.status,
     organizer: toPublicUserDto(event.organizer),
-    confirmedDate: event.confirmedDate ? toEventDateDto(event.confirmedDate) : null,
+    confirmedDate: event.confirmedDate
+      ? toEventDateDto(event.confirmedDate)
+      : null,
     candidateDates: event.candidateDates.map(toEventDateDto),
     tallies,
     responders: [...rows.values()],

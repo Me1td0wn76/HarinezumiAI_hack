@@ -36,7 +36,9 @@ export class NotificationsService {
 
   /** LT会が作成された。候補日への回答を促す */
   eventCreated(event: EventForNotification): void {
-    const dates = event.candidateDates.map((d) => `・${dateFormat.format(d.startsAt)}`).join('\n');
+    const dates = event.candidateDates
+      .map((d) => `・${dateFormat.format(d.startsAt)}`)
+      .join('\n');
     const content = [
       `📣 新しいLT会「${event.title}」が作成されました（主催: ${event.organizer.displayName}）`,
       '候補日:',

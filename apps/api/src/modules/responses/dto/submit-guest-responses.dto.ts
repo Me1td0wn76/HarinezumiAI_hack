@@ -1,6 +1,14 @@
 import type { SubmitGuestResponsesRequest } from '@lt/shared';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsString, Length, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsString,
+  Length,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { ResponseInputDto } from './response-input.dto.js';
 
 export class SubmitGuestResponsesDto implements SubmitGuestResponsesRequest {

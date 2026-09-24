@@ -10,7 +10,9 @@ const userProfileSelect = {
   _count: { select: { followers: true, following: true } },
 } satisfies Prisma.UserSelect;
 
-export type UserProfile = Prisma.UserGetPayload<{ select: typeof userProfileSelect }>;
+export type UserProfile = Prisma.UserGetPayload<{
+  select: typeof userProfileSelect;
+}>;
 
 @Injectable()
 export class UsersRepository {
@@ -25,7 +27,10 @@ export class UsersRepository {
   }
 
   findProfileById(id: string): Promise<UserProfile | null> {
-    return this.prisma.user.findUnique({ where: { id }, select: userProfileSelect });
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: userProfileSelect,
+    });
   }
 
   /**
@@ -34,7 +39,9 @@ export class UsersRepository {
    */
   async isFollowedBy(viewerId: string, targetId: string): Promise<boolean> {
     const found = await this.prisma.follow.findUnique({
-      where: { followerId_followingId: { followerId: viewerId, followingId: targetId } },
+      where: {
+        followerId_followingId: { followerId: viewerId, followingId: targetId },
+      },
       select: { id: true },
     });
     return found !== null;

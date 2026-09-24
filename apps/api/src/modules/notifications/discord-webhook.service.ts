@@ -12,7 +12,8 @@ export class DiscordWebhookService {
 
   constructor(config: ConfigService) {
     this.url = config.get<string>('DISCORD_WEBHOOK_URL') || undefined;
-    if (!this.url) this.logger.log('DISCORD_WEBHOOK_URL 未設定のため Discord 通知は無効');
+    if (!this.url)
+      this.logger.log('DISCORD_WEBHOOK_URL 未設定のため Discord 通知は無効');
   }
 
   get enabled(): boolean {
@@ -27,7 +28,8 @@ export class DiscordWebhookService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });
-      if (!res.ok) this.logger.warn(`Discord webhook が ${res.status} を返しました`);
+      if (!res.ok)
+        this.logger.warn(`Discord webhook が ${res.status} を返しました`);
     } catch (err) {
       this.logger.warn(`Discord webhook の送信に失敗: ${String(err)}`);
     }

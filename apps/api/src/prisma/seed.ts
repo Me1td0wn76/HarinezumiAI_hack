@@ -17,12 +17,20 @@ async function main() {
   const demo = await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
-    create: { email: 'demo@example.com', passwordHash, displayName: 'デモ主催者' },
+    create: {
+      email: 'demo@example.com',
+      passwordHash,
+      displayName: 'デモ主催者',
+    },
   });
   const taro = await prisma.user.upsert({
     where: { email: 'taro@example.com' },
     update: {},
-    create: { email: 'taro@example.com', passwordHash, displayName: '山田太郎' },
+    create: {
+      email: 'taro@example.com',
+      passwordHash,
+      displayName: '山田太郎',
+    },
   });
 
   const nextWeek = (days: number, hour: number) => {
@@ -35,7 +43,8 @@ async function main() {
   const event = await prisma.event.create({
     data: {
       title: '第1回 LT会',
-      description: '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
+      description:
+        '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
       organizer: { connect: { id: demo.id } },
       candidateDates: {
         create: [
@@ -52,14 +61,31 @@ async function main() {
   await prisma.dateResponse.createMany({
     data: [
       { eventDateId: d1.id, userId: taro.id, availability: 'YES' },
-      { eventDateId: d2.id, userId: taro.id, availability: 'MAYBE', comment: '19時なら' },
+      {
+        eventDateId: d2.id,
+        userId: taro.id,
+        availability: 'MAYBE',
+        comment: '19時なら',
+      },
       { eventDateId: d3.id, userId: taro.id, availability: 'NO' },
-      { eventDateId: d1.id, guestKey: 'seed-guest-1', guestName: 'ゲスト花子', availability: 'YES' },
-      { eventDateId: d2.id, guestKey: 'seed-guest-1', guestName: 'ゲスト花子', availability: 'YES' },
+      {
+        eventDateId: d1.id,
+        guestKey: 'seed-guest-1',
+        guestName: 'ゲスト花子',
+        availability: 'YES',
+      },
+      {
+        eventDateId: d2.id,
+        guestKey: 'seed-guest-1',
+        guestName: 'ゲスト花子',
+        availability: 'YES',
+      },
     ],
   });
 
-  console.log(`seeded: users=2 event="${event.title}" (share: /share/${event.shareToken})`);
+  console.log(
+    `seeded: users=2 event="${event.title}" (share: /share/${event.shareToken})`,
+  );
 }
 
 main()

@@ -23,6 +23,9 @@
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
 | POST | `/events/:id/confirm` | 主催者 | 開催日決定（`ConfirmEventRequest`）。Discord 通知 | `EventDetailDto` |
 | PUT | `/events/:id/responses` | 必須 | 自分の回答を一括登録・更新（`SubmitResponsesRequest`）。OPEN のときのみ | `EventDetailDto` |
+| GET | `/events/:id/comments` | - | コメント一覧（古い順） | `EventCommentDto[]` |
+| POST | `/events/:id/comments` | 必須 | コメント投稿（`CreateCommentRequest`、1〜1000文字）。Discord 通知 | `EventCommentDto` |
+| DELETE | `/events/:id/comments/:commentId` | 投稿者・主催者 | コメント削除 | 204 |
 | GET | `/share/:token` | - | 共有URL からの閲覧。`?guestKey=` を付けると、そのゲストが回答済みなら開催日決定後に `meetingUrl` が含まれる | `EventDetailDto`（`shareToken` は null） |
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
 

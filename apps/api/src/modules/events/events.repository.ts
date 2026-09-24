@@ -143,6 +143,7 @@ export class EventsRepository {
     description: string;
     organizerId: string;
     candidateDates: NewCandidateDate[];
+    webhookUrl: string | null;
     tags: string[];
     formatFields: FormatFields;
   }): Promise<EventDetail> {
@@ -150,6 +151,7 @@ export class EventsRepository {
       data: {
         title: input.title,
         description: input.description,
+        webhookUrl: input.webhookUrl,
         ...input.formatFields,
         organizer: { connect: { id: input.organizerId } },
         candidateDates: { create: input.candidateDates },
@@ -162,7 +164,10 @@ export class EventsRepository {
   /** tags を渡した場合は丸ごと置き換える */
   update(
     id: string,
-    data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl'>,
+    data: Pick<
+      Prisma.EventUpdateInput,
+      'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl' | 'webhookUrl'
+    >,
     tags?: string[],
   ): Promise<EventDetail> {
     return this.prisma.event.update({

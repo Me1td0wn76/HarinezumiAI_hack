@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
 import { CandidateDatesField } from "./candidate-dates-field";
+import { WebhookUrlField } from "./webhook-url-field";
 import { FormMessage } from "./form-message";
 import { FormatFields } from "./format-fields";
 
@@ -69,6 +70,10 @@ export function EventForm() {
       <Section title="🗓 候補日">
         <p className="-mt-2 text-xs text-subtle">終了時刻は任意です</p>
         <CandidateDatesField min={1} />
+      </Section>
+
+      <Section title="🔔 通知">
+        <WebhookUrlField id="webhookUrl" />
       </Section>
 
       <FormMessage state={state} />

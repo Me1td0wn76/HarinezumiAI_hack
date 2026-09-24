@@ -48,6 +48,8 @@ export interface CreateEventRequest {
   description: string;
   /** ISO 8601 の日時文字列 */
   candidateDates: CandidateDateInput[];
+  /** 通知先の Discord Webhook URL（任意） */
+  webhookUrl?: string | null;
   /** 最大 TAG_MAX_PER_EVENT 個。先頭の # や前後の空白は API 側で正規化する */
   tags?: string[];
   /** 省略時は ONLINE */
@@ -66,6 +68,8 @@ export interface CandidateDateInput {
 export interface UpdateEventRequest {
   title?: string;
   description?: string;
+  /** null で通知先を解除する */
+  webhookUrl?: string | null;
   /** 指定した場合はタグを丸ごと置き換える */
   tags?: string[];
   format?: EventFormat;
@@ -164,6 +168,8 @@ export interface EventDetailDto {
   responders: ResponderRowDto[];
   /** 主催者にのみ返す。共有URL の組み立てに使う */
   shareToken: string | null;
+  /** 主催者にのみ返す。LT会ごとの Discord 通知先 */
+  webhookUrl: string | null;
   tags: string[];
   format: EventFormat;
   venue: string | null;

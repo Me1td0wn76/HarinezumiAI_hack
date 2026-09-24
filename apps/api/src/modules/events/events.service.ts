@@ -47,6 +47,7 @@ export class EventsService {
       description: dto.description,
       organizerId: organizer.id,
       candidateDates: parseCandidateDates(dto.candidateDates),
+      webhookUrl: dto.webhookUrl || null,
       tags: normalizeTags(dto.tags),
       formatFields: normalizeFormatFields(dto.format ?? 'ONLINE', dto.venue, dto.meetingUrl),
     });
@@ -69,7 +70,13 @@ export class EventsService {
     );
     const updated = await this.events.update(
       id,
-      { title: dto.title, description: dto.description, ...formatFields },
+      {
+        title: dto.title,
+        description: dto.description,
+        ...formatFields,
+        // undefined は変更なし、null / 空文字は解除
+        webhookUrl: dto.webhookUrl === undefined ? undefined : dto.webhookUrl || null,
+      },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
     return toEventDetailDto(updated, { userId: user.id });

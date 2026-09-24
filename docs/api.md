@@ -14,9 +14,9 @@
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
 | GET | `/events` | - | LT会一覧（新しい順、カーソルページネーション）。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
-| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE）。Discord 通知 | `EventDetailDto` |
-| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換） | `EventDetailDto` |
+| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 | `EventDetailDto` |
+| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -54,6 +54,12 @@
 - **`meetingUrl` の出し分け**（`EventDetailDto`）: 主催者にはいつでも返す。回答者には開催日決定（CONFIRMED）後にだけ返す。それ以外は null。
   設定されているのに閲覧者に見せられない場合は `hasMeetingUrl: true` になるので、UI は「決定後に表示」と案内できる
 - ゲスト（共有URL）は `GET /share/:token?guestKey=` で回答済みかを判定する
+
+## Discord 通知
+
+送り先は、運営が環境変数 `DISCORD_WEBHOOK_URL` で設定する全体向けの1本と、主催者がLT会ごとに設定する `webhookUrl`（作成時か `PATCH /events/:id`）。
+両方あれば両方に送る（同じ URL なら1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
+`https://discord.com/api/webhooks/...`（`discordapp.com`、`ptb.` / `canary.` を含む）の形式だけを受け付ける。
 
 ## エラー
 

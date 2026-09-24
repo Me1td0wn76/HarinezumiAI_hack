@@ -11,6 +11,7 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
+| GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴 | `MyEventsDto` |
 | GET | `/events` | - | LT会一覧（新しい順） | `EventSummaryDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`）。Discord 通知 | `EventDetailDto` |
 | GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める | `EventDetailDto` |

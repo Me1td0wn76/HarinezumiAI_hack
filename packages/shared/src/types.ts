@@ -134,3 +134,12 @@ export interface SubmitGuestResponsesRequest {
 export interface ConfirmEventRequest {
   eventDateId: string;
 }
+
+// ---------- 履歴 ----------
+
+/** 自分の主催・参加履歴（新しい順） */
+export interface MyEventsDto {
+  organized: EventSummaryDto[];
+  /** 候補日に1つ以上回答したLT会（自分が主催したものは除く） */
+  participated: EventSummaryDto[];
+}

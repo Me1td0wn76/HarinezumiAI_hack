@@ -46,6 +46,27 @@ export class EventsRepository {
     });
   }
 
+  /** 自分が主催したLT会 */
+  findManyByOrganizer(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: { organizerId: userId },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** 候補日に1つ以上回答したLT会（主催したものは除く） */
+  findManyRespondedBy(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: {
+        organizerId: { not: userId },
+        candidateDates: { some: { responses: { some: { userId } } } },
+      },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   findDetailById(id: string): Promise<EventDetail | null> {
     return this.prisma.event.findUnique({ where: { id }, include: eventDetailInclude });
   }

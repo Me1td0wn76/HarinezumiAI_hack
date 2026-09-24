@@ -100,10 +100,7 @@ export class EventsRepository {
       // ORDER BY createdAt desc, id desc の続き = (createdAt, id) < cursor。q の OR と衝突しないよう AND に入れる
       where.AND = [
         {
-          OR: [
-            { createdAt: { lt: cursor.createdAt } },
-            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
-          ],
+          OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }],
         },
       ];
     }

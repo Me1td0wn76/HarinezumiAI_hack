@@ -5,9 +5,18 @@ import { useState } from "react";
 
 /**
  * 開催形式の選択と、形式に応じた会場 / 配信URL の入力欄。
- * name は format / venue / meetingUrl（actions/events.ts の createEvent と対応）
+ * name は format / venue / meetingUrl（actions/events.ts の createEvent / updateEvent と対応）
  */
-export function FormatFields({ initialFormat = "ONLINE" }: { initialFormat?: EventFormat }) {
+export function FormatFields({
+  initialFormat = "ONLINE",
+  defaultVenue,
+  defaultMeetingUrl,
+}: {
+  initialFormat?: EventFormat;
+  /** 編集時の現在値 */
+  defaultVenue?: string | null;
+  defaultMeetingUrl?: string | null;
+}) {
   const [format, setFormat] = useState<EventFormat>(initialFormat);
   const showVenue = format !== "ONLINE";
   const showUrl = format !== "OFFLINE";
@@ -39,7 +48,14 @@ export function FormatFields({ initialFormat = "ONLINE" }: { initialFormat?: Eve
           <label className="label" htmlFor="venue">
             会場（名称・住所）
           </label>
-          <input id="venue" name="venue" className="input" maxLength={200} placeholder="東京都渋谷区 ○○ビル 3F 会議室" />
+          <input
+            id="venue"
+            name="venue"
+            className="input"
+            maxLength={200}
+            placeholder="東京都渋谷区 ○○ビル 3F 会議室"
+            defaultValue={defaultVenue ?? undefined}
+          />
         </div>
       ) : null}
       {showUrl ? (
@@ -54,6 +70,7 @@ export function FormatFields({ initialFormat = "ONLINE" }: { initialFormat?: Eve
             className="input"
             maxLength={500}
             placeholder="https://meet.google.com/xxx-xxxx-xxx"
+            defaultValue={defaultMeetingUrl ?? undefined}
           />
           <p className="mt-1 text-xs text-subtle">開催日を決定するまで参加者には表示されません。決定後、回答した人だけに表示されます。</p>
         </div>

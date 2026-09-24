@@ -179,6 +179,99 @@ describe('EventsService', () => {
       expect(repo.update).toHaveBeenCalledWith('event-1', expect.objectContaining({ webhookUrl: null }), undefined);
     });
 
+    it('タグ・開催形式・会場・配信URL を更新できる（タグは正規化して渡す）', async () => {
+      const event = buildEvent({ organizerId: organizer.id });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+      const dto: UpdateEventDto = {
+        tags: ['#Web', ' TypeScript ', 'web'],
+        format: 'HYBRID',
+        venue: ' 渋谷 ○○ビル ',
+        meetingUrl: 'https://meet.example.com/abc',
+      };
+
+      await service.update('event-1', organizer, dto);
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        expect.objectContaining({
+          format: 'HYBRID',
+          venue: '渋谷 ○○ビル',
+          meetingUrl: 'https://meet.example.com/abc',
+        }),
+        ['web', 'typescript'],
+      );
+    });
+
+    it('OFFLINE に変えると配信URL を、ONLINE に変えると会場を落とす', async () => {
+      const event = buildEvent({
+        organizerId: organizer.id,
+        format: 'HYBRID',
+        venue: '渋谷',
+        meetingUrl: 'https://meet.example.com/abc',
+      });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      await service.update('event-1', organizer, { format: 'OFFLINE' });
+      expect(repo.update).toHaveBeenLastCalledWith(
+        'event-1',
+        expect.objectContaining({ format: 'OFFLINE', venue: '渋谷', meetingUrl: null }),
+        undefined,
+      );
+
+      await service.update('event-1', organizer, { format: 'ONLINE' });
+      expect(repo.update).toHaveBeenLastCalledWith(
+        'event-1',
+        expect.objectContaining({ format: 'ONLINE', venue: null, meetingUrl: 'https://meet.example.com/abc' }),
+        undefined,
+      );
+    });
+
+    it('空のタグ配列を送るとタグを外し、空文字の会場・配信URL は null にする', async () => {
+      const event = buildEvent({ organizerId: organizer.id, format: 'HYBRID', venue: '渋谷' });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      await service.update('event-1', organizer, { tags: [], venue: '', meetingUrl: '' });
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        expect.objectContaining({ format: 'HYBRID', venue: null, meetingUrl: null }),
+        [],
+      );
+    });
+
+    it('形式・会場・配信URL を送らなければ現在値を保つ', async () => {
+      const event = buildEvent({
+        organizerId: organizer.id,
+        format: 'HYBRID',
+        venue: '渋谷',
+        meetingUrl: 'https://meet.example.com/abc',
+      });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      await service.update('event-1', organizer, { title: '新タイトル' });
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        expect.objectContaining({ format: 'HYBRID', venue: '渋谷', meetingUrl: 'https://meet.example.com/abc' }),
+        undefined,
+      );
+    });
+
+    it('更新結果は主催者本人向けなので配信URL を含む', async () => {
+      const event = buildEvent({ organizerId: organizer.id, meetingUrl: 'https://meet.example.com/abc' });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      const result = await service.update('event-1', organizer, { meetingUrl: 'https://meet.example.com/abc' });
+
+      expect(result.meetingUrl).toBe('https://meet.example.com/abc');
+      expect(result.hasMeetingUrl).toBe(true);
+    });
+
     it('LT会が存在しないと 404', async () => {
       repo.findDetailById.mockResolvedValue(null);
 
@@ -212,7 +305,9 @@ describe('EventsService', () => {
 
       await service.addDates('event-1', organizer, dto);
 
-      expect(repo.addDates).toHaveBeenCalledWith('event-1', [{ startsAt: new Date('2026-03-01T10:00:00.000Z'), endsAt: null }]);
+      expect(repo.addDates).toHaveBeenCalledWith('event-1', [
+        { startsAt: new Date('2026-03-01T10:00:00.000Z'), endsAt: null },
+      ]);
     });
   });
 

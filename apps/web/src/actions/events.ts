@@ -39,7 +39,15 @@ export async function updateEvent(_prev: ActionState, formData: FormData): Promi
   try {
     await apiFetch<EventDetailDto>(`/events/${eventId}`, {
       method: 'PATCH',
-      body: { title: str(formData, 'title'), description: str(formData, 'description') },
+      // webhookUrl は送らない（主催者メニューの updateWebhook で設定する）
+      body: {
+        title: str(formData, 'title'),
+        description: str(formData, 'description'),
+        tags: parseTags(formData),
+        format: str(formData, 'format') || undefined,
+        venue: str(formData, 'venue') || null,
+        meetingUrl: str(formData, 'meetingUrl') || null,
+      },
     });
   } catch (err) {
     return { error: errorMessage(err) };

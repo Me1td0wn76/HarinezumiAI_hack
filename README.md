@@ -48,6 +48,19 @@ pnpm dev          # web(3000) / api(3001) / shared(型の watch) を同時起動
 
 http://localhost:3000 を開く。
 
+### API の e2e テストを動かす
+
+e2e テスト（`apps/api/test/*.e2e-spec.ts`）は本番用の `lt` とは別の `lt_test` データベースに対して実行する。
+
+```bash
+cp apps/api/.env.test.example apps/api/.env.test  # 初回のみ
+pnpm db:test:up                                   # lt_test データベースを作成（既にあれば何もしない）
+pnpm db:test:migrate                              # lt_test にマイグレーションを適用
+pnpm test:e2e                                     # e2e テストを実行
+```
+
+GitHub Actions（`.github/workflows/ci.yml`）では push / PR ごとに `pnpm lint`・`pnpm test`（ユニット）・`pnpm --filter @lt/api test:e2e` を実行する。
+
 ## よく使うコマンド
 
 | コマンド | 内容 |
@@ -57,8 +70,9 @@ http://localhost:3000 を開く。
 | `pnpm lint` | 全パッケージを lint |
 | `pnpm db:migrate` | `prisma migrate dev`（スキーマ変更後に実行） |
 | `pnpm db:studio` | Prisma Studio で DB を見る |
-| `pnpm --filter @lt/api test` | API のユニットテスト |
-| `pnpm --filter @lt/api test:e2e` | API の e2e テスト（DB 起動が必要） |
+| `pnpm db:test:up` / `pnpm db:test:migrate` | `lt_test` データベースの作成・マイグレーション適用 |
+| `pnpm --filter @lt/api test` | API のユニットテスト（Service 層。DB 不要） |
+| `pnpm test:e2e` | API の e2e テスト（`lt_test` の起動・マイグレーションが必要） |
 
 ## 開発の流れ
 

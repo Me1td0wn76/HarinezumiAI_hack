@@ -21,3 +21,13 @@ export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
   CONFIRMED: '開催日決定',
   CLOSED: '終了',
 };
+
+/** 開催形式 */
+export const EVENT_FORMAT = ['ONLINE', 'OFFLINE', 'HYBRID'] as const;
+export type EventFormat = (typeof EVENT_FORMAT)[number];
+
+export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
+  ONLINE: 'オンライン',
+  OFFLINE: 'オフライン',
+  HYBRID: 'ハイブリッド',
+};

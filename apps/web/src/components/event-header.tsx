@@ -1,10 +1,11 @@
 import type { EventDetailDto } from "@lt/shared";
 import { formatDateRange } from "@/lib/format";
 import { EventStatusBadge } from "./event-status-badge";
+import { TagChip } from "./tag-chip";
 
 /**
  * イベント詳細ページ（events/[id]）と共有ページ（share/[token]）で共通のヘッダー。
- * タイトル・ステータスバッジ・主催者名・確定日バナーを表示する。
+ * タイトル・ステータスバッジ・主催者名・タグ・確定日バナーを表示する。
  * 元は各ページに同じJSXが10行ずつコピーされていたため、ここに切り出した。
  */
 export function EventHeader({
@@ -12,7 +13,8 @@ export function EventHeader({
   status,
   organizer,
   confirmedDate,
-}: Pick<EventDetailDto, "title" | "status" | "organizer" | "confirmedDate">) {
+  tags = [],
+}: Pick<EventDetailDto, "title" | "status" | "organizer" | "confirmedDate"> & { tags?: string[] }) {
   return (
     <header className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
@@ -20,6 +22,13 @@ export function EventHeader({
         <EventStatusBadge status={status} />
       </div>
       <p className="text-sm text-subtle">主催: {organizer.displayName}</p>
+      {tags.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <TagChip key={tag} tag={tag} />
+          ))}
+        </div>
+      ) : null}
       {confirmedDate && (
         <div className="flex items-center gap-3 rounded-[1.25rem] border-[1.5px] border-success bg-success-bg px-4 py-3">
           <span className="text-2xl">📅</span>

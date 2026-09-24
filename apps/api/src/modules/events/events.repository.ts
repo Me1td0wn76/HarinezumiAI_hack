@@ -4,6 +4,9 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EventDate, Prisma } from '../../generated/prisma/client.js';
 import type { FormatFields } from './format.js';
 
+/** /me の履歴で返す件数の上限（それぞれ新しい順） */
+export const HISTORY_LIMIT = 50;
+
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
   organizer: { select: { id: true, displayName: true } },
@@ -128,6 +131,29 @@ export class EventsRepository {
       take: limit,
     });
     return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
+  }
+
+  /** 自分が主催したLT会 */
+  findManyByOrganizer(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: { organizerId: userId },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+  }
+
+  /** 候補日に1つ以上回答したLT会（主催したものは除く） */
+  findManyRespondedBy(userId: string): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: {
+        organizerId: { not: userId },
+        candidateDates: { some: { responses: { some: { userId } } } },
+      },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
   }
 
   findDetailById(id: string): Promise<EventDetail | null> {

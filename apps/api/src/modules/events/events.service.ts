@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { EventDetailDto, EventSummaryDto, PageDto, TagCountDto } from '@lt/shared';
+import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
@@ -39,6 +39,15 @@ export class EventsService {
 
   topTags(limit: number): Promise<TagCountDto[]> {
     return this.events.findTopTags(limit);
+  }
+
+  /** 自分の主催・参加履歴 */
+  async history(user: User): Promise<MyEventsDto> {
+    const [organized, participated] = await Promise.all([
+      this.events.findManyByOrganizer(user.id),
+      this.events.findManyRespondedBy(user.id),
+    ]);
+    return { organized: organized.map(toEventSummaryDto), participated: participated.map(toEventSummaryDto) };
   }
 
   async create(organizer: User, dto: CreateEventDto): Promise<EventDetailDto> {

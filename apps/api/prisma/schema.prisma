@@ -13,6 +13,12 @@ datasource db {
   extensions = [pg_trgm]
 }
 
+/// ユーザーの権限
+enum UserRole {
+  USER  // 一般ユーザー
+  ADMIN // 運営。通報の確認とLT会の非表示ができる
+}
+
 /// ユーザー
 model User {
   id                String    @id @default(uuid())
@@ -20,6 +26,7 @@ model User {
   passwordHash      String    @map("password_hash")
   displayName       String    @map("display_name")
   bio               String?
+  role              UserRole  @default(USER)
   /// 利用規約・プライバシーポリシーに同意した日時。登録時に必須
   termsAcceptedAt   DateTime? @map("terms_accepted_at")
   /// パスワードを再設定した日時。これより前に発行した JWT は無効にする
@@ -29,6 +36,10 @@ model User {
 
   organizedEvents     Event[]
   responses           DateResponse[]
+  reports             Report[]
+  blocking            Block[]              @relation("Blocker")
+  blockedBy           Block[]              @relation("Blocked")
+  moderationLogs      ModerationLog[]
   passwordResetTokens PasswordResetToken[]
   comments            EventComment[]
 
@@ -76,6 +87,9 @@ model Event {
   candidateDates EventDate[]    @relation("CandidateDates")
   tags           EventTag[]
   comments       EventComment[]
+
+  /// 運営が非表示にした日時。NULL なら公開。非表示のLT会は主催者と運営にしか見えない
+  hiddenAt DateTime? @map("hidden_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -161,6 +175,71 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+/// 通報の対象
+enum ReportTargetType {
+  EVENT
+  USER
+}
+
+/// 通報の理由
+enum ReportReason {
+  SPAM          // スパム・宣伝
+  HARASSMENT    // 誹謗中傷・嫌がらせ
+  INAPPROPRIATE // 不適切な内容
+  OTHER         // その他
+}
+
+/// LT会・ユーザーへの通報。対象は削除されても判断の記録として残すため、外部キーにしない
+model Report {
+  id         String           @id @default(uuid())
+  reporterId String           @map("reporter_id")
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id")
+  reason     ReportReason
+  /// 自由記述の補足
+  detail     String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  // 同じ人が同じ対象を何度も通報して件数を水増しできないようにする（再通報は理由の更新になる）
+  @@unique([reporterId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+/// ブロック。ブロックした相手が主催するLT会を一覧から除外する
+model Block {
+  blockerId String   @map("blocker_id")
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String   @map("blocked_id")
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([blockerId, blockedId])
+  @@map("blocks")
+}
+
+/// 運営の操作
+enum ModerationAction {
+  HIDE_EVENT
+  UNHIDE_EVENT
+}
+
+/// 運営の操作ログ。後から判断の根拠を追えるように残す
+model ModerationLog {
+  id         String           @id @default(uuid())
+  adminId    String           @map("admin_id")
+  admin      User             @relation(fields: [adminId], references: [id])
+  action     ModerationAction
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id")
+  note       String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@map("moderation_logs")
 }
 
 /// LT会へのコメント（主催者・参加者間の連絡）。当面はログインユーザーのみ投稿できる

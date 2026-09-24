@@ -15,10 +15,10 @@ export type CommentWithAuthor = Prisma.EventCommentGetPayload<{ include: typeof 
 export class CommentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** 新しい順に最大 COMMENT_LIMIT 件を取り、古い順に並べ替えて返す */
-  async findManyByEvent(eventId: string): Promise<CommentWithAuthor[]> {
+  /** 新しい順に最大 COMMENT_LIMIT 件を取り、古い順に並べ替えて返す。excludeUserIds の投稿は除く */
+  async findManyByEvent(eventId: string, excludeUserIds: string[] = []): Promise<CommentWithAuthor[]> {
     const comments = await this.prisma.eventComment.findMany({
-      where: { eventId },
+      where: excludeUserIds.length > 0 ? { eventId, userId: { notIn: excludeUserIds } } : { eventId },
       include: commentInclude,
       orderBy: { createdAt: 'desc' },
       take: COMMENT_LIMIT,

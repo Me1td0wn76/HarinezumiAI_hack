@@ -28,10 +28,11 @@ import { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 export class EventsController {
   constructor(private readonly events: EventsService) {}
 
-  /** 新着順。cursor / limit / tag / q / status / organizerId で絞り込む */
+  /** 新着順。cursor / limit / tag / q / status / organizerId で絞り込む。ログインしていればブロックした相手のLT会を除く */
   @Get()
-  list(@Query() query: ListEventsQueryDto) {
-    return this.events.list(query);
+  @UseGuards(OptionalJwtAuthGuard)
+  list(@CurrentUser() user: User | null, @Query() query: ListEventsQueryDto) {
+    return this.events.list(query, user);
   }
 
   @Post()

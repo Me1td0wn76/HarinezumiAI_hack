@@ -28,6 +28,10 @@ services:
       # Discord 通知に載せるリンクの元になる URL。通常は WEB_ORIGIN と同じ
       - key: WEB_URL
         sync: false
-      # 未設定なら Discord 通知はスキップされる
+      # 未設定なら全体向けの Discord 通知はスキップされる
       - key: DISCORD_WEBHOOK_URL
         sync: false
+      # レート制限で使う req.ip の決め方。2 = Render のプロキシ + web（Vercel）の2段を信頼し、
+      # web が X-Forwarded-For に入れた利用者の IP を使う。理由と注意は docs/deploy.md の「TRUST_PROXY」
+      - key: TRUST_PROXY
+        value: "2"

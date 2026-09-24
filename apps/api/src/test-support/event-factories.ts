@@ -9,6 +9,7 @@ export function buildUser(overrides: Partial<User> = {}): User {
     passwordHash: 'hashed-password',
     displayName: '主催者',
     bio: null,
+    role: 'USER',
     termsAcceptedAt: null,
     passwordChangedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -33,6 +34,7 @@ export function buildEvent(overrides: Partial<EventDetail> = {}): EventDetail {
     organizer: { id: 'user-1', displayName: '主催者' },
     confirmedDateId: null,
     confirmedDate: null,
+    hiddenAt: null,
     tags: [],
     candidateDates: [
       {

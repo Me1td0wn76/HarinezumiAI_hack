@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../../common/throttle.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard.js';
 import type { User } from '../../generated/prisma/client.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
@@ -11,10 +12,11 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 export class CommentsController {
   constructor(private readonly comments: CommentsService) {}
 
-  /** 公開。古い順 */
+  /** 公開。古い順。非表示のLT会は主催者と運営以外 404。ログインしていればブロックした相手のコメントを除く */
   @Get()
-  list(@Param('id', ParseUUIDPipe) id: string) {
-    return this.comments.list(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  list(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User | null) {
+    return this.comments.list(id, user);
   }
 
   @Post()

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { EventFormat, EventStatus, TagCountDto } from '@lt/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { EventDate, Prisma } from '../../generated/prisma/client.js';
+import type { Event, EventDate, Prisma } from '../../generated/prisma/client.js';
 import type { FormatFields } from './format.js';
 
 /** /me の履歴で返す件数の上限（それぞれ新しい順） */
@@ -84,9 +84,18 @@ export class EventsRepository {
    * 新しい順のカーソルページネーション（keyset 方式）。cursor は前ページ最後の (createdAt, id)。
    * 行そのものを指す方式と違い、その行が削除されても続きを取れる。
    * limit + 1 件取って「続きがあるか」を判定する。
+   * 運営が非表示にしたLT会は含めない。excludeOrganizerIds でブロックした相手の主催分も除く。
    */
-  async findPage(filter: EventListFilter, limit: number, cursor?: EventCursor): Promise<EventPage> {
-    const where: Prisma.EventWhereInput = {};
+  async findPage(
+    filter: EventListFilter,
+    limit: number,
+    cursor?: EventCursor,
+    excludeOrganizerIds: string[] = [],
+  ): Promise<EventPage> {
+    const where: Prisma.EventWhereInput = { hiddenAt: null };
+    if (excludeOrganizerIds.length > 0) {
+      where.NOT = { organizerId: { in: excludeOrganizerIds } };
+    }
     if (cursor) {
       // ORDER BY createdAt desc, id desc の続き = (createdAt, id) < cursor。q の OR と衝突しないよう AND に入れる
       where.AND = [
@@ -143,11 +152,12 @@ export class EventsRepository {
     });
   }
 
-  /** 候補日に1つ以上回答したLT会（主催したものは除く） */
+  /** 候補日に1つ以上回答したLT会（主催したものと、運営が非表示にしたものは除く） */
   findManyRespondedBy(userId: string): Promise<EventSummary[]> {
     return this.prisma.event.findMany({
       where: {
         organizerId: { not: userId },
+        hiddenAt: null,
         candidateDates: { some: { responses: { some: { userId } } } },
       },
       include: eventSummaryInclude,
@@ -204,6 +214,10 @@ export class EventsRepository {
       },
       include: eventDetailInclude,
     });
+  }
+
+  findById(id: string): Promise<Event | null> {
+    return this.prisma.event.findUnique({ where: { id } });
   }
 
   async delete(id: string): Promise<void> {

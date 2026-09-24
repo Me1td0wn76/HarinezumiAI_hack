@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { EventsService } from './events.service.js';
 import { EventsRepository, encodeEventCursor } from './events.repository.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { buildEvent, buildUser } from '../../test-support/event-factories.js';
 import type { CreateEventDto } from './dto/create-event.dto.js';
 import type { ListEventsQueryDto } from './dto/list-events-query.dto.js';
@@ -49,6 +50,7 @@ describe('EventsService', () => {
         EventsService,
         { provide: EventsRepository, useValue: repo },
         { provide: NotificationsService, useValue: notifications },
+        { provide: BlocksRepository, useValue: { findBlockedIds: vi.fn().mockResolvedValue([]) } },
       ],
     }).compile();
 
@@ -70,19 +72,20 @@ describe('EventsService', () => {
         cursor: encodeEventCursor({ createdAt, id: 'event-9' }),
       } as ListEventsQueryDto;
 
-      await service.list(query);
+      await service.list(query, null);
 
       expect(repo.findPage).toHaveBeenCalledWith(
         { tag: 'web', q: 'react', status: undefined, organizerId: undefined },
         20,
         { createdAt, id: 'event-9' },
+        [],
       );
     });
 
     it('壊れた cursor は 400', async () => {
       const query = { limit: 20, cursor: 'not-a-cursor' } as ListEventsQueryDto;
 
-      await expect(service.list(query)).rejects.toThrow(BadRequestException);
+      await expect(service.list(query, null)).rejects.toThrow(BadRequestException);
       expect(repo.findPage).not.toHaveBeenCalled();
     });
   });

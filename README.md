@@ -91,5 +91,6 @@ GitHub Actions（`.github/workflows/ci.yml`）では push / PR ごとに `pnpm l
 - スキーマを変えるとき: `apps/api/prisma/schema.prisma` を編集 → `pnpm db:migrate` → 必要なら `packages/shared` の型も更新
 - API を足すとき: `apps/api/src/modules/<機能>/` に module / controller / service / repository を追加し、レスポンス型は `packages/shared` に置く
 - 画面を足すとき: `apps/web/src/app/` にページ、API 呼び出しは `apps/web/src/actions/` の Server Function か `lib/api.ts` の `apiFetch`
+- 整形だけのコミットを `git blame` から外す: `git config blame.ignoreRevsFile .git-blame-ignore-revs`（初回だけ）
 
 優先度「中」「低」の機能（アプリ内通知、フォロー、連絡、団体管理、Google ログインなど）は GitHub Issues で管理し、PR ベースで進める。

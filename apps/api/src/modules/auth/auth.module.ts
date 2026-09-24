@@ -6,6 +6,9 @@ import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { OAuthService } from './oauth.service.js';
+import { OAuthAccountsRepository } from './oauth-accounts.repository.js';
+import { GoogleOAuthProvider } from './providers/google.provider.js';
 import { PasswordResetService } from './password-reset.service.js';
 import { PasswordResetRepository } from './password-reset.repository.js';
 
@@ -25,6 +28,14 @@ import { PasswordResetRepository } from './password-reset.repository.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PasswordResetService, PasswordResetRepository],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    PasswordResetService,
+    PasswordResetRepository,
+    OAuthService,
+    OAuthAccountsRepository,
+    GoogleOAuthProvider,
+  ],
 })
 export class AuthModule {}

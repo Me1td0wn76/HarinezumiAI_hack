@@ -9,6 +9,9 @@
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
 | POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
+| GET | `/auth/oauth/providers` | - | 使えるソーシャルログイン | `OAuthProvidersDto` |
+| GET | `/auth/oauth/:provider/url` | - | 認可画面の URL（`?state=&codeChallenge=`）。未設定なら 503 | `OAuthAuthorizeUrlDto` |
+| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。同じメールのアカウントが既にあれば 409（自動では紐付けない）。プロバイダでメール未確認なら 403 | `AuthResponse` |
 | POST | `/auth/password-reset/request` | - | パスワード再設定メールを送る（`RequestPasswordResetRequest`）。登録の有無に関係なく 204 | 204 |
 | POST | `/auth/password-reset/confirm` | - | 新しいパスワードを設定（`ConfirmPasswordResetRequest`）。以前の JWT は無効になる | 204 |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
@@ -101,6 +104,8 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 | `POST /auth/login` | 10 回 / 分 |
 | `POST /auth/password-reset/request` | 5 回 / 10 分（1 回ごとにメールが飛ぶので特に厳しくする） |
 | `POST /auth/password-reset/confirm` | 10 回 / 10 分 |
+| `GET /auth/oauth/:provider/url` | 30 回 / 分 |
+| `POST /auth/oauth/:provider` | 20 回 / 分 |
 | `POST /events` | 10 回 / 時 |
 | `PUT /events/:id/responses` | 30 回 / 分 |
 | `PUT /share/:token/responses` | 30 回 / 分 |

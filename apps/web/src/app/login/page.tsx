@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { SocialLogin } from "@/components/social-login";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function LoginPage(props: PageProps<"/login">) {
   if (await getCurrentUser()) redirect("/");
-  const { reset } = await props.searchParams;
+  const { reset, error } = await props.searchParams;
   return (
     <div className="space-y-4 px-4 py-8">
       {/* パスワード再設定の完了後は /login?reset=1 に来る */}
@@ -16,6 +17,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
           パスワードを再設定しました。新しいパスワードでログインしてください。
         </p>
       )}
+      <SocialLogin error={typeof error === "string" ? error : undefined} />
       <AuthForm mode="login" />
     </div>
   );

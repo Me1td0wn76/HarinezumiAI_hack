@@ -74,6 +74,15 @@ describe('PasswordResetService', () => {
       expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + TOKEN_TTL_MS);
     });
 
+    it('Google だけで登録したユーザー（passwordHash が NULL）にも再設定メールを送る（パスワードを設定できる）', async () => {
+      users.findByEmail.mockResolvedValue(buildUser({ passwordHash: null }));
+
+      await service.request({ email: 'organizer@example.com' });
+
+      expect(resets.replace).toHaveBeenCalledWith('user-1', expect.any(String), expect.any(Date));
+      expect(mail.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'organizer@example.com' }));
+    });
+
     it('メール送信が失敗しても応答は変わらない（登録の有無を推測させない）', async () => {
       users.findByEmail.mockResolvedValue(buildUser());
       mail.send.mockRejectedValue(new Error('network'));

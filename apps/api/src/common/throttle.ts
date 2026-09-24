@@ -19,6 +19,10 @@ export const THROTTLE = {
   register: { default: { ttl: 10 * MINUTE, limit: 20 } },
   /** パスワードの総当たりを防ぐ */
   login: { default: { ttl: MINUTE, limit: 10 } },
+  /** ソーシャルログインの開始（認可画面の URL を作るだけだが、会場で一斉にログインしても詰まらない程度） */
+  oauthStart: { default: { ttl: MINUTE, limit: 30 } },
+  /** ソーシャルログインのコールバック（ログイン / 新規登録。プロバイダへのコード交換を伴う） */
+  oauthCallback: { default: { ttl: MINUTE, limit: 20 } },
   createEvent: { default: { ttl: 60 * MINUTE, limit: 10 } },
   submitResponses: { default: { ttl: MINUTE, limit: 30 } },
   /** 共有URL はログイン不要。懇親会の場で URL を配って一斉に回答されても詰まらない程度 */

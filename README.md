@@ -25,7 +25,7 @@ docker-compose.yml   PostgreSQL 17
 | --- | --- |
 | フロントエンド | Next.js / React / Tailwind CSS |
 | バックエンド | NestJS / Prisma / PostgreSQL |
-| 認証 | メール + パスワード（bcrypt + JWT）。JWT は web 側の httpOnly Cookie に保持 |
+| 認証 | メール + パスワード（bcrypt + JWT）と Google ログイン（OAuth 2.0 + PKCE）。JWT は web 側の httpOnly Cookie に保持 |
 | 通知 | Discord Incoming Webhook（`DISCORD_WEBHOOK_URL` を設定した場合のみ） |
 
 ## セットアップ
@@ -47,6 +47,18 @@ pnpm dev          # web(3000) / api(3001) / shared(型の watch) を同時起動
 ```
 
 http://localhost:3000 を開く。
+
+### Google ログインを有効にする（任意）
+
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` が未設定ならボタンは表示されず、メール + パスワードだけで動く。
+
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作る
+2. 「API とサービス」→「OAuth 同意画面」でアプリ名・サポートメールを設定する（スコープは `openid` / `email` / `profile`）
+3. 「認証情報」→「認証情報を作成」→「OAuth クライアント ID」→ 種類は「ウェブ アプリケーション」
+4. 「承認済みのリダイレクト URI」に `http://localhost:3000/auth/google/callback` を追加する（本番は `<WEB_URL>/auth/google/callback`）
+5. 表示されたクライアント ID とシークレットを `apps/api/.env` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` に書き、api を再起動する
+
+コールバック URL は api の `WEB_URL` から組み立てるので、`WEB_URL` と Google 側の設定を一致させること。
 
 ### API の e2e テストを動かす
 

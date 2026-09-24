@@ -23,7 +23,8 @@ enum UserRole {
 model User {
   id                String    @id @default(uuid())
   email             String    @unique
-  passwordHash      String    @map("password_hash")
+  /// ソーシャルログインだけで登録したユーザーは NULL
+  passwordHash      String?   @map("password_hash")
   displayName       String    @map("display_name")
   bio               String?
   role              UserRole  @default(USER)
@@ -41,6 +42,7 @@ model User {
   blockedBy           Block[]              @relation("Blocked")
   moderationLogs      ModerationLog[]
   passwordResetTokens PasswordResetToken[]
+  oauthAccounts       OAuthAccount[]
   comments            EventComment[]
 
   @@map("users")
@@ -161,6 +163,21 @@ model DateResponse {
   @@unique([eventDateId, userId])
   @@unique([eventDateId, guestKey])
   @@map("date_responses")
+}
+
+/// ソーシャルログインの連携。provider は "google"（今後 "github" / "x" を追加する）
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  /// プロバイダ側のユーザー ID（Google なら ID トークンの sub）
+  providerAccountId String   @map("provider_account_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }
 
 /// パスワード再設定用のトークン。平文はメールでだけ送り、DB にはハッシュを保存する

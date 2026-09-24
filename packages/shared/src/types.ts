@@ -91,9 +91,12 @@ export const EVENT_PAGE_SIZE_MAX = 50;
 export const TAG_MAX_PER_EVENT = 5;
 export const TAG_MAX_LENGTH = 20;
 
+/** 一覧の検索語（q）の最大文字数 */
+export const EVENT_SEARCH_MAX_LENGTH = 100;
+
 /** GET /events のクエリ。空の値は「絞り込みなし」 */
 export interface EventListQuery {
-  /** 前ページの nextCursor をそのまま渡す */
+  /** 前ページの nextCursor をそのまま渡す（不透明な文字列） */
   cursor?: string;
   limit?: number;
   tag?: string;

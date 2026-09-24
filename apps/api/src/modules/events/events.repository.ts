@@ -52,16 +52,47 @@ export interface EventPage {
   nextCursor: string | null;
 }
 
+/** 一覧の続きの位置。前ページ最後のイベントの並び順キー */
+export interface EventCursor {
+  createdAt: Date;
+  id: string;
+}
+
+/** クライアントに中身を意識させないよう、base64url の不透明な文字列にする */
+export function encodeEventCursor(event: EventCursor): string {
+  return Buffer.from(`${event.createdAt.toISOString()}|${event.id}`).toString('base64url');
+}
+
+/** 壊れた cursor は null */
+export function decodeEventCursor(raw: string): EventCursor | null {
+  const [iso, id, ...rest] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
+  const createdAt = new Date(iso);
+  if (rest.length > 0 || !id || Number.isNaN(createdAt.getTime())) return null;
+  return { createdAt, id };
+}
+
 @Injectable()
 export class EventsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 新しい順のカーソルページネーション。cursor は前ページ最後の event.id。
+   * 新しい順のカーソルページネーション（keyset 方式）。cursor は前ページ最後の (createdAt, id)。
+   * 行そのものを指す方式と違い、その行が削除されても続きを取れる。
    * limit + 1 件取って「続きがあるか」を判定する。
    */
-  async findPage(filter: EventListFilter, limit: number, cursor?: string): Promise<EventPage> {
+  async findPage(filter: EventListFilter, limit: number, cursor?: EventCursor): Promise<EventPage> {
     const where: Prisma.EventWhereInput = {};
+    if (cursor) {
+      // ORDER BY createdAt desc, id desc の続き = (createdAt, id) < cursor。q の OR と衝突しないよう AND に入れる
+      where.AND = [
+        {
+          OR: [
+            { createdAt: { lt: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+          ],
+        },
+      ];
+    }
     if (filter.status) where.status = filter.status;
     if (filter.organizerId) where.organizerId = filter.organizerId;
     if (filter.tag) where.tags = { some: { tag: filter.tag } };
@@ -78,12 +109,11 @@ export class EventsRepository {
       include: eventSummaryInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
-    return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
+    return { items, nextCursor: hasMore ? encodeEventCursor(items[items.length - 1]) : null };
   }
 
   /** 使用回数の多いタグ */

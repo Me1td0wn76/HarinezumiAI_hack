@@ -2,14 +2,16 @@ import type { EventSummaryDto, PageDto } from "@lt/shared";
 import Link from "next/link";
 import { EventList } from "@/components/event-list";
 import { apiFetch } from "@/lib/api";
-import { toEventsSearchParams } from "@/lib/events-query";
+import { EMPTY_EVENT_PAGE, canMatchAnyEvent, toEventsSearchParams } from "@/lib/events-query";
 
 /** タグで絞り込んだ一覧 */
 export default async function TagPage(props: PageProps<"/tags/[tag]">) {
   const { tag: raw } = await props.params;
   const tag = decodeURIComponent(raw).toLowerCase();
   const query = { tag };
-  const page = await apiFetch<PageDto<EventSummaryDto>>(`/events?${toEventsSearchParams(query)}`, { auth: false });
+  const page = canMatchAnyEvent(query)
+    ? await apiFetch<PageDto<EventSummaryDto>>(`/events?${toEventsSearchParams(query)}`, { auth: false })
+    : EMPTY_EVENT_PAGE;
 
   // layout.tsx の <main> は余白を持たないため、ページ側でコンテナを持つ
   return (

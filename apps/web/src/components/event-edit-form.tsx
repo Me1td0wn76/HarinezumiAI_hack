@@ -5,9 +5,18 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { updateEvent } from "@/actions/events";
 import { FormMessage } from "./form-message";
+import { FormatFields } from "./format-fields";
+import { TagsField } from "./tags-field";
 
-/** 主催者がタイトル・発表内容を編集する。候補日の追加・削除は主催者メニューで行う */
-export function EventEditForm({ event }: { event: Pick<EventDetailDto, "id" | "title" | "description"> }) {
+/**
+ * 主催者がタイトル・発表内容・タグ・開催形式（会場 / 配信URL）を編集する。
+ * 候補日の追加・削除と Discord 通知の設定は主催者メニューで行う
+ */
+export function EventEditForm({
+  event,
+}: {
+  event: Pick<EventDetailDto, "id" | "title" | "description" | "tags" | "format" | "venue" | "meetingUrl">;
+}) {
   const [state, action, pending] = useActionState(updateEvent, undefined);
 
   return (
@@ -32,6 +41,8 @@ export function EventEditForm({ event }: { event: Pick<EventDetailDto, "id" | "t
           defaultValue={event.description}
         />
       </div>
+      <TagsField defaultTags={event.tags} />
+      <FormatFields initialFormat={event.format} defaultVenue={event.venue} defaultMeetingUrl={event.meetingUrl} />
       <FormMessage state={state} />
       <div className="flex flex-wrap gap-3">
         <button type="submit" className="btn-primary" disabled={pending}>

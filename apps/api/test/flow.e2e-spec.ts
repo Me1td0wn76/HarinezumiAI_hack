@@ -63,7 +63,7 @@ describe('LT会のフロー (e2e)', () => {
     // 登録
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email, password, displayName: 'E2Eテスト主催者' })
+      .send({ email, password, displayName: 'E2Eテスト主催者', agreeToTerms: true })
       .expect(201);
     organizerId = registerRes.body.user.id as string;
     expect(registerRes.body.accessToken).toBeTruthy();

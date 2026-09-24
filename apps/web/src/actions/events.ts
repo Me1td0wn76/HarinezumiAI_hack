@@ -20,6 +20,7 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
         title: str(formData, 'title'),
         description: str(formData, 'description'),
         candidateDates,
+        webhookUrl: str(formData, 'webhookUrl') || null,
         tags: parseTags(formData),
         format: str(formData, 'format') || undefined,
         venue: str(formData, 'venue') || null,
@@ -46,6 +47,21 @@ export async function updateEvent(_prev: ActionState, formData: FormData): Promi
   revalidatePath(`/events/${eventId}`);
   revalidatePath('/');
   redirect(`/events/${eventId}`);
+}
+
+/** LT会ごとの Discord 通知先を設定・解除する（空欄で解除） */
+export async function updateWebhook(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const eventId = str(formData, 'eventId');
+  try {
+    await apiFetch(`/events/${eventId}`, {
+      method: 'PATCH',
+      body: { webhookUrl: str(formData, 'webhookUrl') || null },
+    });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath(`/events/${eventId}`);
+  return { success: true };
 }
 
 export async function deleteEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {

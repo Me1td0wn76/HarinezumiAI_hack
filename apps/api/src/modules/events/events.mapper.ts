@@ -105,6 +105,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
     tallies,
     responders: [...rows.values()],
     shareToken: isOrganizer ? event.shareToken : null,
+    webhookUrl: isOrganizer ? event.webhookUrl : null,
     tags: event.tags.map((t) => t.tag),
     format: event.format,
     venue: event.venue,

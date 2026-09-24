@@ -20,6 +20,8 @@ model User {
   passwordHash      String    @map("password_hash")
   displayName       String    @map("display_name")
   bio               String?
+  /// 利用規約・プライバシーポリシーに同意した日時。登録時に必須
+  termsAcceptedAt   DateTime? @map("terms_accepted_at")
   /// パスワードを再設定した日時。これより前に発行した JWT は無効にする
   passwordChangedAt DateTime? @map("password_changed_at")
   createdAt         DateTime  @default(now()) @map("created_at")
@@ -61,6 +63,8 @@ model Event {
   meetingUrl  String?     @map("meeting_url")
   /// 共有URL 用トークン。ログインなしで回答できる
   shareToken  String      @unique @default(cuid()) @map("share_token")
+  /// 主催者が設定する Discord Webhook URL（任意）。主催者以外には返さない
+  webhookUrl  String?     @map("webhook_url")
 
   organizerId String @map("organizer_id")
   organizer   User   @relation(fields: [organizerId], references: [id])

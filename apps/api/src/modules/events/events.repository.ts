@@ -4,6 +4,9 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EventDate, Prisma } from '../../generated/prisma/client.js';
 import type { FormatFields } from './format.js';
 
+/** /me の履歴で返す件数の上限（それぞれ新しい順） */
+export const HISTORY_LIMIT = 50;
+
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
   organizer: { select: { id: true, displayName: true } },
@@ -136,6 +139,7 @@ export class EventsRepository {
       where: { organizerId: userId },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
     });
   }
 
@@ -148,6 +152,7 @@ export class EventsRepository {
       },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
     });
   }
 

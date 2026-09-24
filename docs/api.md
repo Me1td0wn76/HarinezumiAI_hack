@@ -11,7 +11,7 @@
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
-| GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴 | `MyEventsDto` |
+| GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件） | `MyEventsDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
 | GET | `/events` | - | LT会一覧（新しい順、カーソルページネーション）。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |

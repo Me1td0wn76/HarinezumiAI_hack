@@ -28,6 +28,7 @@ export class EventsService {
       description: dto.description,
       organizerId: organizer.id,
       candidateDates: parseCandidateDates(dto.candidateDates),
+      webhookUrl: dto.webhookUrl || null,
     });
     this.notifications.eventCreated(event);
     return toEventDetailDto(event, organizer.id);
@@ -40,7 +41,12 @@ export class EventsService {
 
   async update(id: string, user: User, dto: UpdateEventDto): Promise<EventDetailDto> {
     await this.findOwnedOrThrow(id, user);
-    const updated = await this.events.update(id, { title: dto.title, description: dto.description });
+    const updated = await this.events.update(id, {
+      title: dto.title,
+      description: dto.description,
+      // undefined は変更なし、null / 空文字は解除
+      webhookUrl: dto.webhookUrl === undefined ? undefined : dto.webhookUrl || null,
+    });
     return toEventDetailDto(updated, user.id);
   }
 

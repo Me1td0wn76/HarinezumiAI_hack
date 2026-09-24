@@ -13,8 +13,8 @@
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
 | GET | `/events` | - | LT会一覧（新しい順） | `EventSummaryDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`）。Discord 通知 | `EventDetailDto` |
-| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` を含める | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明の更新（`UpdateEventRequest`） | `EventDetailDto` |
+| GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・Discord 通知先の更新（`UpdateEventRequest`。`webhookUrl: null` で解除） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -22,6 +22,12 @@
 | PUT | `/events/:id/responses` | 必須 | 自分の回答を一括登録・更新（`SubmitResponsesRequest`）。OPEN のときのみ | `EventDetailDto` |
 | GET | `/share/:token` | - | 共有URL からの閲覧 | `EventDetailDto`（`shareToken` は null） |
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
+
+## Discord 通知
+
+送り先は、運営が環境変数 `DISCORD_WEBHOOK_URL` で設定する全体向けの1本と、主催者がLT会ごとに設定する `webhookUrl`（作成時か `PATCH /events/:id`）。
+両方あれば両方に送る（同じ URL なら1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
+`https://discord.com/api/webhooks/...`（`discordapp.com`、`ptb.` / `canary.` を含む）の形式だけを受け付ける。
 
 ## エラー
 

@@ -1,5 +1,6 @@
 import type { UpdateEventRequest } from '@lt/shared';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptionalDiscordWebhookUrl } from './webhook-url.validator.js';
 
 export class UpdateEventDto implements UpdateEventRequest {
   @IsOptional()
@@ -12,4 +13,7 @@ export class UpdateEventDto implements UpdateEventRequest {
   @IsString()
   @MaxLength(5000)
   description?: string;
+
+  @IsOptionalDiscordWebhookUrl()
+  webhookUrl?: string | null;
 }

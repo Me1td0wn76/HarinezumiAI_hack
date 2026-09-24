@@ -59,11 +59,13 @@ export class EventsRepository {
     description: string;
     organizerId: string;
     candidateDates: NewCandidateDate[];
+    webhookUrl: string | null;
   }): Promise<EventDetail> {
     return this.prisma.event.create({
       data: {
         title: input.title,
         description: input.description,
+        webhookUrl: input.webhookUrl,
         organizer: { connect: { id: input.organizerId } },
         candidateDates: { create: input.candidateDates },
       },
@@ -71,7 +73,7 @@ export class EventsRepository {
     });
   }
 
-  update(id: string, data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status'>): Promise<EventDetail> {
+  update(id: string, data: Pick<Prisma.EventUpdateInput, 'title' | 'description' | 'status' | 'webhookUrl'>): Promise<EventDetail> {
     return this.prisma.event.update({ where: { id }, data, include: eventDetailInclude });
   }
 

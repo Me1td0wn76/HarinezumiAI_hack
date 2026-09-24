@@ -8,6 +8,8 @@ interface EventForNotification {
   organizer: { displayName: string };
   candidateDates: { startsAt: Date }[];
   confirmedDate: { startsAt: Date } | null;
+  /** 主催者が設定したLT会ごとの送り先 */
+  webhookUrl: string | null;
 }
 
 const dateFormat = new Intl.DateTimeFormat('ja-JP', {
@@ -43,7 +45,7 @@ export class NotificationsService {
       dates,
       `参加できる日を回答してください → ${this.eventUrl(event.id)}`,
     ].join('\n');
-    void this.discord.send(content);
+    void this.discord.send(content, event.webhookUrl);
   }
 
   /** 開催日が決定した */
@@ -54,7 +56,7 @@ export class NotificationsService {
       `📅 ${dateFormat.format(event.confirmedDate.startsAt)}`,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content);
+    void this.discord.send(content, event.webhookUrl);
   }
 
   private eventUrl(id: string): string {

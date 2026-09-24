@@ -2,6 +2,7 @@ import type { CreateEventRequest } from '@lt/shared';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
+import { IsOptionalDiscordWebhookUrl } from './webhook-url.validator.js';
 
 export class CreateEventDto implements CreateEventRequest {
   @IsString()
@@ -19,4 +20,7 @@ export class CreateEventDto implements CreateEventRequest {
   @ValidateNested({ each: true })
   @Type(() => CandidateDateDto)
   candidateDates: CandidateDateDto[];
+
+  @IsOptionalDiscordWebhookUrl()
+  webhookUrl?: string | null;
 }

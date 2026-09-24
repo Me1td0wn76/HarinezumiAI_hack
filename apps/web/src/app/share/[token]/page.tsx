@@ -6,8 +6,7 @@ import { GuestResponseForm } from "@/components/guest-response-form";
 import { ResponseGrid } from "@/components/response-grid";
 import { ShareButtons } from "@/components/share-buttons";
 import { ApiError } from "@/lib/api";
-import { getSharedEvent, webUrl } from "@/lib/events";
-import { formatDateRange } from "@/lib/format";
+import { eventShareText, getSharedEvent, webUrl } from "@/lib/events";
 import { eventDescription } from "@/lib/og-image";
 
 async function loadShared(token: string): Promise<EventDetailDto> {
@@ -41,9 +40,7 @@ export async function generateMetadata(props: PageProps<"/share/[token]">): Prom
 export default async function SharePage(props: PageProps<"/share/[token]">) {
   const { token } = await props.params;
   const detail = await loadShared(token);
-  const shareText = detail.confirmedDate
-    ? `「${detail.title}」${formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)} 開催`
-    : `「${detail.title}」参加できる日を回答しよう`;
+  const shareText = eventShareText(detail);
 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
@@ -54,7 +51,8 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
       />
-      <ShareButtons url={webUrl(`/share/${token}`)} text={shareText} compact />
+      {/* 共有URL（/share/…）はログインなしで回答できる非公開URLなので、SNS には公開ページの URL を載せる */}
+      <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />
 
       {detail.description && (
         <section className="card">

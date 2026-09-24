@@ -9,8 +9,7 @@ import { ResponseGrid } from "@/components/response-grid";
 import { ShareButtons } from "@/components/share-buttons";
 import { ApiError } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { getEventDetail, webUrl } from "@/lib/events";
-import { formatDateRange } from "@/lib/format";
+import { eventShareText, getEventDetail, webUrl } from "@/lib/events";
 import { eventDescription } from "@/lib/og-image";
 
 /** 見つからない・不正な ID は 404 に寄せる */
@@ -45,9 +44,7 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
   const isOrganizer = user?.id === detail.organizer.id;
   const myRow = user ? detail.responders.find((r) => r.responderKey === user.id) : undefined;
   const shareUrl = detail.shareToken ? webUrl(`/share/${detail.shareToken}`) : null;
-  const shareText = detail.confirmedDate
-    ? `「${detail.title}」${formatDateRange(detail.confirmedDate.startsAt, detail.confirmedDate.endsAt)} 開催`
-    : `「${detail.title}」参加できる日を回答しよう`;
+  const shareText = eventShareText(detail);
 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (

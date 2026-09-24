@@ -1,6 +1,7 @@
 import 'server-only';
 import { EVENT_STATUS_LABEL, type EventDetailDto } from '@lt/shared';
 import { ImageResponse } from 'next/og';
+import { eventCallToAction } from './events';
 import { formatDateRange } from './format';
 import { OG_FONT_FAMILY, OG_FONT_WEIGHT, loadJapaneseFont } from './og-font';
 
@@ -27,7 +28,8 @@ export async function renderEventOgImage(detail: EventDetailDto): Promise<ImageR
   const dates = dateLines(detail);
   const status = EVENT_STATUS_LABEL[detail.status];
   const organizer = `主催: ${detail.organizer.displayName}`;
-  const text = [detail.title, organizer, status, dates.heading, ...dates.lines, BRAND, '参加できる日を回答しよう'].join('');
+  const cta = eventCallToAction(detail);
+  const text = [detail.title, organizer, status, dates.heading, ...dates.lines, BRAND, cta ?? ''].join('');
   const font = await loadJapaneseFont(text);
 
   return new ImageResponse(
@@ -84,7 +86,7 @@ export async function renderEventOgImage(detail: EventDetailDto): Promise<ImageR
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <div style={{ display: 'flex', fontSize: 24, color: '#57534e' }}>参加できる日を回答しよう</div>
+            {cta ? <div style={{ display: 'flex', fontSize: 24, color: '#57534e' }}>{cta}</div> : null}
             <div style={{ display: 'flex', fontSize: 36, fontWeight: 700, color: '#047857' }}>{BRAND}</div>
           </div>
         </div>

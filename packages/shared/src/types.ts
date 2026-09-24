@@ -179,3 +179,21 @@ export interface SubmitGuestResponsesRequest {
 export interface ConfirmEventRequest {
   eventDateId: string;
 }
+
+// ---------- カレンダー ----------
+
+/** 個人カレンダーの1件。確定したLT会は確定日1件、調整中は候補日ごとに1件 */
+export interface ScheduleItemDto {
+  eventId: string;
+  title: string;
+  status: EventStatus;
+  /** 自分が主催しているか、回答者として関わっているか */
+  role: 'ORGANIZER' | 'RESPONDENT';
+  eventDateId: string;
+  startsAt: string;
+  endsAt: string | null;
+  /** この日がLT会の開催日として確定しているか */
+  confirmed: boolean;
+  /** この候補日への自分の回答。主催者や未回答なら null */
+  myAvailability: Availability | null;
+}

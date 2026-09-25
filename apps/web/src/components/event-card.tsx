@@ -27,7 +27,7 @@ export function EventCard({ event }: { event: EventSummaryDto }) {
       </div>
 
       <p className="mt-2 text-xs text-subtle">
-        主催:
+        主催: {" "}
         {/* relative + z-10で、背景に敷いたカード全体のリンクより手前に出す */}
           <Link
             href={`/users/${event.organizer.id}`}

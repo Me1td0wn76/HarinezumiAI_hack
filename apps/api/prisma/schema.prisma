@@ -90,6 +90,7 @@ model Event {
   candidateDates EventDate[]    @relation("CandidateDates")
   tags           EventTag[]
   comments       EventComment[]
+  notifications  Notification[]
 
   /// 運営が非表示にした日時。NULL なら公開。非表示のLT会は主催者と運営にしか見えない
   hiddenAt DateTime? @map("hidden_at")
@@ -283,21 +284,28 @@ enum NotificationType {
 
 /// アプリ内通知。受け取るユーザーごとに1行
 model Notification {
-  id     String           @id @default(uuid())
-  userId String           @map("user_id")
-  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type   NotificationType
-  title  String
-  body   String
-  /// 遷移先。web のパス（例: /events/<id>）
-  link   String?
+  id      String           @id @default(uuid())
+  userId  String           @map("user_id")
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    NotificationType
+  /// 対象のLT会。LT会を削除すると通知も消える
+  eventId String?          @map("event_id")
+  event   Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// 表示に使う値（LT会名・日時など）。文面は web 側で組み立てるので、文言や書式を変えても過去の通知に反映される。
+  /// 形は type ごとに packages/shared の NotificationDto を参照
+  data    Json
   /// 既読にした日時。未読なら NULL
-  readAt DateTime?        @map("read_at")
+  readAt  DateTime?        @map("read_at")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  // 「自分宛てを新しい順」「未読件数」の取得用
-  @@index([userId, createdAt])
+  // 「自分宛てを新しい順」（ORDER BY created_at DESC, id DESC）の取得用
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  // 未読件数の取得用
   @@index([userId, readAt])
+  // 既読から90日たった通知の定期削除用
+  @@index([readAt])
+  // LT会の削除時に関連する通知を消す用
+  @@index([eventId])
   @@map("notifications")
 }

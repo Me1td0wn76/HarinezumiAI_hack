@@ -1,7 +1,11 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { Notification, User } from '../../generated/prisma/client.js';
 import { InboxService, PAGE_SIZE } from './inbox.service.js';
-import type { NotificationsRepository } from './notifications.repository.js';
+import {
+  decodeNotificationCursor,
+  encodeNotificationCursor,
+  type NotificationsRepository,
+} from './notifications.repository.js';
 
 const user = { id: 'me' } as User;
 
@@ -10,23 +14,23 @@ function row(i: number): Notification {
     id: `n${i}`,
     userId: 'me',
     type: 'EVENT_CREATED',
-    title: 't',
-    body: 'b',
-    link: '/events/1',
+    eventId: 'event-1',
+    data: { eventTitle: 't', organizerName: 'o', candidateDateCount: 1 },
     readAt: null,
     createdAt: new Date(Date.UTC(2026, 0, 1) - i * 1000),
   };
 }
 
-describe('InboxService.list', () => {
-  function setup(rows: Notification[], owned: Notification | null = null) {
-    const repo = {
-      findPageByUser: vi.fn((_u: string, take: number) => Promise.resolve(rows.slice(0, take))),
-      findOwned: vi.fn().mockResolvedValue(owned),
-    };
-    return { service: new InboxService(repo as unknown as NotificationsRepository), repo };
-  }
+function setup(rows: Notification[], owned: Notification | null = null) {
+  const repo = {
+    findPageByUser: vi.fn((_u: string, take: number) => Promise.resolve(rows.slice(0, take))),
+    findOwned: vi.fn().mockResolvedValue(owned),
+    markRead: vi.fn().mockResolvedValue(undefined),
+  };
+  return { service: new InboxService(repo as unknown as NotificationsRepository), repo };
+}
 
+describe('InboxService.list', () => {
   it('件数が1ページ以内なら nextCursor は null', async () => {
     const { service } = setup(Array.from({ length: PAGE_SIZE }, (_, i) => row(i)));
     const res = await service.list(user);
@@ -34,23 +38,36 @@ describe('InboxService.list', () => {
     expect(res.nextCursor).toBeNull();
   });
 
-  it('続きがあれば1ページ分だけ返し、最後の id を nextCursor にする', async () => {
+  it('続きがあれば1ページ分だけ返し、最後の通知の位置を nextCursor にする', async () => {
     const { service } = setup(Array.from({ length: PAGE_SIZE + 5 }, (_, i) => row(i)));
     const res = await service.list(user);
     expect(res.items).toHaveLength(PAGE_SIZE);
-    expect(res.nextCursor).toBe(`n${PAGE_SIZE - 1}`);
+    const last = row(PAGE_SIZE - 1);
+    expect(decodeNotificationCursor(res.nextCursor!)).toEqual({ createdAt: last.createdAt, id: last.id });
   });
 
-  it('cursor が自分の通知でなければ 404', async () => {
-    const { service, repo } = setup([], null);
-    await expect(service.list(user, 'other')).rejects.toBeInstanceOf(NotFoundException);
-    expect(repo.findOwned).toHaveBeenCalledWith('other', 'me');
-  });
-
-  it('cursor の通知を起点に続きを取る', async () => {
-    const cursor = row(3);
-    const { service, repo } = setup([row(4)], cursor);
-    await service.list(user, 'n3');
+  it('cursor の位置から続きを取る（その通知が消えていても取れる）', async () => {
+    const { service, repo } = setup([row(4)]);
+    const cursor = { createdAt: row(3).createdAt, id: 'n3' };
+    await service.list(user, encodeNotificationCursor(cursor));
     expect(repo.findPageByUser).toHaveBeenCalledWith('me', PAGE_SIZE + 1, cursor);
+  });
+
+  it('壊れた cursor は 400（GET /events と同じ）', async () => {
+    const { service } = setup([]);
+    await expect(service.list(user, 'abc')).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('InboxService.markRead', () => {
+  it('本人の ID を渡して既読にする', async () => {
+    const { service, repo } = setup([], row(1));
+    await service.markRead('n1', user);
+    expect(repo.markRead).toHaveBeenCalledWith('n1', 'me');
+  });
+
+  it('本人の通知でなければ 404', async () => {
+    const { service } = setup([], null);
+    await expect(service.markRead('other', user)).rejects.toBeInstanceOf(NotFoundException);
   });
 });

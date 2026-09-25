@@ -1,46 +1,31 @@
 'use server';
 
-import type { NotificationDto } from '@lt/shared';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch, errorMessage } from '@/lib/api';
+import type { ActionState } from './types';
 
-/** 通知を既読にして、その遷移先へ移動する */
-export async function openNotification(id: string): Promise<void> {
-  let n: NotificationDto;
+/**
+ * 通知を既読にする。通知のリンクを押したときに裏で呼ぶ（遷移はリンク自体が行う）。
+ * 失敗しても遷移の邪魔をしないよう、例外は投げずにログだけ残す（次に開けばまた既読にできる）
+ */
+export async function markNotificationRead(id: string): Promise<void> {
   try {
-    // 遷移先はクライアントから受け取らず、API が返す値を使う（改ざんされた URL へ飛ばさないため）
-    n = await apiFetch<NotificationDto>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
+    await apiFetch(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
   } catch (err) {
-    handleApiError(err);
+    console.warn(`通知 ${id} の既読化に失敗: ${errorMessage(err)}`);
+    return;
   }
   revalidatePath('/', 'layout');
-  redirect(isInternalPath(n.link) ? n.link : '/notifications');
 }
 
-export async function markAllNotificationsRead(): Promise<void> {
+export async function markAllNotificationsRead(): Promise<ActionState> {
   try {
     await apiFetch('/notifications/read-all', { method: 'POST' });
   } catch (err) {
-    handleApiError(err);
+    if (err instanceof ApiError && err.status === 401) redirect('/login');
+    return { error: errorMessage(err) };
   }
   revalidatePath('/', 'layout');
-}
-
-/**
- * ログイン切れはログイン画面へ、通知が見つからない（別タブで消えた等）は一覧を出し直す。
- * それ以外はエラー画面に任せる。
- */
-function handleApiError(err: unknown): never {
-  if (err instanceof ApiError && err.status === 401) redirect('/login');
-  if (err instanceof ApiError && (err.status === 400 || err.status === 404)) {
-    revalidatePath('/', 'layout');
-    redirect('/notifications');
-  }
-  throw err;
-}
-
-/** サイト内のパスだけを許可する（"//evil.example" のようなプロトコル相対 URL は弾く） */
-function isInternalPath(link: string | null): link is string {
-  return !!link && link.startsWith('/') && !link.startsWith('//') && !link.startsWith('/\\');
+  return { success: true };
 }

@@ -2,7 +2,7 @@ import 'server-only';
 import type { UnreadCountDto } from '@lt/shared';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
-import { TOKEN_COOKIE, apiFetch } from './api';
+import { TOKEN_COOKIE, apiFetch, errorMessage } from './api';
 
 /**
  * ヘッダーのバッジ用の未読件数。未ログインなら 0。
@@ -15,7 +15,9 @@ export const getUnreadNotificationCount = cache(async (): Promise<number> => {
   try {
     const { count } = await apiFetch<UnreadCountDto>('/notifications/unread-count');
     return count;
-  } catch {
+  } catch (err) {
+    // バッジが出ない原因を追えるようにログは残す
+    console.warn(`未読件数の取得に失敗: ${errorMessage(err)}`);
     return 0;
   }
 });

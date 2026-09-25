@@ -23,11 +23,11 @@ function makeEvent(overrides: Partial<Parameters<NotificationsService['eventCrea
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let repo: { createForUsers: ReturnType<typeof vi.fn>; createForEventAudience: ReturnType<typeof vi.fn> };
+  let repo: { createForRespondents: ReturnType<typeof vi.fn>; createForEventAudience: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     repo = {
-      createForUsers: vi.fn().mockResolvedValue(undefined),
+      createForRespondents: vi.fn().mockResolvedValue(undefined),
       createForEventAudience: vi.fn().mockResolvedValue(undefined),
     };
     const moduleRef = await Test.createTestingModule({
@@ -41,14 +41,15 @@ describe('NotificationsService', () => {
     service = moduleRef.get(NotificationsService);
   });
 
-  it('LT会作成: 主催者以外の全ユーザーに通知を作る', async () => {
+  it('LT会作成: 主催者を渡して、表示用の値（LT会名・主催者名・候補日数）を保存する', async () => {
     service.eventCreated(makeEvent());
 
     await vi.waitFor(() => expect(repo.createForEventAudience).toHaveBeenCalled());
-    expect(repo.createForEventAudience).toHaveBeenCalledWith(
-      'organizer',
-      expect.objectContaining({ type: 'EVENT_CREATED', link: '/events/event-1' }),
-    );
+    expect(repo.createForEventAudience).toHaveBeenCalledWith('organizer', {
+      type: 'EVENT_CREATED',
+      eventId: 'event-1',
+      data: { eventTitle: 'テストLT', organizerName: '主催者', candidateDateCount: 2 },
+    });
   });
 
   it('開催日決定: 回答したログインユーザーだけに重複なく通知する（ゲスト・主催者は除く）', async () => {
@@ -65,16 +66,17 @@ describe('NotificationsService', () => {
       }),
     );
 
-    await vi.waitFor(() => expect(repo.createForUsers).toHaveBeenCalled());
-    expect(repo.createForUsers).toHaveBeenCalledWith(
-      ['u1', 'u3'],
-      expect.objectContaining({ type: 'EVENT_CONFIRMED', link: '/events/event-1' }),
-    );
+    await vi.waitFor(() => expect(repo.createForRespondents).toHaveBeenCalled());
+    expect(repo.createForRespondents).toHaveBeenCalledWith(['u1', 'u3'], 'organizer', {
+      type: 'EVENT_CONFIRMED',
+      eventId: 'event-1',
+      data: { eventTitle: 'テストLT', startsAt: '2026-10-06T09:00:00.000Z' },
+    });
   });
 
   it('開催日が未設定なら何もしない', () => {
     service.eventConfirmed(makeEvent());
-    expect(repo.createForUsers).not.toHaveBeenCalled();
+    expect(repo.createForRespondents).not.toHaveBeenCalled();
   });
 
   it('保存に失敗しても例外を投げない', async () => {

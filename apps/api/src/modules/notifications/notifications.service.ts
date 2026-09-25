@@ -50,14 +50,18 @@ export class NotificationsService {
     ].join('\n');
     void this.discord.send(content, event.webhookUrl);
 
-    // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー（主催者をブロックした人は除く）
-    const data: NewNotification = {
+    // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー（主催者をブロックした人は除く）。
+    // 行が増え続けないよう、既読から90日たった通知は NotificationsCleanupService が消す
+    const n: NewNotification<'EVENT_CREATED'> = {
       type: 'EVENT_CREATED',
-      title: `新しいLT会「${event.title}」`,
-      body: `${event.organizer.displayName} さんがLT会を作成しました。候補日 ${event.candidateDates.length} 件から参加できる日を回答しましょう`,
-      link: this.eventPath(event.id),
+      eventId: event.id,
+      data: {
+        eventTitle: event.title,
+        organizerName: event.organizer.displayName,
+        candidateDateCount: event.candidateDates.length,
+      },
     };
-    this.saveInApp(() => this.notifications.createForEventAudience(event.organizer.id, data));
+    this.saveInApp(() => this.notifications.createForEventAudience(event.organizer.id, n));
   }
 
   /** 開催日が決定した */
@@ -70,13 +74,12 @@ export class NotificationsService {
     ].join('\n');
     void this.discord.send(content, event.webhookUrl);
 
-    const data: NewNotification = {
+    const n: NewNotification<'EVENT_CONFIRMED'> = {
       type: 'EVENT_CONFIRMED',
-      title: `「${event.title}」の開催日が決まりました`,
-      body: `📅 ${dateFormat.format(event.confirmedDate.startsAt)}`,
-      link: this.eventPath(event.id),
+      eventId: event.id,
+      data: { eventTitle: event.title, startsAt: event.confirmedDate.startsAt.toISOString() },
     };
-    this.saveInApp(() => this.notifications.createForUsers(respondentIds(event), data));
+    this.saveInApp(() => this.notifications.createForRespondents(respondentIds(event), event.organizer.id, n));
   }
 
   /** LT会にコメントが付いた */
@@ -106,16 +109,11 @@ export class NotificationsService {
   }
 
   private eventUrl(id: string): string {
-    return `${this.webUrl}${this.eventPath(id)}`;
-  }
-
-  /** アプリ内通知の link は web 内のパスで持つ（ドメインが変わっても使えるように） */
-  private eventPath(id: string): string {
-    return `/events/${id}`;
+    return `${this.webUrl}/events/${id}`;
   }
 }
 
-/** そのLT会の候補日に回答したログインユーザー（ゲスト・主催者本人は除く） */
+/** そのLT会の候補日に回答したログインユーザー（ゲスト・主催者本人は除く。ブロックの除外はリポジトリで行う） */
 function respondentIds(event: EventForNotification): string[] {
   const ids = new Set<string>();
   for (const d of event.candidateDates) {

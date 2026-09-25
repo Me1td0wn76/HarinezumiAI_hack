@@ -1,8 +1,9 @@
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class ListNotificationsQueryDto {
-  /** 前ページの nextCursor。この通知より古いものを返す */
+  /** 前ページの nextCursor（GET /events と同じ不透明な文字列） */
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MaxLength(200)
   cursor?: string;
 }

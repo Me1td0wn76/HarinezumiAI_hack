@@ -320,17 +320,33 @@ export interface ScheduleItemDto {
 
 // ---------- 通知 ----------
 
-export interface NotificationDto {
+/** 通知の種類ごとの表示用の値。文面は web 側で組み立てる */
+export interface NotificationDataMap {
+  EVENT_CREATED: {
+    eventTitle: string;
+    organizerName: string;
+    candidateDateCount: number;
+  };
+  EVENT_CONFIRMED: {
+    eventTitle: string;
+    /** 決まった開催日時（ISO 8601） */
+    startsAt: string;
+  };
+}
+
+interface NotificationBase {
   id: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  /** web のパス（例: /events/<id>）。遷移先がなければ null */
-  link: string | null;
+  /** 対象のLT会。遷移先は /events/<eventId> */
+  eventId: string | null;
   /** 既読にした日時。未読なら null */
   readAt: string | null;
   createdAt: string;
 }
+
+/** type で data の形が決まる（type で分岐すると data の型が絞り込まれる） */
+export type NotificationDto = {
+  [K in NotificationType]: NotificationBase & { type: K; data: NotificationDataMap[K] };
+}[NotificationType];
 
 export interface UnreadCountDto {
   count: number;

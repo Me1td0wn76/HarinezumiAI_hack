@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { logout } from "@/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 
 export async function Nav() {
-  const user = await getCurrentUser();
+  const [user, unread] = await Promise.all([getCurrentUser(), getUnreadNotificationCount()]);
 
   return (
     <header className="border-b border-card-border bg-background">
@@ -28,6 +29,21 @@ export async function Nav() {
                   運営
                 </Link>
               )}
+              <Link
+                href="/notifications"
+                aria-label={unread > 0 ? `通知（未読 ${unread} 件）` : "通知"}
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg hover:bg-muted"
+              >
+                <span aria-hidden="true">🔔</span>
+                {unread > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-foreground px-1 font-display text-[10px] font-black leading-none text-white"
+                  >
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </Link>
               <Link href="/me" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 {user.displayName}
               </Link>

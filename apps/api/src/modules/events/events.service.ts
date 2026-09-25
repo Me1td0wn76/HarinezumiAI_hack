@@ -131,8 +131,10 @@ export class EventsService {
     if (!event.candidateDates.some((d) => d.id === dto.eventDateId)) {
       throw new NotFoundException('候補日が見つかりません');
     }
+    // 同じ日で決定し直したとき（ボタンの押し直しなど）は、回答者に同じ通知を重ねて送らない
+    const alreadyConfirmed = event.status === 'CONFIRMED' && event.confirmedDateId === dto.eventDateId;
     const confirmed = await this.events.confirm(id, dto.eventDateId);
-    this.notifications.eventConfirmed(confirmed);
+    if (!alreadyConfirmed) this.notifications.eventConfirmed(confirmed);
     return toEventDetailDto(confirmed, { userId: user.id });
   }
 

@@ -25,8 +25,12 @@ model User {
   email             String    @unique
   /// ソーシャルログインだけで登録したユーザーは NULL
   passwordHash      String?   @map("password_hash")
+  /// URL と @ 参照に使う一意の ID。小文字で保存する（形式は shared の HANDLE_PATTERN）
+  handle            String    @unique
   displayName       String    @map("display_name")
   bio               String?
+  /// アバター画像の URL（https）。NULL なら web 側でハンドルから生成した画像を出す
+  avatarUrl         String?   @map("avatar_url")
   role              UserRole  @default(USER)
   /// 利用規約・プライバシーポリシーに同意した日時。登録時に必須
   termsAcceptedAt   DateTime? @map("terms_accepted_at")

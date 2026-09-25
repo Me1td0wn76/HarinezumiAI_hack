@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EventComment, Prisma } from '../../generated/prisma/client.js';
+import { publicUserSelect } from '../users/users.repository.js';
 
 const commentInclude = {
-  user: { select: { id: true, displayName: true } },
+  user: { select: publicUserSelect },
 } satisfies Prisma.EventCommentInclude;
 
 /** 1つのLT会で返すコメントの上限。荒らされても詳細ページが重くならないようにする */

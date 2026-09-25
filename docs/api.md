@@ -7,17 +7,18 @@
 | メソッド | パス | 認証 | 内容 | レスポンス |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | - | 死活監視 | `{ ok: true }` |
-| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` 必須） | `AuthResponse` |
+| POST | `/auth/register` | - | ユーザー登録（`RegisterRequest`。`agreeToTerms: true` と `handle` 必須）。メールアドレスかハンドルが使用済みなら 409 | `AuthResponse` |
 | POST | `/auth/login` | - | ログイン（`LoginRequest`） | `AuthResponse` |
 | GET | `/auth/oauth/providers` | - | 使えるソーシャルログイン | `OAuthProvidersDto` |
 | GET | `/auth/oauth/:provider/url` | - | 認可画面の URL（`?state=&codeChallenge=`）。未設定なら 503 | `OAuthAuthorizeUrlDto` |
-| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。同じメールのアカウントが既にあれば 409（自動では紐付けない）。プロバイダでメール未確認なら 403 | `AuthResponse` |
+| POST | `/auth/oauth/:provider` | - | 認可コードでログイン / 登録（`OAuthLoginRequest`）。同じメールのアカウントが既にあれば 409（自動では紐付けない）。プロバイダでメール未確認なら 403。新規登録時のハンドルはメールアドレスから仮に作る（`taro_1a2b3c` の形。本人が変更できる） | `AuthResponse` |
 | POST | `/auth/password-reset/request` | - | パスワード再設定メールを送る（`RequestPasswordResetRequest`）。登録の有無に関係なく 204 | 204 |
 | POST | `/auth/password-reset/confirm` | - | 新しいパスワードを設定（`ConfirmPasswordResetRequest`）。以前の JWT は無効になる | 204 |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
-| PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`） | `UserDto` |
+| PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`）。`handle` が使用済みなら 409、`avatarUrl` は https のみ（`null` か空文字で解除）。`displayName` / `handle` に `null` は送れない（400） | `UserDto` |
 | GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件）。`participated` は自分が主催していない（非表示を除く）LT会のうち、候補日に1つでも回答したもの（YES / MAYBE / NO を問わない） | `MyEventsDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
+| GET | `/users/:handle` | 任意 | 公開プロフィール（大文字小文字を区別しない）。主催したLT会（非表示を除く）と参加予定（候補日に回答したLT会のうち、日程調整中か開催日が未来のもの。主催分・非表示を除く）をそれぞれ新しい順に最大 50 件。ログイン時はブロックした相手が主催したLT会を除く。メールアドレスは返さない。存在しなければ 404 | `UserProfileDto` |
 | GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 + 全ユーザーにアプリ内通知（主催者本人と、主催者をブロックした人は除く） | `EventDetailDto` |
@@ -135,3 +136,12 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 `EventDetailDto.responders[].responderKey` は、ログインユーザーなら `user.id`、ゲストなら `guest:<guestKey の SHA-256（16進）>`。
 guestKey は知っていれば回答の上書きや配信URL の取得ができる合言葉なので、公開する一覧にはハッシュだけを載せる。
 web 側はこれで「自分の行」を見つけて強調表示・初期値の復元をしている。
+
+## ハンドル
+
+`users.handle` はプロフィールの URL（`/users/:handle`）と `@` 参照に使う一意の ID。
+
+- 形式は `^[a-z0-9_]{3,20}$`（`HANDLE_PATTERN`）。API は前後の空白を除き小文字にしてから検証・保存する
+- `me` / `admin` などルーティングや運営と紛らわしいものは予約語（`RESERVED_HANDLES`）で使えない。`GET /users/me` と重ならないよう、`ProfilesModule` は `UsersModule` より後に読み込む
+- 導入前からいたユーザーには、マイグレーションで `test_user_` + id の先頭 10 文字の仮ハンドルを付けた（開発・テスト用のデータ。本人が /me で変更する）
+- アバター（`avatarUrl`）が未設定なら、web はハンドルから DiceBear で生成した画像を出す

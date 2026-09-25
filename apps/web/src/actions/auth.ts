@@ -31,6 +31,7 @@ export async function register(_prev: ActionState, formData: FormData): Promise<
         email: str(formData, 'email'),
         password: formData.get('password'),
         displayName: str(formData, 'displayName'),
+        handle: str(formData, 'handle'),
         agreeToTerms: formData.get('agreeToTerms') === 'on',
       },
     });

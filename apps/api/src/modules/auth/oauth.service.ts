@@ -5,8 +5,9 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
-import type { AuthResponse, OAuthAuthorizeUrlDto, OAuthProvidersDto } from '@lt/shared';
+import { HANDLE_MAX_LENGTH, type AuthResponse, type OAuthAuthorizeUrlDto, type OAuthProvidersDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { UsersRepository } from '../users/users.repository.js';
 import { AuthService } from './auth.service.js';
@@ -76,6 +77,7 @@ export class OAuthService {
 
     const created = await this.accounts.createUser({
       email: profile.email,
+      handle: await this.availableHandle(profile.email),
       displayName: (profile.name ?? profile.email.split('@')[0]).slice(0, 50),
       provider: profile.provider,
       providerAccountId: profile.providerAccountId,
@@ -86,6 +88,18 @@ export class OAuthService {
     const raced = await this.accounts.findUser(profile.provider, profile.providerAccountId);
     if (raced) return raced;
     throw emailConflict();
+  }
+
+  /**
+   * 使われていない仮ハンドル。ランダム部分が既存と重なることはまず無いが、重なると一意制約違反が
+   * 「メールアドレスが登録済み」の 409 に化けるので、空いているものを選んでから作る
+   */
+  private async availableHandle(email: string): Promise<string> {
+    for (let i = 0; i < HANDLE_GENERATION_ATTEMPTS; i++) {
+      const handle = generateHandle(email);
+      if (!(await this.users.findByHandle(handle))) return handle;
+    }
+    throw new ServiceUnavailableException('ハンドルを作成できませんでした。もう一度お試しください');
   }
 
   /** web のコールバック。WEB_URL から組み立て、外から渡させない（任意の URL にコードを送らせないため） */
@@ -105,4 +119,20 @@ function emailConflict(): ConflictException {
   return new ConflictException(
     'このメールアドレスは既に登録されています。メールアドレスとパスワードでログインしてください',
   );
+}
+
+const HANDLE_GENERATION_ATTEMPTS = 5;
+
+/**
+ * ソーシャルログインで登録したユーザーの仮のハンドル（本人が /me で変更できる）。
+ * メールアドレスの @ より前から使える文字だけを残し、ランダムな 6 文字を足して重複を避ける。
+ * 末尾が "_xxxxxx" なので予約語（RESERVED_HANDLES）とは一致しない
+ */
+export function generateHandle(email: string): string {
+  const base = email
+    .split('@')[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, HANDLE_MAX_LENGTH - 7);
+  return `${base.length >= 3 ? base : 'user'}_${randomBytes(3).toString('hex')}`;
 }

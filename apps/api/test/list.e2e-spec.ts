@@ -6,6 +6,7 @@ import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { e2eHandle } from './e2e-handle.js';
 
 interface PageDto {
   items: { id: string; title: string }[];
@@ -46,6 +47,7 @@ describe('LT会一覧のページネーション (e2e)', () => {
         email: `e2e-list-${randomUUID()}@example.com`,
         password: 'password123',
         displayName: 'E2E一覧',
+        handle: e2eHandle(),
         agreeToTerms: true,
       })
       .expect(201);

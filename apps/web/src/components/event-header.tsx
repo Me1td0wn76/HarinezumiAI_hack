@@ -2,6 +2,7 @@ import type { EventDetailDto } from "@lt/shared";
 import { formatDateRange } from "@/lib/format";
 import { EventStatusBadge } from "./event-status-badge";
 import { TagChip } from "./tag-chip";
+import { UserLink } from "./user-link";
 
 /**
  * イベント詳細ページ（events/[id]）と共有ページ（share/[token]）で共通のヘッダー。
@@ -21,7 +22,10 @@ export function EventHeader({
         <h1 className="font-display text-3xl font-black tracking-tight text-foreground">{title}</h1>
         <EventStatusBadge status={status} />
       </div>
-      <p className="text-sm text-subtle">主催: {organizer.displayName}</p>
+      <p className="flex items-center gap-1 text-sm text-subtle">
+        <span className="shrink-0">主催:</span>
+        <UserLink user={organizer} />
+      </p>
       {tags.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((tag) => (

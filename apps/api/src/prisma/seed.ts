@@ -17,19 +17,19 @@ async function main() {
   const demo = await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
-    create: { email: 'demo@example.com', passwordHash, displayName: 'デモ主催者' },
+    create: { email: 'demo@example.com', handle: 'demo', passwordHash, displayName: 'デモ主催者' },
   });
   const taro = await prisma.user.upsert({
     where: { email: 'taro@example.com' },
     update: {},
-    create: { email: 'taro@example.com', passwordHash, displayName: '山田太郎' },
+    create: { email: 'taro@example.com', handle: 'taro', passwordHash, displayName: '山田太郎' },
   });
 
   // 運営（通報の確認・LT会の非表示ができる）
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: { role: 'ADMIN' },
-    create: { email: 'admin@example.com', passwordHash, displayName: '運営', role: 'ADMIN' },
+    create: { email: 'admin@example.com', handle: 'lt_admin', passwordHash, displayName: '運営', role: 'ADMIN' },
   });
 
   const nextWeek = (days: number, hour: number) => {

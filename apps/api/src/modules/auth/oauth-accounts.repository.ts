@@ -17,19 +17,21 @@ export class OAuthAccountsRepository {
 
   /**
    * パスワードなしのユーザーを作り、同時に連携する。
-   * メールアドレスか連携が一意制約に当たった（同時に作られた）ときは null を返す
+   * メールアドレス・ハンドル・連携のいずれかが一意制約に当たった（同時に作られた）ときは null を返す
    */
   async createUser(input: {
     email: string;
+    handle: string;
     displayName: string;
     provider: string;
     providerAccountId: string;
   }): Promise<User | null> {
-    const { email, displayName, provider, providerAccountId } = input;
+    const { email, handle, displayName, provider, providerAccountId } = input;
     try {
       return await this.prisma.user.create({
         data: {
           email,
+          handle,
           displayName,
           // 利用規約への同意の扱いは未決定（暫定で未同意のまま作る）
           termsAcceptedAt: null,

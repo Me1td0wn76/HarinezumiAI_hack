@@ -17,6 +17,7 @@ import { BlocksModule } from './modules/blocks/blocks.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { ScheduleModule } from './modules/schedule/schedule.module.js';
+import { ProfilesModule } from './modules/profiles/profiles.module.js';
 
 @Module({
   imports: [
@@ -35,6 +36,8 @@ import { ScheduleModule } from './modules/schedule/schedule.module.js';
     AdminModule,
     CommentsModule,
     ScheduleModule,
+    // GET /users/:handle。/users/me などを先に登録するため UsersModule より後に置く
+    ProfilesModule,
   ],
   controllers: [AppController],
   // 全エンドポイントにレート制限を掛ける（上限は common/throttle.ts）

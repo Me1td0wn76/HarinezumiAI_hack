@@ -4,6 +4,7 @@ import type { AuthResponse } from '@lt/shared';
 import { compare, hash } from 'bcryptjs';
 import type { User } from '../../generated/prisma/client.js';
 import { UsersRepository } from '../users/users.repository.js';
+import { handleTaken } from '../users/users.service.js';
 import { toUserDto } from '../users/users.mapper.js';
 import type { JwtPayload } from './jwt.strategy.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -21,14 +22,18 @@ export class AuthService {
   async register(dto: RegisterDto): Promise<AuthResponse> {
     const email = dto.email.toLowerCase();
     if (await this.users.findByEmail(email)) {
-      throw new ConflictException('このメールアドレスは既に登録されています');
+      throw emailTaken();
     }
+    if (await this.users.findByHandle(dto.handle)) throw handleTaken();
     const user = await this.users.create({
       email,
+      handle: dto.handle,
       passwordHash: await hash(dto.password, BCRYPT_ROUNDS),
       displayName: dto.displayName,
       termsAcceptedAt: new Date(),
     });
+    // 確認と作成の間に同じメールアドレスかハンドルで登録された
+    if (!user) throw new ConflictException('このメールアドレスまたはハンドルは既に使われています');
     return this.issue(user);
   }
 
@@ -47,4 +52,8 @@ export class AuthService {
     const payload: JwtPayload = { sub: user.id };
     return { accessToken: this.jwt.sign(payload), user: toUserDto(user) };
   }
+}
+
+function emailTaken(): ConflictException {
+  return new ConflictException('このメールアドレスは既に登録されています');
 }

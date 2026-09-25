@@ -18,7 +18,11 @@
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`）。`handle` が使用済みなら 409、`avatarUrl` は https のみ（`null` か空文字で解除）。`displayName` / `handle` に `null` は送れない（400） | `UserDto` |
 | GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件）。`participated` は自分が主催していない（非表示を除く）LT会のうち、候補日に1つでも回答したもの（YES / MAYBE / NO を問わない） | `MyEventsDto` |
 | GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
-| GET | `/users/:handle` | 任意 | 公開プロフィール（大文字小文字を区別しない）。主催したLT会（非表示を除く）と参加予定（候補日に回答したLT会のうち、日程調整中か開催日が未来のもの。主催分・非表示を除く）をそれぞれ新しい順に最大 50 件。ログイン時はブロックした相手が主催したLT会を除く。メールアドレスは返さない。存在しなければ 404 | `UserProfileDto` |
+| GET | `/users/:handle` | 任意 | 公開プロフィール（大文字小文字を区別しない）。主催したLT会（非表示を除く）と参加予定（候補日に回答したLT会のうち、日程調整中か開催日が未来のもの。主催分・非表示を除く）をそれぞれ新しい順に最大 50 件。ログイン時はブロックした相手が主催したLT会を除く。フォロワー数・フォロー中の数と、ログイン時は自分がフォロー中か（`isFollowing`。本人なら false）も返す。メールアドレスは返さない。存在しなければ 404 | `UserProfileDto` |
+| POST | `/users/:id/follow` | 必須 | フォローする。自分自身は 400、存在しないユーザーは 404。フォロー済みでも 204 | 204 |
+| DELETE | `/users/:id/follow` | 必須 | フォロー解除。フォローしていなくても 204 | 204 |
+| GET | `/users/:id/followers` | - | フォロワー一覧（新しい順に最大 50 件） | `PublicUserDto[]` |
+| GET | `/users/:id/following` | - | フォロー中一覧（新しい順に最大 50 件） | `PublicUserDto[]` |
 | GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 + 全ユーザーにアプリ内通知（主催者本人と、主催者をブロックした人は除く） | `EventDetailDto` |

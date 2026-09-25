@@ -4,6 +4,7 @@ import { permanentRedirect, redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { BlockButton } from "@/components/block-button";
 import { EventSection } from "@/components/event-section";
+import { FollowButton } from "@/components/follow-button";
 import { getCurrentUser, getMyBlocks } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { getUserProfile } from "@/lib/users";
@@ -36,11 +37,8 @@ export default async function UserProfilePage(props: PageProps<"/users/[handle]"
   const handle = canonicalHandle((await props.params).handle);
 
   // profile は generateMetadata と同じ関数なので React.cache で 1 回しか取得されない
-  const [{ user, organized, upcoming }, viewer, blocks] = await Promise.all([
-    getUserProfile(handle),
-    getCurrentUser(),
-    getMyBlocks(),
-  ]);
+  const [profile, viewer, blocks] = await Promise.all([getUserProfile(handle), getCurrentUser(), getMyBlocks()]);
+  const { user, organized, upcoming } = profile;
   const isMe = viewer?.id === user.id;
   const blocked = blocks.some((b) => b.id === user.id);
 
@@ -57,18 +55,32 @@ export default async function UserProfilePage(props: PageProps<"/users/[handle]"
             </p>
           </div>
           {user.bio && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{user.bio}</p>}
+          <p className="text-sm text-muted-foreground">
+            フォロワー <span className="font-bold text-foreground">{profile.followerCount}</span> ・ フォロー中{" "}
+            <span className="font-bold text-foreground">{profile.followingCount}</span>
+          </p>
           <p className="text-xs text-subtle">
             <time dateTime={user.createdAt}>{formatDate(user.createdAt)}</time> に登録
           </p>
         </div>
-        {/* フォローボタン（#8）はここに置く */}
-        <div className="shrink-0">
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           {isMe ? (
             <Link href="/me" className="btn-secondary text-xs">
               プロフィールを編集
             </Link>
+          ) : viewer ? (
+            <>
+              <FollowButton targetUserId={user.id} initialIsFollowing={profile.isFollowing} />
+              <BlockButton userId={user.id} displayName={user.displayName} blocked={blocked} />
+            </>
           ) : (
-            viewer && <BlockButton userId={user.id} displayName={user.displayName} blocked={blocked} />
+            <p className="text-xs text-subtle">
+              フォローするには
+              <Link href="/login" className="text-secondary-foreground underline">
+                ログイン
+              </Link>
+              してください
+            </p>
           )}
         </div>
       </header>

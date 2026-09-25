@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatDateTime } from "@/lib/format";
 import { CommentForm } from "./comment-form";
 import { DeleteCommentButton } from "./delete-comment-button";
+import { UserLink } from "./user-link";
 
 /**
  * LT会詳細ページ下部のコメント欄（主催者・参加者間の連絡）。
@@ -34,7 +35,7 @@ export function CommentSection({
           {comments.map((c) => (
             <li key={c.id} className="py-3">
               <div className="mb-1 flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-sm font-bold text-foreground">{c.author.displayName}</span>
+                <UserLink user={c.author} className="self-center font-display text-sm font-bold text-foreground" />
                 {c.author.id === organizerId && (
                   <span className="badge bg-secondary px-2 py-0.5 text-secondary-foreground">主催者</span>
                 )}

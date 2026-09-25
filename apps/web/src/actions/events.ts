@@ -139,7 +139,13 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
   try {
     await apiFetch<UserDto>('/users/me', {
       method: 'PATCH',
-      body: { displayName: str(formData, 'displayName'), bio: str(formData, 'bio') || null },
+      body: {
+        displayName: str(formData, 'displayName'),
+        bio: str(formData, 'bio') || null,
+        handle: str(formData, 'handle'),
+        // 空欄はアバターの解除（生成画像に戻す）
+        avatarUrl: str(formData, 'avatarUrl') || null,
+      },
     });
   } catch (err) {
     return { error: errorMessage(err) };

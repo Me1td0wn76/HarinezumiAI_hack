@@ -6,6 +6,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   displayName: string;
+  /** プロフィールURL に使う ID。HANDLE_PATTERN に合うこと（大文字は API 側で小文字にする） */
+  handle: string;
   /** 利用規約・プライバシーポリシーへの同意。true でないと登録できない */
   agreeToTerms: boolean;
 }
@@ -22,11 +24,38 @@ export interface AuthResponse {
 
 // ---------- ユーザー ----------
 
+/** ハンドルの形式（3〜20文字の英小文字・数字・_）。API とフォームの両方で使う */
+export const HANDLE_PATTERN = /^[a-z0-9_]{3,20}$/;
+export const HANDLE_MIN_LENGTH = 3;
+export const HANDLE_MAX_LENGTH = 20;
+
+/** ルーティングや運営と紛らわしいため使えないハンドル（/users/me など） */
+export const RESERVED_HANDLES: readonly string[] = [
+  'me',
+  'admin',
+  'administrator',
+  'root',
+  'system',
+  'support',
+  'official',
+  'settings',
+  'new',
+  'edit',
+  'login',
+  'logout',
+  'register',
+  'api',
+  'null',
+  'undefined',
+];
+
 export interface UserDto {
   id: string;
   email: string;
+  handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   role: UserRole;
   createdAt: string;
 }
@@ -34,12 +63,27 @@ export interface UserDto {
 export interface UpdateProfileRequest {
   displayName?: string;
   bio?: string | null;
+  handle?: string;
+  /** https の画像URL。null / 空文字で解除する */
+  avatarUrl?: string | null;
 }
 
-/** 他人に見せる最小限のユーザー情報 */
+/** 他人に見せる最小限のユーザー情報。メールアドレスは含めない */
 export interface PublicUserDto {
   id: string;
+  handle: string;
   displayName: string;
+  /** NULL なら web 側でハンドルから生成した画像を出す */
+  avatarUrl: string | null;
+}
+
+/** 公開プロフィール（GET /users/:handle） */
+export interface UserProfileDto {
+  user: PublicUserDto & { bio: string | null; createdAt: string };
+  /** 主催したLT会（非表示を除く。新しい順） */
+  organized: EventSummaryDto[];
+  /** 参加予定: 候補日に回答したLT会のうち、日程調整中か開催日がまだ来ていないもの（主催分・非表示を除く） */
+  upcoming: EventSummaryDto[];
 }
 
 // ---------- LT会 ----------

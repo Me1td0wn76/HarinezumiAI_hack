@@ -1,10 +1,11 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { HANDLE_PATTERN } from '@lt/shared';
 import type { ConfigService } from '@nestjs/config';
 import type { User } from '../../generated/prisma/client.js';
 import type { UsersRepository } from '../users/users.repository.js';
 import type { AuthService } from './auth.service.js';
 import type { OAuthAccountsRepository } from './oauth-accounts.repository.js';
-import { OAuthService } from './oauth.service.js';
+import { OAuthService, generateHandle } from './oauth.service.js';
 import { buildUser } from '../../test-support/event-factories.js';
 import type { GoogleOAuthProvider } from './providers/google.provider.js';
 import type { OAuthProfile } from './providers/oauth-provider.js';
@@ -39,7 +40,7 @@ function setup({
         ),
       ),
   };
-  const users = { findByEmail: vi.fn().mockResolvedValue(existing) };
+  const users = { findByEmail: vi.fn().mockResolvedValue(existing), findByHandle: vi.fn().mockResolvedValue(null) };
   const google = { name: 'google', enabled: true } as GoogleOAuthProvider;
   const config = { get: (_key: string, fallback?: string) => fallback } as ConfigService;
   const service = new OAuthService(
@@ -89,6 +90,7 @@ describe('OAuthService.findOrCreateUser', () => {
     expect(created.passwordHash).toBeNull();
     expect(accounts.createUser).toHaveBeenCalledWith({
       email: 'taro@example.com',
+      handle: expect.stringMatching(/^taro_[0-9a-f]{6}$/),
       displayName: 'Taro Yamada',
       provider: 'google',
       providerAccountId: 'google-sub-1',
@@ -111,5 +113,28 @@ describe('OAuthService.findOrCreateUser', () => {
   it('一意制約に当たり、連携も見つからなければ 409（500 にしない）', async () => {
     const { service } = setup({ created: null });
     await expect(service.findOrCreateUser(profile())).rejects.toBeInstanceOf(ConflictException);
+  });
+  it('仮ハンドルが既存と重なったら作り直す', async () => {
+    const { service, users, accounts } = setup();
+    users.findByHandle.mockResolvedValueOnce(user({ id: 'other' }));
+    await service.findOrCreateUser(profile());
+    expect(users.findByHandle).toHaveBeenCalledTimes(2);
+    expect(accounts.createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ handle: expect.stringMatching(/^taro_/) }),
+    );
+  });
+});
+
+describe('generateHandle（ソーシャルログインで登録したユーザーの仮ハンドル）', () => {
+  it('メールアドレスの @ より前から使える文字だけを残し、ランダムな 6 文字を足す', () => {
+    expect(generateHandle('Taro.Yamada+lt@example.com')).toMatch(/^taroyamadalt_[0-9a-f]{6}$/);
+  });
+
+  it('使える文字が 3 文字未満なら user を使う', () => {
+    expect(generateHandle('太郎@example.com')).toMatch(/^user_[0-9a-f]{6}$/);
+  });
+
+  it('長いメールアドレスでも HANDLE_PATTERN に収まる', () => {
+    expect(generateHandle(`${'a'.repeat(64)}@example.com`)).toMatch(HANDLE_PATTERN);
   });
 });

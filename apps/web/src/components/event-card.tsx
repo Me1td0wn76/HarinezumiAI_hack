@@ -4,9 +4,10 @@ import { formatDateRange } from "@/lib/format";
 import { EventFormatBadge } from "./event-format-badge";
 import { EventStatusBadge } from "./event-status-badge";
 import { TagChip } from "./tag-chip";
+import { UserLink } from "./user-link";
 
 /**
- * 一覧のカード。タグはそれぞれタグページへのリンクなので、カード全体を <Link> で包まず
+ * 一覧のカード。主催者はプロフィールへ、タグはタグページへのリンクなので、カード全体を <Link> で包まず
  * 本文だけをリンクにしている（リンクの入れ子は HTML として不正）
  */
 export function EventCard({ event }: { event: EventSummaryDto }) {
@@ -30,8 +31,11 @@ export function EventCard({ event }: { event: EventSummaryDto }) {
             ? `📅 開催日：${formatDateRange(event.confirmedDate.startsAt, event.confirmedDate.endsAt)}`
             : `候補日 ${event.candidateDateCount} 件 / 回答 ${event.responderCount} 人`}
         </div>
-        <p className="mt-2 text-xs text-subtle">主催: {event.organizer.displayName}</p>
       </Link>
+      <p className="mt-2 flex items-center gap-1 text-xs text-subtle">
+        <span className="shrink-0">主催:</span>
+        <UserLink user={event.organizer} />
+      </p>
       {event.tags.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {event.tags.map((tag) => (

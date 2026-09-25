@@ -16,6 +16,18 @@ const timeOnly = new Intl.DateTimeFormat('ja-JP', {
   minute: '2-digit',
 });
 
+const dateOnly = new Intl.DateTimeFormat('ja-JP', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+/** 「2026年9月25日」。登録日など時刻が要らない表示に使う */
+export function formatDate(iso: string): string {
+  return dateOnly.format(new Date(iso));
+}
+
 export function formatDateTime(iso: string): string {
   return dateTime.format(new Date(iso));
 }

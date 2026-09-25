@@ -20,6 +20,14 @@ export async function Nav() {
               <Link href="/events/new" className="btn-primary">
                 ⚡ LT会を作る
               </Link>
+              <Link href="/calendar" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
+                カレンダー
+              </Link>
+              {user.role === "ADMIN" && (
+                <Link href="/admin" className="font-display text-sm font-bold text-danger-foreground hover:text-foreground">
+                  運営
+                </Link>
+              )}
               <Link href="/me" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 {user.displayName}
               </Link>

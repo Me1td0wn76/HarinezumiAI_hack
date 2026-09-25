@@ -1,23 +1,24 @@
-import type { EventSummaryDto } from "@lt/shared";
+import type { EventSummaryDto, PageDto, TagCountDto } from "@lt/shared";
 import Link from "next/link";
-import { EventCard } from "@/components/event-card";
+import { DiscoverControls } from "@/components/discover-controls";
+import { EventList } from "@/components/event-list";
 import { apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { EMPTY_EVENT_PAGE, canMatchAnyEvent, parseEventListQuery, toEventsSearchParams } from "@/lib/events-query";
 
-export default async function HomePage() {
-  const [events, user] = await Promise.all([apiFetch<EventSummaryDto[]>("/events"), getCurrentUser()]);
-  const open = events.filter((e) => e.status === "OPEN");
-  const confirmed = events.filter((e) => e.status === "CONFIRMED");
-  const closed = events.filter((e) => e.status === "CLOSED");
-  // 統計バーに表示する4項目。EventSummaryDto から取得済みのデータだけで集計する（追加のAPI呼び出しはしない）。
-  // 「回答数」は responderCount の単純合計。同じ人が複数のLT会に回答すると重複してカウントされるため
-  // （サマリーDTOにはユーザー単位で重複排除する情報がない）、「回答者」ではなく「回答数」と表記する
-  const stats = [
-    { label: "LT会", value: events.length },
-    { label: "候補日", value: events.reduce((s, e) => s + e.candidateDateCount, 0) },
-    { label: "回答数", value: events.reduce((s, e) => s + e.responderCount, 0) },
-    { label: "開催確定", value: confirmed.length },
-  ];
+export default async function HomePage(props: PageProps<"/">) {
+  const query = parseEventListQuery(await props.searchParams);
+  const qs = toEventsSearchParams(query);
+  const filtering = qs.length > 0;
+
+  // 3つは互いに依存しないので並列に取る
+  const [page, topTags, user] = await Promise.all([
+    canMatchAnyEvent(query)
+      ? apiFetch<PageDto<EventSummaryDto>>(`/events${filtering ? `?${qs}` : ""}`, { auth: false })
+      : EMPTY_EVENT_PAGE,
+    apiFetch<TagCountDto[]>("/tags?limit=15", { auth: false }),
+    getCurrentUser(),
+  ]);
 
   return (
     <>
@@ -37,9 +38,6 @@ export default async function HomePage() {
             <br />
             始めよう
           </h1>
-          {/* 「Discordへ自動通知」の一文は削除:
-              Discord Webhookは運営が環境変数(DISCORD_WEBHOOK_URL)で設定する1本だけで、
-              主催者ごとに通知先を設定するUIは存在しない（Issue #12）。誤解を招くため落とした */}
           <p className="mb-7 max-w-md text-base leading-relaxed text-muted-foreground">
             発表者が内容と候補日を登録して、参加者は○△×で回答するだけ。
           </p>
@@ -58,74 +56,30 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="bg-primary">
-        <div className="mx-auto flex max-w-4xl flex-wrap gap-6 px-4 py-3.5">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex items-baseline gap-1.5">
-              <span className="font-display text-2xl font-black text-primary-foreground">{stat.value}</span>
-              {/* /60 だと text-xs bold でWCAG AA(4.5:1)を割るため /70 に強める */}
-              <span className="font-display text-xs font-bold text-primary-foreground/70">{stat.label}</span>
-            </div>
-          ))}
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-10">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-display text-2xl font-extrabold text-foreground">LT会を探す</h2>
+          {filtering ? (
+            <Link href="/" className="text-sm font-semibold text-secondary-foreground underline">
+              絞り込みを解除
+            </Link>
+          ) : null}
         </div>
-      </section>
 
-      <div className="mx-auto max-w-4xl space-y-12 px-4 py-10">
-        <section>
-          <div className="mb-5 flex items-baseline justify-between">
-            <h2 className="font-display text-2xl font-extrabold text-foreground">回答受付中</h2>
-            <span className="badge bg-secondary text-secondary-foreground">{open.length} 件</span>
-          </div>
-          {open.length === 0 ? (
-            <div className="card text-center text-muted-foreground">
-              <p>調整中のLT会はありません。</p>
-              {!user && (
-                <p className="mt-2 text-sm">
-                  <Link href="/register" className="font-semibold text-secondary-foreground underline">
-                    登録
-                  </Link>
-                  してLT会を作ってみましょう。
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {open.map((e) => (
-                <EventCard key={e.id} event={e} />
-              ))}
-            </div>
-          )}
-        </section>
+        {/* TODO(#8): ログイン時に「新着 / フォロー中」タブを置く。フォロー中は GET /feed（#8 で追加）を使う */}
+        <DiscoverControls query={query} topTags={topTags} />
 
-        {confirmed.length > 0 && (
-          <section>
-            <div className="mb-5 flex items-baseline justify-between">
-              <h2 className="font-display text-2xl font-extrabold text-foreground">開催決定</h2>
-              <span className="badge bg-success-bg text-success-foreground">{confirmed.length} 件</span>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {confirmed.map((e) => (
-                <EventCard key={e.id} event={e} />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* 検索条件が変わったら一覧の state を作り直す */}
+        <EventList key={qs} initial={page} query={query} />
 
-        {closed.length > 0 && (
-          // 終了したLT会は一覧の主役ではないので折りたたんでおく
-          <details>
-            <summary className="mb-5 flex cursor-pointer list-none items-baseline justify-between">
-              <h2 className="font-display text-2xl font-extrabold text-foreground">終了したLT会</h2>
-              <span className="badge bg-muted text-muted-foreground">{closed.length} 件</span>
-            </summary>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {closed.map((e) => (
-                <EventCard key={e.id} event={e} />
-              ))}
-            </div>
-          </details>
-        )}
+        {!user && page.items.length === 0 && !filtering ? (
+          <p className="text-center text-sm text-muted-foreground">
+            <Link href="/register" className="font-semibold text-secondary-foreground underline">
+              登録
+            </Link>
+            して最初のLT会を立ててみましょう。
+          </p>
+        ) : null}
       </div>
     </>
   );

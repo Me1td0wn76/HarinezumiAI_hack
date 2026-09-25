@@ -1,0 +1,37 @@
+# Render Blueprint（NestJS API）。手順は docs/deploy.md を参照。
+# Web（Next.js）は Vercel、DB は Neon に置くので、ここでは API だけを定義する。
+services:
+  - type: web
+    name: lt-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @lt/api build
+    # prisma migrate deploy を実行してから dist/main.js を起動する
+    startCommand: pnpm --filter @lt/api start:deploy
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Neon の接続文字列（pooler ではない直接接続の方。docs/deploy.md 参照）
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # CORS を許可するオリジン = Vercel の本番 URL（例: https://lt-app.vercel.app）
+      - key: WEB_ORIGIN
+        sync: false
+      # Discord 通知に載せるリンクの元になる URL。通常は WEB_ORIGIN と同じ
+      - key: WEB_URL
+        sync: false
+      # 未設定なら全体向けの Discord 通知はスキップされる
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      # レート制限で使う req.ip の決め方。2 = Render のプロキシ + web（Vercel）の2段を信頼し、
+      # web が X-Forwarded-For に入れた利用者の IP を使う。理由と注意は docs/deploy.md の「TRUST_PROXY」
+      - key: TRUST_PROXY
+        value: "2"

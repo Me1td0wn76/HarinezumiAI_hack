@@ -366,6 +366,42 @@ describe('EventsService', () => {
       expect(result.status).toBe('CONFIRMED');
     });
 
+    it('同じ日で決定し直したときは通知しない', async () => {
+      const event = buildEvent({ organizerId: organizer.id });
+      const alreadyConfirmed = buildEvent({
+        organizerId: organizer.id,
+        status: 'CONFIRMED',
+        confirmedDateId: 'date-1',
+        confirmedDate: event.candidateDates[0],
+      });
+      repo.findDetailById.mockResolvedValue(alreadyConfirmed);
+      repo.confirm.mockResolvedValue(alreadyConfirmed);
+
+      await service.confirm('event-1', organizer, { eventDateId: 'date-1' });
+
+      expect(repo.confirm).toHaveBeenCalledWith('event-1', 'date-1');
+      expect(notifications.eventConfirmed).not.toHaveBeenCalled();
+    });
+
+    it('別の日に決定し直したときは通知する', async () => {
+      const event = buildEvent({ organizerId: organizer.id });
+      const [first, second] = event.candidateDates;
+      if (!second) throw new Error('テスト用のLT会に候補日が2つ以上必要です');
+      const before = buildEvent({ organizerId: organizer.id, status: 'CONFIRMED', confirmedDateId: first.id });
+      const after = buildEvent({
+        organizerId: organizer.id,
+        status: 'CONFIRMED',
+        confirmedDateId: second.id,
+        confirmedDate: second,
+      });
+      repo.findDetailById.mockResolvedValue(before);
+      repo.confirm.mockResolvedValue(after);
+
+      await service.confirm('event-1', organizer, { eventDateId: second.id });
+
+      expect(notifications.eventConfirmed).toHaveBeenCalledWith(after);
+    });
+
     it('主催者以外が決定しようとすると 403', async () => {
       repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id }));
       const dto: ConfirmEventDto = { eventDateId: 'date-1' };

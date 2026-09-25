@@ -1,8 +1,9 @@
 "use client";
 
 import type { EventDateDto, ResponderRowDto } from "@lt/shared";
-import { useActionState, useEffect, useRef, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { submitGuestResponses } from "@/actions/share";
+import { guestResponderKey } from "@/lib/guest-key";
 import { FormMessage } from "./form-message";
 import { ResponseFields } from "./response-fields";
 
@@ -45,16 +46,30 @@ export function GuestResponseForm({
   const guestKey = useSyncExternalStore(subscribe, readGuestKey, () => null);
   const storedName = useSyncExternalStore(subscribe, readGuestName, () => "");
   const nameRef = useRef<HTMLInputElement>(null);
+  // 回答者一覧の自分の行のキー。ハッシュの計算が非同期なので state に持つ
+  const [myKey, setMyKey] = useState<{ guestKey: string; responderKey: string } | null>(null);
+
+  useEffect(() => {
+    if (!guestKey) return;
+    let cancelled = false;
+    void guestResponderKey(guestKey).then((responderKey) => {
+      if (!cancelled) setMyKey({ guestKey, responderKey });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [guestKey]);
 
   // 送信に成功したら次回のために名前を覚えておく
   useEffect(() => {
     if (state?.success && nameRef.current) localStorage.setItem(NAME_STORAGE, nameRef.current.value);
   }, [state]);
 
-  // guestKey が決まるまで（ハイドレーション完了まで）はフォームを出さない
-  if (!guestKey) return <p className="text-sm text-subtle">読み込み中…</p>;
+  // guestKey と自分の行のキーが決まるまで（ハイドレーション完了まで）はフォームを出さない。
+  // 先に出すと defaultValue に以前の回答が入らない
+  if (!guestKey || myKey?.guestKey !== guestKey) return <p className="text-sm text-subtle">読み込み中…</p>;
 
-  const mine = responders.find((r) => r.responderKey === `guest:${guestKey}`);
+  const mine = responders.find((r) => r.responderKey === myKey.responderKey);
 
   return (
     <form action={action} className="space-y-3">

@@ -1,12 +1,23 @@
-import { EVENT_PAGE_SIZE, EVENT_PAGE_SIZE_MAX, EVENT_STATUS, type EventListQuery, type EventStatus } from '@lt/shared';
+import {
+  EVENT_FORMAT,
+  EVENT_PAGE_SIZE,
+  EVENT_PAGE_SIZE_MAX,
+  EVENT_SEARCH_MAX_LENGTH,
+  EVENT_STATUS,
+  TAG_MAX_LENGTH,
+  type EventFormat,
+  type EventListQuery,
+  type EventStatus,
+} from '@lt/shared';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 /** GET /events のクエリパラメータ */
 export class ListEventsQueryDto implements EventListQuery {
-  /** 前ページ最後の event.id */
+  /** 前ページの nextCursor（中身は Repository の encodeEventCursor が決める） */
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MaxLength(200)
   cursor?: string;
 
   @IsOptional()
@@ -18,17 +29,21 @@ export class ListEventsQueryDto implements EventListQuery {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(TAG_MAX_LENGTH)
   tag?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(EVENT_SEARCH_MAX_LENGTH)
   q?: string;
 
   @IsOptional()
   @IsIn(EVENT_STATUS)
   status?: EventStatus;
+
+  @IsOptional()
+  @IsIn(EVENT_FORMAT)
+  format?: EventFormat;
 
   @IsOptional()
   @IsUUID()

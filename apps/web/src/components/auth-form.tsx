@@ -42,6 +42,28 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isLogin ? "current-password" : "new-password"}
           />
         </div>
+        {isLogin && (
+          <p className="-mt-2 text-right text-xs">
+            <Link href="/password-reset" className="text-subtle underline hover:text-foreground">
+              パスワードを忘れた方
+            </Link>
+          </p>
+        )}
+        {!isLogin && (
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" name="agreeToTerms" required className="mt-1 h-4 w-4 accent-primary" />
+            <span>
+              <Link href="/terms" target="_blank" className="font-semibold text-secondary-foreground underline">
+                利用規約
+              </Link>
+              と
+              <Link href="/privacy" target="_blank" className="font-semibold text-secondary-foreground underline">
+                プライバシーポリシー
+              </Link>
+              に同意する
+            </span>
+          </label>
+        )}
         <FormMessage state={state} />
         <button type="submit" className="btn-primary w-full" disabled={pending}>
           {pending ? "送信中…" : isLogin ? "ログイン" : "登録する"}

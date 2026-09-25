@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Nunito } from "next/font/google";
+import Link from "next/link";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
@@ -22,7 +23,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LT会支援アプリ",
+  // OGP などの相対URL をこのオリジンで絶対URL にする
+  metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000"),
+  title: {
+    default: "LT会支援アプリ",
+    template: "%s | LT会支援",
+  },
   description: "LT会を気軽に立てて、見つけて、参加できるサービス",
 };
 
@@ -38,8 +44,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           896px（max-w-4xl）を超える画面幅では黄色い帯が中央の箱になってしまう不具合があったため撤去した。
         */}
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-card-border px-4 py-4 text-center text-xs text-subtle">
-          LT会支援アプリ
+        <footer className="flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-card-border px-4 py-4 text-xs text-subtle">
+          <span>LT会支援アプリ</span>
+          <Link href="/terms" className="hover:text-foreground">
+            利用規約
+          </Link>
+          <Link href="/privacy" className="hover:text-foreground">
+            プライバシーポリシー
+          </Link>
         </footer>
       </body>
     </html>

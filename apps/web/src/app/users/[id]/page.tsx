@@ -1,4 +1,4 @@
-import type { UserProfileDto } from "@lt/shared";
+import type { EventSummaryDto,UserProfileDto } from "@lt/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/components/follow-button";
@@ -15,6 +15,7 @@ export default async function UserProfilePage(props:PageProps<"/users/[id]">)
     throw err;
     }),
     getCurrentUser(),
+    apiFetch<EventSummaryDto[]>(`/users/${id}/events`, { auth: false }),
   ]);
 
   if (!profile) notFound();
@@ -38,7 +39,7 @@ export default async function UserProfilePage(props:PageProps<"/users/[id]">)
         <ul className="space-y-1">
           {profile.organizedEvents.map((event) => (
             <li key={event.id}>
-              <Link href={`/events/${event.id}`} className="text-success-foreground font-medium underline hover:text-success transition">
+              <Link href={`/events/${event.id}`} className="text-emerald-700 underline">
                 {event.title}
               </Link>
             </li>

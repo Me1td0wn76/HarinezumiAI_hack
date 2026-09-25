@@ -12,7 +12,10 @@
     "db:studio": "pnpm --filter @lt/api prisma:studio",
     "postinstall": "pnpm --filter @lt/shared build",
     "db:seed": "pnpm --filter @lt/api prisma:seed",
-    "test": "pnpm -r test"
+    "db:test:up": "pnpm --filter @lt/api db:test:up",
+    "db:test:migrate": "pnpm --filter @lt/api db:test:migrate",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @lt/api test:e2e"
   },
   "devDependencies": {
     "@playwright/cli": "^0.1.21"

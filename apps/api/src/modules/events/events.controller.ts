@@ -83,4 +83,10 @@ export class EventsController {
   confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: ConfirmEventDto) {
     return this.events.confirm(id, user, dto);
   }
+
+  @Post(':id/close')
+  @UseGuards(JwtAuthGuard)
+  close(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.events.close(id, user);
+  }
 }

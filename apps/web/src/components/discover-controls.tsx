@@ -1,6 +1,7 @@
 import {
   EVENT_FORMAT,
   EVENT_FORMAT_LABEL,
+  EVENT_STATUS,
   EVENT_STATUS_LABEL,
   type EventFormat,
   type EventListQuery,
@@ -13,8 +14,7 @@ import { TagChip } from "./tag-chip";
 
 const STATUS_FILTERS: { value: EventStatus | undefined; label: string }[] = [
   { value: undefined, label: "すべて" },
-  { value: "OPEN", label: EVENT_STATUS_LABEL.OPEN },
-  { value: "CONFIRMED", label: EVENT_STATUS_LABEL.CONFIRMED },
+  ...EVENT_STATUS.map((s) => ({ value: s, label: EVENT_STATUS_LABEL[s] })),
 ];
 
 const FORMAT_FILTERS: { value: EventFormat | undefined; label: string }[] = [

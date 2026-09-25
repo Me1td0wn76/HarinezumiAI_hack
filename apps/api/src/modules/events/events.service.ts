@@ -73,6 +73,9 @@ export class EventsService {
   /** 主催者が開催日を決定する */
   async confirm(id: string, user: User, dto: ConfirmEventDto): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
+    if (event.status === 'CLOSED') {
+      throw new BadRequestException('終了したLT会の開催日は決定できません');
+    }
     if (!event.candidateDates.some((d) => d.id === dto.eventDateId)) {
       throw new NotFoundException('候補日が見つかりません');
     }

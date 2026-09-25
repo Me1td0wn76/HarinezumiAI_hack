@@ -88,6 +88,10 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           <FormMessage state={confirmState} />
           <FormMessage state={removeState} />
         </div>
+      ) : isClosed ? (
+        <div className="rounded-[1.25rem] border-[1.5px] border-card-border bg-muted p-4 text-sm text-muted-foreground">
+          このLT会は終了しました。
+        </div>
       ) : detail.confirmedDate ? (
         <div className="rounded-[1.25rem] border-[1.5px] border-success bg-success-bg p-4 text-sm text-success-foreground">
           🎉 開催日は{" "}
@@ -96,11 +100,7 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
           </strong>{" "}
           に決定済みです。
         </div>
-      ) : (
-        <div className="rounded-[1.25rem] border-[1.5px] border-card-border bg-muted p-4 text-sm text-muted-foreground">
-          このLT会は終了しました。
-        </div>
-      )}
+      ) : null}
 
       {isOpen && (
         <div>
@@ -111,11 +111,21 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
 
       {!isClosed && (
         <div className="border-t border-card-border pt-4">
-          <form action={closeAction} className="flex items-center justify-between gap-3">
+          <form
+            action={closeAction}
+            onSubmit={(e) => {
+              // 終了は取り消せないため、押し間違いに備えて確認する。回答を受け付けているのは OPEN の間だけ
+              const warning = isOpen ? "終了すると参加者は回答できなくなり、元に戻せません。" : "終了すると元に戻せません。";
+              if (!window.confirm(`このLT会を終了にしますか？\n${warning}`)) {
+                e.preventDefault();
+              }
+            }}
+            className="flex items-center justify-between gap-3"
+          >
             <input type="hidden" name="eventId" value={detail.id} />
             <p className="text-xs text-muted-foreground">開催が終わった・中止になったLT会は終了にできます。</p>
             <button type="submit" className="btn-secondary text-xs" disabled={closing}>
-              終了にする
+              {closing ? "処理中…" : "終了にする"}
             </button>
           </form>
           <FormMessage state={closeState} />

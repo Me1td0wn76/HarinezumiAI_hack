@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { UsersModule } from '../users/users.module.js';
 import { EventsModule } from '../events/events.module.js';
 import { BlocksModule } from '../blocks/blocks.module.js';
+import { FollowsModule } from '../follows/follows.module.js';
 import { ProfilesController } from './profiles.controller.js';
 import { ProfilesService } from './profiles.service.js';
 
@@ -10,7 +11,7 @@ import { ProfilesService } from './profiles.service.js';
  * Users → Events → Blocks → Users の循環になる。独立したモジュールにして一方向の依存に保つ
  */
 @Module({
-  imports: [UsersModule, EventsModule, BlocksModule],
+  imports: [UsersModule, EventsModule, BlocksModule, FollowsModule],
   controllers: [ProfilesController],
   providers: [ProfilesService],
 })

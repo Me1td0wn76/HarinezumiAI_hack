@@ -8,6 +8,7 @@ import { FollowsRepository } from './follows.repository.js';
   imports: [UsersModule],
   controllers: [FollowsController],
   providers: [FollowsService, FollowsRepository],
-  exports: [FollowsService],
+  // 公開プロフィール（ProfilesModule）がフォロワー数・フォロー中かを読む
+  exports: [FollowsRepository],
 })
 export class FollowsModule {}

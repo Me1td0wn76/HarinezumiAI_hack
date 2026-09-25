@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { PublicUserDto } from '@lt/shared';
 import { UsersRepository } from '../users/users.repository.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
@@ -34,12 +30,12 @@ export class FollowsService {
   }
 
   async listFollowers(userId: string): Promise<PublicUserDto[]> {
-    const rows = await this.follows.findFollowers(userId);
-    return rows.map((row) => toPublicUserDto(row.follower));
+    const users = await this.follows.findFollowers(userId);
+    return users.map(toPublicUserDto);
   }
 
   async listFollowing(userId: string): Promise<PublicUserDto[]> {
-    const rows = await this.follows.findFollowing(userId);
-    return rows.map((row) => toPublicUserDto(row.following));
+    const users = await this.follows.findFollowing(userId);
+    return users.map(toPublicUserDto);
   }
 }

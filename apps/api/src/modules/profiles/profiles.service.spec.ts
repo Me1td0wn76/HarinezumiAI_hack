@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import type { UsersRepository } from '../users/users.repository.js';
 import type { EventsRepository } from '../events/events.repository.js';
 import type { BlocksRepository } from '../blocks/blocks.repository.js';
+import type { FollowsRepository } from '../follows/follows.repository.js';
 import { ProfilesService } from './profiles.service.js';
 import { buildUser } from '../../test-support/event-factories.js';
 
@@ -12,12 +13,17 @@ function setup(owner: ReturnType<typeof buildUser> | null = buildUser()) {
     findUpcomingRespondedBy: vi.fn().mockResolvedValue([]),
   };
   const blocks = { findBlockedIds: vi.fn().mockResolvedValue(['blocked-1']) };
+  const follows = {
+    countFor: vi.fn().mockResolvedValue({ followers: 3, following: 5 }),
+    exists: vi.fn().mockResolvedValue(true),
+  };
   const service = new ProfilesService(
     users as unknown as UsersRepository,
     events as unknown as EventsRepository,
     blocks as unknown as BlocksRepository,
+    follows as unknown as FollowsRepository,
   );
-  return { service, users, events, blocks };
+  return { service, users, events, blocks, follows };
 }
 
 describe('ProfilesService.getByHandle', () => {
@@ -64,5 +70,19 @@ describe('ProfilesService.getByHandle', () => {
     await service.getByHandle('organizer', null);
     expect(blocks.findBlockedIds).not.toHaveBeenCalled();
     expect(events.findPublicByOrganizer).toHaveBeenCalledWith('user-1', []);
+  });
+
+  it('フォロワー数・フォロー中の数と、閲覧者がフォロー中かを返す', async () => {
+    const { service, follows } = setup();
+    const profile = await service.getByHandle('organizer', buildUser({ id: 'viewer' }));
+    expect(follows.exists).toHaveBeenCalledWith('viewer', 'user-1');
+    expect(profile).toMatchObject({ followerCount: 3, followingCount: 5, isFollowing: true });
+  });
+
+  it('未ログインや自分自身のプロフィールでは、フォロー中かを調べず false', async () => {
+    const { service, follows } = setup();
+    expect((await service.getByHandle('organizer', null)).isFollowing).toBe(false);
+    expect((await service.getByHandle('organizer', buildUser())).isFollowing).toBe(false);
+    expect(follows.exists).not.toHaveBeenCalled();
   });
 });

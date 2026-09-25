@@ -92,6 +92,10 @@ export interface UserProfileDto {
   organized: EventSummaryDto[];
   /** 参加予定: 候補日に回答したLT会のうち、日程調整中か開催日がまだ来ていないもの（主催分・非表示を除く） */
   upcoming: EventSummaryDto[];
+  followerCount: number;
+  followingCount: number;
+  /** 閲覧者がこのユーザーをフォロー中か。未ログイン、または自分自身のプロフィールなら false */
+  isFollowing: boolean;
 }
 
 // ---------- LT会 ----------

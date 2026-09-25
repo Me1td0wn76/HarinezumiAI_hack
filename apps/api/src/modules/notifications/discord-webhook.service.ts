@@ -50,8 +50,7 @@ export class DiscordWebhookService {
         // 検証済みの Discord の URL から、リダイレクトで別のホストへ送られないようにする
         redirect: 'error',
       });
-      if (!res.ok)
-        this.logger.warn(`Discord webhook が ${res.status} を返しました`);
+      if (!res.ok) this.logger.warn(`Discord webhook が ${res.status} を返しました`);
     } catch (err) {
       this.logger.warn(`Discord webhook の送信に失敗: ${String(err)}`);
     }

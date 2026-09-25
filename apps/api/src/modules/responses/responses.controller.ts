@@ -14,7 +14,6 @@ export class ResponsesController {
 
   /** 自分の回答をまとめて登録・更新する */
   @Put()
-  @Put()
   @Throttle(THROTTLE.submitResponses)
   submit(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User, @Body() dto: SubmitResponsesDto) {
     return this.responses.submitForUser(id, user, dto);

@@ -12,12 +12,12 @@ import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { CommentsModule } from './modules/comments/comments.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
-import { FollowsModule } from './modules/follows/follows.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { BlocksModule } from './modules/blocks/blocks.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { ScheduleModule } from './modules/schedule/schedule.module.js';
+import { ProfilesModule } from './modules/profiles/profiles.module.js';
 
 @Module({
   imports: [
@@ -31,12 +31,13 @@ import { ScheduleModule } from './modules/schedule/schedule.module.js';
     EventsModule,
     ResponsesModule,
     ShareModule,
-    FollowsModule,
     BlocksModule,
     ReportsModule,
     AdminModule,
     CommentsModule,
     ScheduleModule,
+    // GET /users/:handle。/users/me などを先に登録するため UsersModule より後に置く
+    ProfilesModule,
   ],
   controllers: [AppController],
   // 全エンドポイントにレート制限を掛ける（上限は common/throttle.ts）

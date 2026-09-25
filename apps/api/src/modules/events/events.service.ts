@@ -55,12 +55,6 @@ export class EventsService {
     return { organized: organized.map(toEventSummaryDto), participated: participated.map(toEventSummaryDto) };
   }
 
-  /** 公開プロフィール画面用。特定ユーザーが主催したLT会一覧 */
-  async listByOrganizer(organizerId: string): Promise<EventSummaryDto[]> {
-    const events = await this.events.findManyByOrganizer(organizerId);
-    return events.map(toEventSummaryDto);
-  }
-
   async create(organizer: User, dto: CreateEventDto): Promise<EventDetailDto> {
     const event = await this.events.create({
       title: dto.title,
@@ -107,26 +101,16 @@ export class EventsService {
     await this.events.delete(id);
   }
 
-  async addDates(
-    id: string,
-    user: User,
-    dto: AddDatesDto,
-  ): Promise<EventDetailDto> {
+  async addDates(id: string, user: User, dto: AddDatesDto): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
     if (event.status !== 'OPEN') {
-      throw new BadRequestException(
-        '日程調整中のLT会にのみ候補日を追加できます',
-      );
+      throw new BadRequestException('日程調整中のLT会にのみ候補日を追加できます');
     }
     await this.events.addDates(id, parseCandidateDates(dto.candidateDates));
     return this.getDetail(id, user);
   }
 
-  async removeDate(
-    id: string,
-    dateId: string,
-    user: User,
-  ): Promise<EventDetailDto> {
+  async removeDate(id: string, dateId: string, user: User): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
     if (!event.candidateDates.some((d) => d.id === dateId)) {
       throw new NotFoundException('候補日が見つかりません');
@@ -139,18 +123,29 @@ export class EventsService {
   }
 
   /** 主催者が開催日を決定する */
-  async confirm(
-    id: string,
-    user: User,
-    dto: ConfirmEventDto,
-  ): Promise<EventDetailDto> {
+  async confirm(id: string, user: User, dto: ConfirmEventDto): Promise<EventDetailDto> {
     const event = await this.findOwnedOrThrow(id, user);
+    if (event.status === 'CLOSED') {
+      throw new BadRequestException('終了したLT会の開催日は決定できません');
+    }
     if (!event.candidateDates.some((d) => d.id === dto.eventDateId)) {
       throw new NotFoundException('候補日が見つかりません');
     }
+    // 同じ日で決定し直したとき（ボタンの押し直しなど）は、回答者に同じ通知を重ねて送らない
+    const alreadyConfirmed = event.status === 'CONFIRMED' && event.confirmedDateId === dto.eventDateId;
     const confirmed = await this.events.confirm(id, dto.eventDateId);
-    this.notifications.eventConfirmed(confirmed);
+    if (!alreadyConfirmed) this.notifications.eventConfirmed(confirmed);
     return toEventDetailDto(confirmed, { userId: user.id });
+  }
+
+  /** 主催者がLT会を終了する（開催済み・中止など） */
+  async close(id: string, user: User): Promise<EventDetailDto> {
+    const event = await this.findOwnedOrThrow(id, user);
+    if (event.status === 'CLOSED') {
+      throw new BadRequestException('すでに終了しています');
+    }
+    const closed = await this.events.update(id, { status: 'CLOSED' });
+    return toEventDetailDto(closed, { userId: user.id });
   }
 
   async findOrThrow(id: string): Promise<EventDetail> {

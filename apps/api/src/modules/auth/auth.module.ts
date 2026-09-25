@@ -22,10 +22,7 @@ import { PasswordResetRepository } from './password-reset.repository.js';
         secret: config.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           // '7d' のような ms 形式。型が string より狭いのでキャストする
-          expiresIn: config.get<string>(
-            'JWT_EXPIRES_IN',
-            '7d',
-          ) as JwtSignOptions['expiresIn'],
+          expiresIn: config.get<string>('JWT_EXPIRES_IN', '7d') as JwtSignOptions['expiresIn'],
         },
       }),
     }),

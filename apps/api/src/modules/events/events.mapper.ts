@@ -34,9 +34,7 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
     title: event.title,
     status: event.status,
     organizer: toPublicUserDto(event.organizer),
-    confirmedDate: event.confirmedDate
-      ? toEventDateDto(event.confirmedDate)
-      : null,
+    confirmedDate: event.confirmedDate ? toEventDateDto(event.confirmedDate) : null,
     candidateDateCount: event.candidateDates.length,
     responderCount: responders.size,
     tags: event.tags.map((t) => t.tag),
@@ -62,12 +60,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
   let viewerResponded = false;
 
   for (const date of event.candidateDates) {
-    const tally: DateTallyDto = {
-      eventDate: toEventDateDto(date),
-      yes: 0,
-      maybe: 0,
-      no: 0,
-    };
+    const tally: DateTallyDto = { eventDate: toEventDateDto(date), yes: 0, maybe: 0, no: 0 };
     for (const r of date.responses) {
       if (r.availability === 'YES') tally.yes++;
       else if (r.availability === 'MAYBE') tally.maybe++;
@@ -87,10 +80,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
         };
         rows.set(key, row);
       }
-      row.answers[date.id] = {
-        availability: r.availability,
-        comment: r.comment,
-      };
+      row.answers[date.id] = { availability: r.availability, comment: r.comment };
     }
     tallies.push(tally);
   }
@@ -104,9 +94,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
     description: event.description,
     status: event.status,
     organizer: toPublicUserDto(event.organizer),
-    confirmedDate: event.confirmedDate
-      ? toEventDateDto(event.confirmedDate)
-      : null,
+    confirmedDate: event.confirmedDate ? toEventDateDto(event.confirmedDate) : null,
     candidateDates: event.candidateDates.map(toEventDateDto),
     tallies,
     responders: [...rows.values()],

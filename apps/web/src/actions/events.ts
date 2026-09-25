@@ -111,6 +111,18 @@ export async function confirmEvent(_prev: ActionState, formData: FormData): Prom
   return { success: true };
 }
 
+export async function closeEvent(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const eventId = str(formData, 'eventId');
+  try {
+    await apiFetch(`/events/${eventId}/close`, { method: 'POST' });
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath('/');
+  return { success: true };
+}
+
 export async function addDates(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const eventId = str(formData, 'eventId');
   const candidateDates = parseCandidateDates(formData);
@@ -139,7 +151,13 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
   try {
     await apiFetch<UserDto>('/users/me', {
       method: 'PATCH',
-      body: { displayName: str(formData, 'displayName'), bio: str(formData, 'bio') || null },
+      body: {
+        displayName: str(formData, 'displayName'),
+        bio: str(formData, 'bio') || null,
+        handle: str(formData, 'handle'),
+        // 空欄はアバターの解除（生成画像に戻す）
+        avatarUrl: str(formData, 'avatarUrl') || null,
+      },
     });
   } catch (err) {
     return { error: errorMessage(err) };

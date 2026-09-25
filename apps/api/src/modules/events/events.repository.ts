@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { EventFormat, EventStatus, TagCountDto } from '@lt/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { Event, EventDate, Prisma } from '../../generated/prisma/client.js';
+import { publicUserSelect } from '../users/users.repository.js';
 import type { FormatFields } from './format.js';
 
 /** /me の履歴で返す件数の上限（それぞれ新しい順） */
@@ -9,7 +10,7 @@ export const HISTORY_LIMIT = 50;
 
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
-  organizer: { select: { id: true, displayName: true } },
+  organizer: { select: publicUserSelect },
   confirmedDate: true,
   tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
@@ -17,32 +18,25 @@ export const eventDetailInclude = {
     include: {
       responses: {
         orderBy: { createdAt: 'asc' },
-        include: { user: { select: { id: true, displayName: true } } },
+        include: { user: { select: publicUserSelect } },
       },
     },
   },
 } satisfies Prisma.EventInclude;
 
-export type EventDetail = Prisma.EventGetPayload<{
-  include: typeof eventDetailInclude;
-}>;
+export type EventDetail = Prisma.EventGetPayload<{ include: typeof eventDetailInclude }>;
 
 /** 一覧表示に必要な最小限の関連 */
 export const eventSummaryInclude = {
-  organizer: { select: { id: true, displayName: true } },
+  organizer: { select: publicUserSelect },
   confirmedDate: true,
   tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
-    select: {
-      id: true,
-      responses: { select: { userId: true, guestKey: true } },
-    },
+    select: { id: true, responses: { select: { userId: true, guestKey: true } } },
   },
 } satisfies Prisma.EventInclude;
 
-export type EventSummary = Prisma.EventGetPayload<{
-  include: typeof eventSummaryInclude;
-}>;
+export type EventSummary = Prisma.EventGetPayload<{ include: typeof eventSummaryInclude }>;
 
 export interface NewCandidateDate {
   startsAt: Date;
@@ -170,27 +164,44 @@ export class EventsRepository {
     });
   }
 
-  /** 特定ユーザーが主催したLT会一覧。公開プロフィール画面用 */
-  findManyByOrganizer(organizerId: string): Promise<EventSummary[]> {
+  /**
+   * 公開プロフィールの「主催したLT会」。運営が非表示にしたものは除く
+   * @param excludeOrganizerIds 閲覧者がブロックした相手。プロフィールの本人を含めば空になる
+   */
+  findPublicByOrganizer(userId: string, excludeOrganizerIds: string[] = []): Promise<EventSummary[]> {
     return this.prisma.event.findMany({
-      where: { organizerId },
+      where: { organizerId: { equals: userId, notIn: excludeOrganizerIds }, hiddenAt: null },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+  }
+
+  /**
+   * 公開プロフィールの「参加予定」。候補日に回答したLT会（findManyRespondedBy と同じ定義）のうち、
+   * 日程調整中のものと、開催日が now 以降に決まったもの
+   * @param excludeOrganizerIds 閲覧者がブロックした相手の主催分を除く
+   */
+  findUpcomingRespondedBy(userId: string, now: Date, excludeOrganizerIds: string[] = []): Promise<EventSummary[]> {
+    return this.prisma.event.findMany({
+      where: {
+        organizerId: { not: userId, notIn: excludeOrganizerIds },
+        hiddenAt: null,
+        candidateDates: { some: { responses: { some: { userId } } } },
+        OR: [{ status: 'OPEN' }, { status: 'CONFIRMED', confirmedDate: { startsAt: { gte: now } } }],
+      },
+      include: eventSummaryInclude,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
     });
   }
 
   findDetailById(id: string): Promise<EventDetail | null> {
-    return this.prisma.event.findUnique({
-      where: { id },
-      include: eventDetailInclude,
-    });
+    return this.prisma.event.findUnique({ where: { id }, include: eventDetailInclude });
   }
 
   findDetailByShareToken(shareToken: string): Promise<EventDetail | null> {
-    return this.prisma.event.findUnique({
-      where: { shareToken },
-      include: eventDetailInclude,
-    });
+    return this.prisma.event.findUnique({ where: { shareToken }, include: eventDetailInclude });
   }
 
   create(input: {
@@ -262,10 +273,7 @@ export class EventsRepository {
   confirm(eventId: string, eventDateId: string): Promise<EventDetail> {
     return this.prisma.event.update({
       where: { id: eventId },
-      data: {
-        status: 'CONFIRMED',
-        confirmedDate: { connect: { id: eventDateId } },
-      },
+      data: { status: 'CONFIRMED', confirmedDate: { connect: { id: eventDateId } } },
       include: eventDetailInclude,
     });
   }

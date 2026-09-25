@@ -1,8 +1,4 @@
-import {
-  AVAILABILITY,
-  type Availability,
-  type ResponseInput,
-} from '@lt/shared';
+import { AVAILABILITY, type Availability, type ResponseInput } from '@lt/shared';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class ResponseInputDto implements ResponseInput {

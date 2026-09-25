@@ -6,6 +6,7 @@ import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { e2eHandle } from './e2e-handle.js';
 
 interface EventDateDto {
   id: string;
@@ -63,7 +64,7 @@ describe('LT会のフロー (e2e)', () => {
     // 登録
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email, password, displayName: 'E2Eテスト主催者', agreeToTerms: true })
+      .send({ email, password, displayName: 'E2Eテスト主催者', handle: e2eHandle(), agreeToTerms: true })
       .expect(201);
     organizerId = registerRes.body.user.id as string;
     expect(registerRes.body.accessToken).toBeTruthy();

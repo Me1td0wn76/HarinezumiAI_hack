@@ -41,7 +41,7 @@ cp apps/web/.env.example apps/web/.env.local
 
 pnpm db:up        # PostgreSQL を起動
 pnpm db:migrate   # マイグレーション適用 + Prisma Client 生成
-pnpm db:seed      # デモデータ投入（demo@example.com / password123）
+pnpm db:seed      # デモデータ投入（demo@example.com / password123、プロフィールは /users/demo）
 
 pnpm dev          # web(3000) / api(3001) / shared(型の watch) を同時起動
 ```

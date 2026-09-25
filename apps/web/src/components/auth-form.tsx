@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { login, register } from "@/actions/auth";
 import { FormMessage } from "./form-message";
+import { HandleField } from "./handle-field";
+import { keepValuesOnSubmit } from "@/lib/keep-values-on-submit";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [state, action, pending] = useActionState(mode === "login" ? login : register, undefined);
@@ -13,7 +15,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     <div className="card mx-auto max-w-md">
       <span className="eyebrow mb-3">⚡ {isLogin ? "LOGIN" : "SIGN UP"}</span>
       <h1 className="mb-4 font-display text-2xl font-black text-foreground">{isLogin ? "ログイン" : "新規登録"}</h1>
-      <form action={action} className="space-y-4">
+      {/* 入力ミスで送り直すときにパスワードや同意まで消えないよう、入力を残す */}
+      <form action={action} onSubmit={keepValuesOnSubmit(action)} className="space-y-4">
         {!isLogin && (
           <div>
             <label className="label" htmlFor="displayName">
@@ -22,6 +25,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             <input id="displayName" name="displayName" className="input" required maxLength={50} />
           </div>
         )}
+        {!isLogin && <HandleField />}
         <div>
           <label className="label" htmlFor="email">
             メールアドレス

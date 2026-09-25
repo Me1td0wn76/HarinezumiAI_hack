@@ -1,9 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { EventDetailDto } from '@lt/shared';
-import {
-  EventsRepository,
-  type EventDetail,
-} from '../events/events.repository.js';
+import { EventsRepository, type EventDetail } from '../events/events.repository.js';
 import { toEventDetailDto } from '../events/events.mapper.js';
 import { ResponsesService } from '../responses/responses.service.js';
 import { SubmitGuestResponsesDto } from '../responses/dto/submit-guest-responses.dto.js';
@@ -22,10 +19,7 @@ export class ShareService {
     return toEventDetailDto(event, { guestKey });
   }
 
-  async respond(
-    token: string,
-    dto: SubmitGuestResponsesDto,
-  ): Promise<EventDetailDto> {
+  async respond(token: string, dto: SubmitGuestResponsesDto): Promise<EventDetailDto> {
     const event = await this.findOrThrow(token);
     return this.responses.submitForGuest(event, dto);
   }

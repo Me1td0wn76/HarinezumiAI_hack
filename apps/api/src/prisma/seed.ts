@@ -17,27 +17,19 @@ async function main() {
   const demo = await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
-    create: {
-      email: 'demo@example.com',
-      passwordHash,
-      displayName: 'デモ主催者',
-    },
+    create: { email: 'demo@example.com', handle: 'demo', passwordHash, displayName: 'デモ主催者' },
   });
   const taro = await prisma.user.upsert({
     where: { email: 'taro@example.com' },
     update: {},
-    create: {
-      email: 'taro@example.com',
-      passwordHash,
-      displayName: '山田太郎',
-    },
+    create: { email: 'taro@example.com', handle: 'taro', passwordHash, displayName: '山田太郎' },
   });
 
   // 運営（通報の確認・LT会の非表示ができる）
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: { role: 'ADMIN' },
-    create: { email: 'admin@example.com', passwordHash, displayName: '運営', role: 'ADMIN' },
+    create: { email: 'admin@example.com', handle: 'lt_admin', passwordHash, displayName: '運営', role: 'ADMIN' },
   });
 
   const nextWeek = (days: number, hour: number) => {
@@ -50,8 +42,7 @@ async function main() {
   const event = await prisma.event.create({
     data: {
       title: '第1回 LT会',
-      description:
-        '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
+      description: '好きな技術について5分で話しましょう。\n発表者・聴講のみどちらも歓迎です。',
       organizer: { connect: { id: demo.id } },
       format: 'ONLINE',
       meetingUrl: 'https://meet.example.com/lt-1',
@@ -71,25 +62,10 @@ async function main() {
   await prisma.dateResponse.createMany({
     data: [
       { eventDateId: d1.id, userId: taro.id, availability: 'YES' },
-      {
-        eventDateId: d2.id,
-        userId: taro.id,
-        availability: 'MAYBE',
-        comment: '19時なら',
-      },
+      { eventDateId: d2.id, userId: taro.id, availability: 'MAYBE', comment: '19時なら' },
       { eventDateId: d3.id, userId: taro.id, availability: 'NO' },
-      {
-        eventDateId: d1.id,
-        guestKey: 'seed-guest-1',
-        guestName: 'ゲスト花子',
-        availability: 'YES',
-      },
-      {
-        eventDateId: d2.id,
-        guestKey: 'seed-guest-1',
-        guestName: 'ゲスト花子',
-        availability: 'YES',
-      },
+      { eventDateId: d1.id, guestKey: 'seed-guest-1', guestName: 'ゲスト花子', availability: 'YES' },
+      { eventDateId: d2.id, guestKey: 'seed-guest-1', guestName: 'ゲスト花子', availability: 'YES' },
     ],
   });
 

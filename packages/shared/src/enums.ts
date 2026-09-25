@@ -50,3 +50,7 @@ export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
   OFFLINE: 'オフライン',
   HYBRID: 'ハイブリッド',
 };
+
+/** アプリ内通知の種類 */
+export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED'] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPE)[number];

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { User } from '../../generated/prisma/client.js';
+import { publicUserSelect, type PublicUser } from '../users/users.repository.js';
 
 @Injectable()
 export class BlocksRepository {
@@ -12,11 +12,11 @@ export class BlocksRepository {
   }
 
   /** ブロックした相手。新しい順 */
-  async findBlockedUsers(blockerId: string): Promise<Pick<User, 'id' | 'displayName'>[]> {
+  async findBlockedUsers(blockerId: string): Promise<PublicUser[]> {
     const rows = await this.prisma.block.findMany({
       where: { blockerId },
       orderBy: { createdAt: 'desc' },
-      select: { blocked: { select: { id: true, displayName: true } } },
+      select: { blocked: { select: publicUserSelect } },
     });
     return rows.map((r) => r.blocked);
   }

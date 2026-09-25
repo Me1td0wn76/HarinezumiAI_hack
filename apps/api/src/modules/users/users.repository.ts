@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { Prisma, User } from '../../generated/prisma/client.js';
+import { Prisma, type User } from '../../generated/prisma/client.js';
 
-/** 公開プロフィール画面に必要な最小限のフィールド + フォロワー/フォロー中の件数 */
-const userProfileSelect = {
+/** 他人に見せるユーザー情報（PublicUserDto）の取得条件。メールアドレスは含めない */
+export const publicUserSelect = {
   id: true,
+  handle: true,
   displayName: true,
-  bio: true,
-  _count: { select: { followers: true, following: true } },
+  avatarUrl: true,
 } satisfies Prisma.UserSelect;
 
-export type UserProfile = Prisma.UserGetPayload<{
-  select: typeof userProfileSelect;
-}>;
+export type PublicUser = Prisma.UserGetPayload<{ select: typeof publicUserSelect }>;
 
 @Injectable()
 export class UsersRepository {
@@ -26,32 +24,32 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  findProfileById(id: string): Promise<UserProfile | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: userProfileSelect,
-    });
+  /** @param handle 小文字に正規化済みのハンドル */
+  findByHandle(handle: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { handle } });
   }
 
-  /**
-   * viewerId が targetId をフォロー中か。
-   * FollowsModule を import すると循環依存になるため、Follow テーブルへは直接問い合わせる。
-   */
-  async isFollowedBy(viewerId: string, targetId: string): Promise<boolean> {
-    const found = await this.prisma.follow.findUnique({
-      where: {
-        followerId_followingId: { followerId: viewerId, followingId: targetId },
-      },
-      select: { id: true },
-    });
-    return found !== null;
+  /** メールアドレスかハンドルが一意制約に当たった（同時に登録された）ときは null を返す */
+  async create(data: Prisma.UserCreateInput): Promise<User | null> {
+    try {
+      return await this.prisma.user.create({ data });
+    } catch (err) {
+      if (isUniqueViolation(err)) return null;
+      throw err;
+    }
   }
 
-  create(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({ data });
+  /** ハンドルが一意制約に当たった（同時に同じハンドルへ変更された）ときは null を返す */
+  async update(id: string, data: Prisma.UserUpdateInput): Promise<User | null> {
+    try {
+      return await this.prisma.user.update({ where: { id }, data });
+    } catch (err) {
+      if (isUniqueViolation(err)) return null;
+      throw err;
+    }
   }
+}
 
-  update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
-    return this.prisma.user.update({ where: { id }, data });
-  }
+function isUniqueViolation(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
 }

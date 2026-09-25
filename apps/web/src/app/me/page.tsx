@@ -1,32 +1,11 @@
-import type { EventSummaryDto, MyEventsDto } from "@lt/shared";
+import type { MyEventsDto } from "@lt/shared";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BlockButton } from "@/components/block-button";
-import { EventCard } from "@/components/event-card";
+import { EventSection } from "@/components/event-section";
 import { ProfileForm } from "@/components/profile-form";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getMyBlocks, requireUser } from "@/lib/auth";
-
-/** 主催・参加したLT会の一覧 */
-function History({ title, events, empty }: { title: string; events: EventSummaryDto[]; empty: React.ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-xl font-extrabold text-foreground">{title}</h2>
-        <span className="badge bg-secondary text-secondary-foreground">{events.length} 件</span>
-      </div>
-      {events.length === 0 ? (
-        <p className="card text-center text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {events.map((e) => (
-            <EventCard key={e.id} event={e} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
 
 export default async function MePage() {
   // 履歴の取得はユーザー確認と並行して始める。未ログインの 401 は requireUser 側のリダイレクトに任せる
@@ -46,7 +25,7 @@ export default async function MePage() {
         <ProfileForm user={user} />
       </div>
 
-      <History
+      <EventSection
         title="主催したLT会"
         events={history.organized}
         empty={
@@ -58,7 +37,7 @@ export default async function MePage() {
           </>
         }
       />
-      <History
+      <EventSection
         title="参加したLT会"
         events={history.participated}
         empty="候補日に回答したLT会がここに表示されます。"

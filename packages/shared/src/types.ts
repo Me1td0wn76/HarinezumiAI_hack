@@ -1,4 +1,12 @@
-import type { Availability, EventFormat, EventStatus, ReportReason, ReportTargetType, UserRole } from './enums.js';
+import type {
+  Availability,
+  EventFormat,
+  EventStatus,
+  NotificationType,
+  ReportReason,
+  ReportTargetType,
+  UserRole,
+} from './enums.js';
 
 // ---------- 認証 ----------
 
@@ -6,6 +14,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   displayName: string;
+  /** プロフィールURL に使う ID。HANDLE_PATTERN に合うこと（大文字は API 側で小文字にする） */
+  handle: string;
   /** 利用規約・プライバシーポリシーへの同意。true でないと登録できない */
   agreeToTerms: boolean;
 }
@@ -22,11 +32,38 @@ export interface AuthResponse {
 
 // ---------- ユーザー ----------
 
+/** ハンドルの形式（3〜20文字の英小文字・数字・_）。API とフォームの両方で使う */
+export const HANDLE_PATTERN = /^[a-z0-9_]{3,20}$/;
+export const HANDLE_MIN_LENGTH = 3;
+export const HANDLE_MAX_LENGTH = 20;
+
+/** ルーティングや運営と紛らわしいため使えないハンドル（/users/me など） */
+export const RESERVED_HANDLES: readonly string[] = [
+  'me',
+  'admin',
+  'administrator',
+  'root',
+  'system',
+  'support',
+  'official',
+  'settings',
+  'new',
+  'edit',
+  'login',
+  'logout',
+  'register',
+  'api',
+  'null',
+  'undefined',
+];
+
 export interface UserDto {
   id: string;
   email: string;
+  handle: string;
   displayName: string;
   bio: string | null;
+  avatarUrl: string | null;
   role: UserRole;
   createdAt: string;
 }
@@ -34,24 +71,27 @@ export interface UserDto {
 export interface UpdateProfileRequest {
   displayName?: string;
   bio?: string | null;
+  handle?: string;
+  /** https の画像URL。null / 空文字で解除する */
+  avatarUrl?: string | null;
 }
 
-/** 他人に見せる最小限のユーザー情報 */
+/** 他人に見せる最小限のユーザー情報。メールアドレスは含めない */
 export interface PublicUserDto {
   id: string;
+  handle: string;
   displayName: string;
+  /** NULL なら web 側でハンドルから生成した画像を出す */
+  avatarUrl: string | null;
 }
 
-/** 公開プロフィール画面用。閲覧者に応じて isFollowing が変わる */
+/** 公開プロフィール（GET /users/:handle） */
 export interface UserProfileDto {
-  id: string;
-  displayName: string;
-  bio: string | null;
-  followerCount: number;
-  followingCount: number;
-  /** 閲覧者が未ログイン、または自分自身のプロフィールを見ている場合は false */
-  isFollowing: boolean;
-  organizedEvents: EventSummaryDto[];
+  user: PublicUserDto & { bio: string | null; createdAt: string };
+  /** 主催したLT会（非表示を除く。新しい順） */
+  organized: EventSummaryDto[];
+  /** 参加予定: 候補日に回答したLT会のうち、日程調整中か開催日がまだ来ていないもの（主催分・非表示を除く） */
+  upcoming: EventSummaryDto[];
 }
 
 // ---------- LT会 ----------
@@ -320,4 +360,38 @@ export interface ScheduleItemDto {
   confirmed: boolean;
   /** この候補日への自分の回答。主催者や未回答なら null */
   myAvailability: Availability | null;
+}
+
+// ---------- 通知 ----------
+
+/** 通知の種類ごとの表示用の値。文面は web 側で組み立てる */
+export interface NotificationDataMap {
+  EVENT_CREATED: {
+    eventTitle: string;
+    organizerName: string;
+    candidateDateCount: number;
+  };
+  EVENT_CONFIRMED: {
+    eventTitle: string;
+    /** 決まった開催日時（ISO 8601） */
+    startsAt: string;
+  };
+}
+
+interface NotificationBase {
+  id: string;
+  /** 対象のLT会。遷移先は /events/<eventId> */
+  eventId: string | null;
+  /** 既読にした日時。未読なら null */
+  readAt: string | null;
+  createdAt: string;
+}
+
+/** type で data の形が決まる（type で分岐すると data の型が絞り込まれる） */
+export type NotificationDto = {
+  [K in NotificationType]: NotificationBase & { type: K; data: NotificationDataMap[K] };
+}[NotificationType];
+
+export interface UnreadCountDto {
+  count: number;
 }

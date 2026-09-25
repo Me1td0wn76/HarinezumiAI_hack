@@ -366,12 +366,83 @@ describe('EventsService', () => {
       expect(result.status).toBe('CONFIRMED');
     });
 
+    it('同じ日で決定し直したときは通知しない', async () => {
+      const event = buildEvent({ organizerId: organizer.id });
+      const alreadyConfirmed = buildEvent({
+        organizerId: organizer.id,
+        status: 'CONFIRMED',
+        confirmedDateId: 'date-1',
+        confirmedDate: event.candidateDates[0],
+      });
+      repo.findDetailById.mockResolvedValue(alreadyConfirmed);
+      repo.confirm.mockResolvedValue(alreadyConfirmed);
+
+      await service.confirm('event-1', organizer, { eventDateId: 'date-1' });
+
+      expect(repo.confirm).toHaveBeenCalledWith('event-1', 'date-1');
+      expect(notifications.eventConfirmed).not.toHaveBeenCalled();
+    });
+
+    it('別の日に決定し直したときは通知する', async () => {
+      const event = buildEvent({ organizerId: organizer.id });
+      const [first, second] = event.candidateDates;
+      if (!second) throw new Error('テスト用のLT会に候補日が2つ以上必要です');
+      const before = buildEvent({ organizerId: organizer.id, status: 'CONFIRMED', confirmedDateId: first.id });
+      const after = buildEvent({
+        organizerId: organizer.id,
+        status: 'CONFIRMED',
+        confirmedDateId: second.id,
+        confirmedDate: second,
+      });
+      repo.findDetailById.mockResolvedValue(before);
+      repo.confirm.mockResolvedValue(after);
+
+      await service.confirm('event-1', organizer, { eventDateId: second.id });
+
+      expect(notifications.eventConfirmed).toHaveBeenCalledWith(after);
+    });
+
     it('主催者以外が決定しようとすると 403', async () => {
       repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id }));
       const dto: ConfirmEventDto = { eventDateId: 'date-1' };
 
       await expect(service.confirm('event-1', stranger, dto)).rejects.toThrow(ForbiddenException);
       expect(repo.confirm).not.toHaveBeenCalled();
+    });
+
+    it('終了（CLOSED）したLT会は決定できず、通知も送らない（400）', async () => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id, status: 'CLOSED' }));
+      const dto: ConfirmEventDto = { eventDateId: 'date-1' };
+
+      await expect(service.confirm('event-1', organizer, dto)).rejects.toThrow(BadRequestException);
+      expect(repo.confirm).not.toHaveBeenCalled();
+      expect(notifications.eventConfirmed).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('close', () => {
+    it.each(['OPEN', 'CONFIRMED'] as const)('%s のLT会を終了（CLOSED）にできる', async (status) => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id, status }));
+      repo.update.mockResolvedValue(buildEvent({ organizerId: organizer.id, status: 'CLOSED' }));
+
+      const result = await service.close('event-1', organizer);
+
+      expect(repo.update).toHaveBeenCalledWith('event-1', { status: 'CLOSED' });
+      expect(result.status).toBe('CLOSED');
+    });
+
+    it('すでに終了していると 400', async () => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id, status: 'CLOSED' }));
+
+      await expect(service.close('event-1', organizer)).rejects.toThrow(BadRequestException);
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('主催者以外が終了しようとすると 403', async () => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id }));
+
+      await expect(service.close('event-1', stranger)).rejects.toThrow(ForbiddenException);
+      expect(repo.update).not.toHaveBeenCalled();
     });
   });
 

@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import type { User } from '../../generated/prisma/client.js';
-import type { PublicUserDto,UserDto } from '@lt/shared';
 
 /**
  * 運営（role = ADMIN）だけを通す。JwtAuthGuard の後ろに付けて使う:

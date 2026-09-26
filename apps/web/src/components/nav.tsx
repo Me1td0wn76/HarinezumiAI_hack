@@ -24,6 +24,9 @@ export async function Nav() {
               <Link href="/calendar" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 カレンダー
               </Link>
+              <Link href="/orgs" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
+                団体
+              </Link>
               {user.role === "ADMIN" && (
                 <Link href="/admin" className="font-display text-sm font-bold text-danger-foreground hover:text-foreground">
                   運営

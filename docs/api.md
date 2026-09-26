@@ -25,9 +25,9 @@
 | GET | `/users/:id/following` | - | フォロー中一覧（新しい順に最大 50 件） | `PublicUserDto[]` |
 | GET | `/events` | 任意 | LT会一覧（新しい順、カーソルページネーション）。非表示のLT会と、ログイン時はブロックした相手のLT会を除く。クエリは下記 | `PageDto<EventSummaryDto>` |
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
-| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意）。Discord 通知 + 全ユーザーにアプリ内通知（主催者本人と、主催者をブロックした人は除く） | `EventDetailDto` |
+| POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意。`organizationId` は自分が所属する団体のみで、それ以外は 403）。Discord 通知 + 全ユーザーにアプリ内通知（主催者本人と、主催者をブロックした人は除く） | `EventDetailDto` |
 | GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除） | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先・団体の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除、`organizationId: null` で団体から外す。別の団体に付け替えるときは付け替え先のメンバーでないと 403） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -46,6 +46,16 @@
 | DELETE | `/events/:id/comments/:commentId` | 投稿者・主催者 | コメント削除 | 204 |
 | GET | `/share/:token` | - | 共有URL からの閲覧。`?guestKey=` を付けると、そのゲストが回答済みなら開催日決定後に `meetingUrl` が含まれる | `EventDetailDto`（`shareToken` は null） |
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
+| GET | `/organizations` | - | 団体一覧（新しい順に最大 50 件） | `OrganizationListItemDto[]` |
+| POST | `/organizations` | 必須 | 団体作成（`CreateOrganizationRequest`）。作成者が OWNER になる。`slug` が使用済みなら 409 | `OrganizationDetailDto` |
+| GET | `/organizations/:slug` | 任意 | 団体の詳細とメンバー（OWNER が先）。OWNER には `webhookUrl` を含める。存在しなければ 404 | `OrganizationDetailDto` |
+| PATCH | `/organizations/:slug` | OWNER | 団体名・slug・紹介文・Discord 通知先の更新（`UpdateOrganizationRequest`）。`slug` が使用済みなら 409 | `OrganizationDetailDto` |
+| DELETE | `/organizations/:slug` | OWNER | 団体削除。紐付いていたLT会は残り、団体なしになる | 204 |
+| GET | `/organizations/:slug/events` | 任意 | 団体に紐付いたLT会。クエリとレスポンスは `GET /events` と同じ。存在しない団体は 404 | `PageDto<EventSummaryDto>` |
+| POST | `/organizations/:slug/members` | OWNER | ハンドルでメンバーを追加（`AddOrganizationMemberRequest`。`role` 省略時は MEMBER）。存在しないユーザー・追加する人をブロックしているユーザーは 404、既にメンバーなら 409 | `OrganizationMemberDto` |
+| PATCH | `/organizations/:slug/members/:userId` | OWNER | 役割の変更（`UpdateOrganizationMemberRequest`）。最後の OWNER は MEMBER にできない（400） | `OrganizationMemberDto` |
+| DELETE | `/organizations/:slug/members/:userId` | OWNER・本人 | メンバーを外す / 自分で抜ける。最後の OWNER は抜けられない（400） | 204 |
+| GET | `/users/me/organizations` | 必須 | 自分が所属する団体（名前順）。LT会作成フォームの選択肢 | `MyOrganizationDto[]` |
 | GET | `/notifications` | 必須 | 自分宛てのアプリ内通知（新しい順、30件ずつ）。`?cursor=<nextCursor>` で続きを取る（`GET /events` と同じ不透明な文字列。壊れていれば 400）。文面は返さず、`type` と `data`（LT会名・日時など）から web 側で組み立てる。LT会を削除すると関連する通知も消える。既読から90日たった通知は毎日 4:00（日本時間）に削除する（未読は残す） | `PageDto<NotificationDto>` |
 | GET | `/notifications/unread-count` | 必須 | 未読件数（ヘッダーのバッジ用） | `UnreadCountDto` |
 | POST | `/notifications/:id/read` | 必須 | 既読にする。他人の通知は 404 | `NotificationDto` |
@@ -62,6 +72,7 @@
 | `status` | `OPEN` / `CONFIRMED` / `CLOSED` |
 | `format` | `ONLINE` / `OFFLINE` / `HYBRID` |
 | `organizerId` | 主催者で絞り込み。ユーザーページや「フォロー中」フィード（#8）の土台 |
+| `organization` | 団体の `slug` で絞り込み（大文字小文字を区別しない） |
 
 レスポンスは `{ items, nextCursor }`。`nextCursor` が `null` なら末尾。
 並びは `createdAt desc, id desc` で固定なので、ページをまたいでも重複・欠落しない。
@@ -80,8 +91,9 @@
 
 ## Discord 通知
 
-送り先は、運営が環境変数 `DISCORD_WEBHOOK_URL` で設定する全体向けの1本と、主催者がLT会ごとに設定する `webhookUrl`（作成時か `PATCH /events/:id`）。
-両方あれば両方に送る（同じ URL なら1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
+送り先は、運営が環境変数 `DISCORD_WEBHOOK_URL` で設定する全体向けの1本と、主催者がLT会ごとに設定する `webhookUrl`（作成時か `PATCH /events/:id`）、
+LT会が紐付いた団体の OWNER が設定する `webhookUrl`（`POST` / `PATCH /organizations`）。
+あればすべてに送る（同じ URL は1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
 `https://discord.com/api/webhooks/...`（`discordapp.com`、`ptb.` / `canary.` を含む）の形式だけを受け付ける。
 
 ## エラー
@@ -116,6 +128,7 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 | `GET /auth/oauth/:provider/url` | 30 回 / 分 |
 | `POST /auth/oauth/:provider` | 20 回 / 分 |
 | `POST /events` | 10 回 / 時 |
+| `POST /organizations` | 5 回 / 時 |
 | `PUT /events/:id/responses` | 30 回 / 分 |
 | `PUT /share/:token/responses` | 30 回 / 分 |
 | `POST /events/:id/comments` | 10 回 / 分 |
@@ -149,3 +162,14 @@ web 側はこれで「自分の行」を見つけて強調表示・初期値の�
 - `me` / `admin` などルーティングや運営と紛らわしいものは予約語（`RESERVED_HANDLES`）で使えない。`GET /users/me` と重ならないよう、`ProfilesModule` は `UsersModule` より後に読み込む
 - 導入前からいたユーザーには、マイグレーションで `test_user_` + id の先頭 10 文字の仮ハンドルを付けた（開発・テスト用のデータ。本人が /me で変更する）
 - アバター（`avatarUrl`）が未設定なら、web はハンドルから DiceBear で生成した画像を出す
+
+## 団体
+
+サークル・研究室・コミュニティごとにLT会をまとめる（`organizations` / `organization_members`、`events.organization_id`）。
+
+- **参加は招待制**。OWNER がハンドルを指定してメンバーを追加する。本人はいつでも抜けられる。自由参加にしない理由は [open-questions.md](open-questions.md) の G-1
+- 役割は `OWNER`（団体の編集・削除、メンバーの追加・削除・役割変更）と `MEMBER`。団体名義でLT会を作れるのはメンバーだけ
+- OWNER が0人になる操作（最後の OWNER の脱退・降格）は 400。2人の OWNER が同時に互いを外した場合は 0 人になり得る（頻度が低いので許容。運営が DB で対応する）
+- `slug` は団体ページの URL（`/orgs/:slug`）に使う一意の ID。形式は `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`（`ORGANIZATION_SLUG_PATTERN`）で、API は前後の空白を除き小文字にしてから検証・保存する。`new` などは予約語（`RESERVED_ORGANIZATION_SLUGS`）
+- 団体を削除してもLT会は残り、`organization` が null になる。メンバーが抜けても、その人が立てたLT会の紐付けは残る
+- `GET /organizations/:slug/events` は `EventsModule` 側（`OrganizationEventsController`）にある。`OrganizationsModule` に置くと Events ↔ Organizations の循環依存になるため

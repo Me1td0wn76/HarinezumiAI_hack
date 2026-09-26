@@ -32,6 +32,23 @@ async function main() {
     create: { email: 'admin@example.com', handle: 'lt_admin', passwordHash, displayName: '運営', role: 'ADMIN' },
   });
 
+  // 団体（demo が OWNER、taro が MEMBER）。「Rust もくもく LT」を紐付ける
+  const lab = await prisma.organization.upsert({
+    where: { slug: 'demo-lab' },
+    update: {},
+    create: {
+      name: 'デモ研究室',
+      slug: 'demo-lab',
+      description: '団体機能の確認用。メンバーは団体に紐付けたLT会を作れます',
+      members: {
+        create: [
+          { userId: demo.id, role: 'OWNER' },
+          { userId: taro.id, role: 'MEMBER' },
+        ],
+      },
+    },
+  });
+
   const nextWeek = (days: number, hour: number) => {
     const d = new Date();
     d.setUTCHours(hour - 9, 0, 0, 0); // JST の hour 時
@@ -78,6 +95,7 @@ async function main() {
     format: 'ONLINE' | 'OFFLINE' | 'HYBRID';
     venue?: string;
     meetingUrl?: string;
+    organizationId?: string;
   }[] = [
     {
       title: 'Rust もくもく LT',
@@ -86,6 +104,7 @@ async function main() {
       organizer: taro.id,
       format: 'ONLINE',
       meetingUrl: 'https://discord.gg/example-rust',
+      organizationId: lab.id,
     },
     {
       title: 'AI ツール活用 LT',
@@ -114,13 +133,16 @@ async function main() {
         venue: e.venue ?? null,
         meetingUrl: e.meetingUrl ?? null,
         organizer: { connect: { id: e.organizer } },
+        ...(e.organizationId ? { organization: { connect: { id: e.organizationId } } } : {}),
         tags: { create: e.tags.map((tag) => ({ tag })) },
         candidateDates: { create: [{ startsAt: nextWeek(14 + i * 2, 19), endsAt: nextWeek(14 + i * 2, 20) }] },
       },
     });
   }
 
-  console.log(`seeded: users=3 events=${1 + extras.length} (share: /share/${event.shareToken})`);
+  console.log(
+    `seeded: users=3 organizations=1 events=${1 + extras.length} (share: /share/${event.shareToken}, org: /orgs/${lab.slug})`,
+  );
 }
 
 main()

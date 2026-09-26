@@ -1,21 +1,28 @@
 "use client";
 
-import type { EventDetailDto } from "@lt/shared";
+import type { EventDetailDto, OrganizationSummaryDto } from "@lt/shared";
 import Link from "next/link";
 import { useActionState } from "react";
 import { updateEvent } from "@/actions/events";
 import { FormMessage } from "./form-message";
 import { FormatFields } from "./format-fields";
+import { OrganizationSelect } from "./organization-select";
 import { TagsField } from "./tags-field";
 
 /**
- * 主催者がタイトル・発表内容・タグ・開催形式（会場 / 配信URL）を編集する。
+ * 主催者がタイトル・発表内容・タグ・団体・開催形式（会場 / 配信URL）を編集する。
  * 候補日の追加・削除と Discord 通知の設定は主催者メニューで行う
  */
 export function EventEditForm({
   event,
+  organizations,
 }: {
-  event: Pick<EventDetailDto, "id" | "title" | "description" | "tags" | "format" | "venue" | "meetingUrl">;
+  event: Pick<
+    EventDetailDto,
+    "id" | "title" | "description" | "tags" | "format" | "venue" | "meetingUrl" | "organization"
+  >;
+  /** 自分が所属する団体 */
+  organizations: OrganizationSummaryDto[];
 }) {
   const [state, action, pending] = useActionState(updateEvent, undefined);
 
@@ -42,6 +49,7 @@ export function EventEditForm({
         />
       </div>
       <TagsField defaultTags={event.tags} />
+      <OrganizationSelect organizations={organizations} current={event.organization} />
       <FormatFields initialFormat={event.format} defaultVenue={event.venue} defaultMeetingUrl={event.meetingUrl} />
       <FormMessage state={state} />
       <div className="flex flex-wrap gap-3">

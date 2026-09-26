@@ -78,6 +78,7 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
+        organization={detail.organization}
       />
       {/* 非表示のLT会は主催者と運営以外に見えないので、共有ボタンは出さない */}
       {!detail.hidden && <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />}

@@ -4,6 +4,7 @@ import {
   EVENT_PAGE_SIZE_MAX,
   EVENT_SEARCH_MAX_LENGTH,
   EVENT_STATUS,
+  ORGANIZATION_SLUG_MAX_LENGTH,
   TAG_MAX_LENGTH,
   type EventFormat,
   type EventListQuery,
@@ -48,4 +49,10 @@ export class ListEventsQueryDto implements EventListQuery {
   @IsOptional()
   @IsUUID()
   organizerId?: string;
+
+  /** 団体の slug */
+  @IsOptional()
+  @IsString()
+  @MaxLength(ORGANIZATION_SLUG_MAX_LENGTH)
+  organization?: string;
 }

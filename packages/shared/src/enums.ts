@@ -54,3 +54,12 @@ export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
 /** アプリ内通知の種類 */
 export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPE)[number];
+
+/** 団体での役割。OWNER は団体の編集・メンバーの追加と削除ができる */
+export const ORGANIZATION_ROLE = ['OWNER', 'MEMBER'] as const;
+export type OrganizationRole = (typeof ORGANIZATION_ROLE)[number];
+
+export const ORGANIZATION_ROLE_LABEL: Record<OrganizationRole, string> = {
+  OWNER: 'オーナー',
+  MEMBER: 'メンバー',
+};

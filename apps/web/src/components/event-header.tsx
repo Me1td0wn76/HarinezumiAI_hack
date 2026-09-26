@@ -1,6 +1,7 @@
 import type { EventDetailDto } from "@lt/shared";
 import { formatDateRange } from "@/lib/format";
 import { EventStatusBadge } from "./event-status-badge";
+import { OrganizationLink } from "./organization-link";
 import { TagChip } from "./tag-chip";
 import { UserLink } from "./user-link";
 
@@ -15,7 +16,9 @@ export function EventHeader({
   organizer,
   confirmedDate,
   tags = [],
-}: Pick<EventDetailDto, "title" | "status" | "organizer" | "confirmedDate"> & { tags?: string[] }) {
+  organization = null,
+}: Pick<EventDetailDto, "title" | "status" | "organizer" | "confirmedDate"> &
+  Partial<Pick<EventDetailDto, "tags" | "organization">>) {
   return (
     <header className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
@@ -25,6 +28,14 @@ export function EventHeader({
       <p className="flex items-center gap-1 text-sm text-subtle">
         <span className="shrink-0">主催:</span>
         <UserLink user={organizer} />
+        {organization ? (
+          <>
+            <span className="mx-1" aria-hidden="true">
+              ・
+            </span>
+            <OrganizationLink organization={organization} />
+          </>
+        ) : null}
       </p>
       {tags.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">

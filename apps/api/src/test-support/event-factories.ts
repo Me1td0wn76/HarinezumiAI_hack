@@ -34,6 +34,8 @@ export function buildEvent(overrides: Partial<EventDetail> = {}): EventDetail {
     webhookUrl: null,
     organizerId: 'user-1',
     organizer: { id: 'user-1', handle: 'organizer', displayName: '主催者', avatarUrl: null },
+    organizationId: null,
+    organization: null,
     confirmedDateId: null,
     confirmedDate: null,
     hiddenAt: null,

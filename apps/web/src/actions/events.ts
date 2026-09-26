@@ -25,6 +25,7 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
         format: str(formData, 'format') || undefined,
         venue: str(formData, 'venue') || null,
         meetingUrl: str(formData, 'meetingUrl') || null,
+        organizationId: str(formData, 'organizationId') || null,
       },
     });
   } catch (err) {
@@ -47,6 +48,8 @@ export async function updateEvent(_prev: ActionState, formData: FormData): Promi
         format: str(formData, 'format') || undefined,
         venue: str(formData, 'venue') || null,
         meetingUrl: str(formData, 'meetingUrl') || null,
+        // 空欄は団体から外す
+        organizationId: str(formData, 'organizationId') || null,
       },
     });
   } catch (err) {

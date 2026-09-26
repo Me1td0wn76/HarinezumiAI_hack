@@ -11,6 +11,8 @@ interface EventForNotification {
   confirmedDate: { startsAt: Date } | null;
   /** 主催者が設定したLT会ごとの送り先 */
   webhookUrl: string | null;
+  /** 紐付いた団体。団体の OWNER が設定した送り先にも流す */
+  organization: { webhookUrl: string | null } | null;
 }
 
 const dateFormat = new Intl.DateTimeFormat('ja-JP', {
@@ -48,7 +50,7 @@ export class NotificationsService {
       dates,
       `参加できる日を回答してください → ${this.eventUrl(event.id)}`,
     ].join('\n');
-    void this.discord.send(content, event.webhookUrl);
+    void this.discord.send(content, ...webhookUrlsOf(event));
 
     // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー（主催者をブロックした人は除く）。
     // 行が増え続けないよう、既読から90日たった通知は NotificationsCleanupService が消す
@@ -72,7 +74,7 @@ export class NotificationsService {
       `📅 ${dateFormat.format(event.confirmedDate.startsAt)}`,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content, event.webhookUrl);
+    void this.discord.send(content, ...webhookUrlsOf(event));
 
     const n: NewNotification<'EVENT_CONFIRMED'> = {
       type: 'EVENT_CONFIRMED',
@@ -84,7 +86,7 @@ export class NotificationsService {
 
   /** LT会にコメントが付いた */
   commentPosted(
-    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl'>,
+    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl' | 'organization'>,
     authorName: string,
     body: string,
   ): void {
@@ -95,7 +97,7 @@ export class NotificationsService {
       excerpt,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content, event.webhookUrl);
+    void this.discord.send(content, ...webhookUrlsOf(event));
   }
 
   /**
@@ -111,6 +113,11 @@ export class NotificationsService {
   private eventUrl(id: string): string {
     return `${this.webUrl}/events/${id}`;
   }
+}
+
+/** LT会ごとの送り先と、団体の送り先 */
+function webhookUrlsOf(event: Pick<EventForNotification, 'webhookUrl' | 'organization'>): (string | null)[] {
+  return [event.webhookUrl, event.organization?.webhookUrl ?? null];
 }
 
 /** そのLT会の候補日に回答したログインユーザー（ゲスト・主催者本人は除く。ブロックの除外はリポジトリで行う） */

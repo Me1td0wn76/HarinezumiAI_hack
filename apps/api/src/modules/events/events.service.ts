@@ -1,8 +1,16 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto } from '@lt/shared';
+import {
+  ORGANIZATION_SLUG_PATTERN,
+  type EventDetailDto,
+  type EventSummaryDto,
+  type MyEventsDto,
+  type PageDto,
+  type TagCountDto,
+} from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
+import { OrganizationsRepository } from '../organizations/organizations.repository.js';
 import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
@@ -20,6 +28,7 @@ export class EventsService {
     private readonly events: EventsRepository,
     private readonly notifications: NotificationsService,
     private readonly blocks: BlocksRepository,
+    private readonly organizations: OrganizationsRepository,
   ) {}
 
   /** @param viewer ログインしていれば、ブロックしている相手のLT会を除く */
@@ -34,12 +43,27 @@ export class EventsService {
         status: query.status,
         format: query.format,
         organizerId: query.organizerId,
+        organizationSlug: query.organization?.trim().toLowerCase() || undefined,
       },
       query.limit,
       cursor,
       blockedIds,
     );
     return { items: page.items.map(toEventSummaryDto), nextCursor: page.nextCursor };
+  }
+
+  /** 団体ページのLT会一覧。存在しない団体は 404 */
+  async listByOrganization(
+    rawSlug: string,
+    query: ListEventsQueryDto,
+    viewer: User | null,
+  ): Promise<PageDto<EventSummaryDto>> {
+    const slug = rawSlug.toLowerCase();
+    const org = ORGANIZATION_SLUG_PATTERN.test(slug) ? await this.organizations.findBySlug(slug) : null;
+    if (!org) throw new NotFoundException('団体が見つかりません');
+    // クエリの DTO はリクエストごとに作られるので、そのまま書き換えてよい
+    query.organization = org.slug;
+    return this.list(query, viewer);
   }
 
   topTags(limit: number): Promise<TagCountDto[]> {
@@ -56,6 +80,7 @@ export class EventsService {
   }
 
   async create(organizer: User, dto: CreateEventDto): Promise<EventDetailDto> {
+    if (dto.organizationId) await this.assertMemberOf(dto.organizationId, organizer);
     const event = await this.events.create({
       title: dto.title,
       description: dto.description,
@@ -64,6 +89,7 @@ export class EventsService {
       webhookUrl: dto.webhookUrl || null,
       tags: normalizeTags(dto.tags),
       formatFields: normalizeFormatFields(dto.format ?? 'ONLINE', dto.venue, dto.meetingUrl),
+      organizationId: dto.organizationId || null,
     });
     this.notifications.eventCreated(event);
     return toEventDetailDto(event, { userId: organizer.id });
@@ -82,6 +108,11 @@ export class EventsService {
       dto.venue !== undefined ? dto.venue : current.venue,
       dto.meetingUrl !== undefined ? dto.meetingUrl : current.meetingUrl,
     );
+    // 付け替えるときだけ所属を確認する（団体を抜けた後でも、今の紐付けのまま他の項目は編集できる）
+    const nextOrganizationId = dto.organizationId === undefined ? undefined : dto.organizationId || null;
+    if (nextOrganizationId && nextOrganizationId !== current.organizationId) {
+      await this.assertMemberOf(nextOrganizationId, user);
+    }
     const updated = await this.events.update(
       id,
       {
@@ -90,6 +121,12 @@ export class EventsService {
         ...formatFields,
         // undefined は変更なし、null / 空文字は解除
         webhookUrl: dto.webhookUrl === undefined ? undefined : dto.webhookUrl || null,
+        organization:
+          nextOrganizationId === undefined
+            ? undefined
+            : nextOrganizationId
+              ? { connect: { id: nextOrganizationId } }
+              : { disconnect: true },
       },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
@@ -161,6 +198,13 @@ export class EventsService {
       throw new NotFoundException('LT会が見つかりません');
     }
     return event;
+  }
+
+  /** 団体名義でLT会を立てられるのはその団体のメンバーだけ（団体の Discord に通知が流れるため） */
+  private async assertMemberOf(organizationId: string, user: User): Promise<void> {
+    if (!(await this.organizations.findRole(organizationId, user.id))) {
+      throw new ForbiddenException('所属している団体のみ選べます');
+    }
   }
 
   private async findOwnedOrThrow(id: string, user: User): Promise<EventDetail> {

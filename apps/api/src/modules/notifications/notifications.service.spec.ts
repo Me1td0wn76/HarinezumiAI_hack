@@ -17,6 +17,7 @@ function makeEvent(overrides: Partial<Parameters<NotificationsService['eventCrea
     ],
     confirmedDate: null,
     webhookUrl: null,
+    organization: null,
     ...overrides,
   };
 }
@@ -24,16 +25,18 @@ function makeEvent(overrides: Partial<Parameters<NotificationsService['eventCrea
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let repo: { createForRespondents: ReturnType<typeof vi.fn>; createForEventAudience: ReturnType<typeof vi.fn> };
+  let discord: { send: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     repo = {
       createForRespondents: vi.fn().mockResolvedValue(undefined),
       createForEventAudience: vi.fn().mockResolvedValue(undefined),
     };
+    discord = { send: vi.fn().mockResolvedValue(undefined) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         NotificationsService,
-        { provide: DiscordWebhookService, useValue: { send: vi.fn().mockResolvedValue(undefined) } },
+        { provide: DiscordWebhookService, useValue: discord },
         { provide: NotificationsRepository, useValue: repo },
         { provide: ConfigService, useValue: { get: (_k: string, d?: string) => d } },
       ],
@@ -72,6 +75,13 @@ describe('NotificationsService', () => {
       eventId: 'event-1',
       data: { eventTitle: 'テストLT', startsAt: '2026-10-06T09:00:00.000Z' },
     });
+  });
+
+  it('Discord: LT会ごとの送り先と、紐付いた団体の送り先の両方に流す', () => {
+    const eventUrl = 'https://discord.com/api/webhooks/1/event';
+    const orgUrl = 'https://discord.com/api/webhooks/2/org';
+    service.eventCreated(makeEvent({ webhookUrl: eventUrl, organization: { webhookUrl: orgUrl } }));
+    expect(discord.send).toHaveBeenCalledWith(expect.stringContaining('テストLT'), eventUrl, orgUrl);
   });
 
   it('開催日が未設定なら何もしない', () => {

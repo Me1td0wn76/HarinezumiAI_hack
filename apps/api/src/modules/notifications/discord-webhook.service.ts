@@ -10,7 +10,8 @@ export const DISCORD_WEBHOOK_URL_PATTERN =
 
 /**
  * Discord の Incoming Webhook にメッセージを投げる。
- * 送り先は、運営が環境変数 DISCORD_WEBHOOK_URL で設定する全体向けの1本と、主催者がLT会ごとに設定する URL。
+ * 送り先は、運営が環境変数 DISCORD_WEBHOOK_URL で設定する全体向けの1本と、主催者がLT会ごとに設定する URL、
+ * LT会が紐付いた団体の OWNER が設定する URL。
  * どちらも無ければ何もしない。通知の失敗で本処理を止めないよう、例外は投げずにログに残す。
  */
 @Injectable()
@@ -28,10 +29,10 @@ export class DiscordWebhookService {
   }
 
   /**
-   * @param eventWebhookUrl LT会ごとの送り先。全体向けと同じ URL なら二重に送らない
+   * @param extraUrls LT会ごと・団体ごとの送り先。同じ URL が重なっても（全体向けとも）二重に送らない
    */
-  async send(content: string, eventWebhookUrl?: string | null): Promise<void> {
-    const urls = new Set([this.url, eventWebhookUrl ?? undefined].filter((u): u is string => !!u));
+  async send(content: string, ...extraUrls: (string | null | undefined)[]): Promise<void> {
+    const urls = new Set([this.url, ...extraUrls].filter((u): u is string => !!u));
     await Promise.all([...urls].map((url) => this.post(url, content)));
   }
 

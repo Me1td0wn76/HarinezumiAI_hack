@@ -3,10 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { EventEditForm } from "@/components/event-edit-form";
 import { ApiError, apiFetch } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { getMyOrganizations } from "@/lib/organizations";
 
 export default async function EditEventPage(props: PageProps<"/events/[id]/edit">) {
   const { id } = await props.params;
-  const user = await requireUser();
+  const [user, organizations] = await Promise.all([requireUser(), getMyOrganizations()]);
 
   let detail: EventDetailDto;
   try {
@@ -24,7 +25,7 @@ export default async function EditEventPage(props: PageProps<"/events/[id]/edit"
         <span className="eyebrow">⚡ EDIT EVENT</span>
         <h1 className="font-display text-4xl font-black tracking-tight text-foreground">LT会を編集</h1>
       </div>
-      <EventEditForm event={detail} />
+      <EventEditForm event={detail} organizations={organizations} />
     </div>
   );
 }

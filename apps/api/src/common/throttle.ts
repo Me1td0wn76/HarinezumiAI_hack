@@ -24,6 +24,8 @@ export const THROTTLE = {
   /** ソーシャルログインのコールバック（ログイン / 新規登録。プロバイダへのコード交換を伴う） */
   oauthCallback: { default: { ttl: MINUTE, limit: 20 } },
   createEvent: { default: { ttl: 60 * MINUTE, limit: 10 } },
+  /** 団体の量産（slug の買い占め）を防ぐ */
+  createOrganization: { default: { ttl: 60 * MINUTE, limit: 5 } },
   submitResponses: { default: { ttl: MINUTE, limit: 30 } },
   /** 共有URL はログイン不要。懇親会の場で URL を配って一斉に回答されても詰まらない程度 */
   guestResponses: { default: { ttl: MINUTE, limit: 30 } },

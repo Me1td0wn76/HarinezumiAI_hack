@@ -53,6 +53,7 @@ export default async function SharePage(props: PageProps<"/share/[token]">) {
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
+        organization={detail.organization}
       />
 
       {/* サーバー側はゲストを識別できないので、開催日決定後は回答済みゲスト向けの取得ボタンを差し込む */}

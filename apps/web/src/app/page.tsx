@@ -4,6 +4,7 @@ import { DiscoverControls } from "@/components/discover-controls";
 import { EventList } from "@/components/event-list";
 import { apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { getMyOrganizations } from "@/lib/organizations";
 import { EMPTY_EVENT_PAGE, canMatchAnyEvent, parseEventListQuery, toEventsSearchParams } from "@/lib/events-query";
 
 export default async function HomePage(props: PageProps<"/">) {
@@ -11,13 +12,14 @@ export default async function HomePage(props: PageProps<"/">) {
   const qs = toEventsSearchParams(query);
   const filtering = qs.length > 0;
 
-  // 3つは互いに依存しないので並列に取る
-  const [page, topTags, user] = await Promise.all([
+  // 互いに依存しないので並列に取る
+  const [page, topTags, user, myOrganizations] = await Promise.all([
     canMatchAnyEvent(query)
       ? apiFetch<PageDto<EventSummaryDto>>(`/events${filtering ? `?${qs}` : ""}`, { auth: false })
       : EMPTY_EVENT_PAGE,
     apiFetch<TagCountDto[]>("/tags?limit=15", { auth: false }),
     getCurrentUser(),
+    getMyOrganizations(),
   ]);
 
   return (
@@ -67,7 +69,7 @@ export default async function HomePage(props: PageProps<"/">) {
         </div>
 
         {/* TODO(#8): ログイン時に「新着 / フォロー中」タブを置く。フォロー中は GET /feed（#8 で追加）を使う */}
-        <DiscoverControls query={query} topTags={topTags} />
+        <DiscoverControls query={query} topTags={topTags} organizations={myOrganizations} />
 
         {/* 検索条件が変わったら一覧の state を作り直す */}
         <EventList key={qs} initial={page} query={query} />

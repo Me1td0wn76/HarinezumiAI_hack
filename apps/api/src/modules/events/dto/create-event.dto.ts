@@ -9,8 +9,10 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { CandidateDateDto } from './candidate-date.dto.js';
@@ -56,4 +58,10 @@ export class CreateEventDto implements CreateEventRequest {
   @IsUrl({ require_protocol: true, protocols: ['http', 'https'] })
   @MaxLength(500)
   meetingUrl?: string | null;
+
+  /** 紐付ける団体。作成者がその団体のメンバーであること。null・空文字は団体なし（PATCH と揃える） */
+  @IsOptional()
+  @ValidateIf((_obj, value) => value !== '')
+  @IsUUID()
+  organizationId?: string | null;
 }

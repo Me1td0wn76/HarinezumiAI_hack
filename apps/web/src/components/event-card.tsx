@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatDateRange } from "@/lib/format";
 import { EventFormatBadge } from "./event-format-badge";
 import { EventStatusBadge } from "./event-status-badge";
+import { OrganizationLink } from "./organization-link";
 import { TagChip } from "./tag-chip";
 import { UserLink } from "./user-link";
 
@@ -35,6 +36,14 @@ export function EventCard({ event }: { event: EventSummaryDto }) {
       <p className="mt-2 flex items-center gap-1 text-xs text-subtle">
         <span className="shrink-0">主催:</span>
         <UserLink user={event.organizer} />
+        {event.organization ? (
+          <>
+            <span className="mx-1" aria-hidden="true">
+              ・
+            </span>
+            <OrganizationLink organization={event.organization} />
+          </>
+        ) : null}
       </p>
       {event.tags.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-1.5">

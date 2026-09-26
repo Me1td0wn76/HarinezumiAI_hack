@@ -14,6 +14,14 @@ pnpm build     # dist/ に静的サイトを出力
 
 PDF にするときは、先に `pnpm add -D playwright-chromium` を入れてから `pnpm export` を実行する。
 
+## 公開（GitHub Pages）
+
+`main` に `slides/` の変更を push すると、[.github/workflows/slides.yml](../.github/workflows/slides.yml) がビルドして https://me1td0wn76.github.io/HarinezumiAI_hack/ に公開する（Actions の画面から手動でも実行できる）。
+初回だけ、リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にしておく。
+
+Pages はサブパスで配信されるので、ビルドには `--base /HarinezumiAI_hack/` を付けている。
+ローカルの Git Bash で同じビルドを試すときは、`/HarinezumiAI_hack/` が Windows のパスに書き換えられないよう `MSYS_NO_PATHCONV=1` を付ける。
+
 ## 構成
 
 | パス | 内容 |

@@ -2,17 +2,19 @@
 
 import type { EventDetailDto } from "@lt/shared";
 import Link from "next/link";
-import { useActionState } from "react";
-import { closeEvent, confirmEvent, deleteEvent, removeDate } from "@/actions/events";
+import { useActionState,useState } from "react";
+import { closeEvent, deleteEvent, removeDate } from "@/actions/events";
 import { formatDateRange } from "@/lib/format";
 import { AddDatesForm } from "./add-dates-form";
 import { WebhookForm } from "./webhook-form";
 import { FormMessage } from "./form-message";
 import { ShareButtons } from "./share-buttons";
+import { ConfirmDateDialog } from "./confirm-date-dialog";
 
 /** 主催者だけに見せる操作パネル: 共有URL、開催日の決定、候補日の追加・削除 */
 export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; shareUrl: string | null }) {
-  const [confirmState, confirmAction, confirming] = useActionState(confirmEvent, undefined);
+  // 確認ダイアログを開いている候補日。null なら閉じている
+  const [confirmingDateId, setConfirmingDateId] = useState<string | null>(null);
   const [removeState, removeAction, removing] = useActionState(removeDate, undefined);
   const [closeState, closeAction, closing] = useActionState(closeEvent, undefined);
   const [deleteState, deleteAction, deleting] = useActionState(deleteEvent, undefined);
@@ -20,6 +22,10 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
   const isClosed = detail.status === "CLOSED";
   // 候補日ごとの○△×棒グラフの分母。0除算を避けるため未回答時は1として扱う
   const totalResponders = detail.responders.length || 1;
+
+  const confirmingTally = confirmingDateId
+    ? detail.tallies.find((t) => t.eventDate.id === confirmingDateId)
+    : undefined;
 
   return (
     <section className="card space-y-6 border-primary">
@@ -59,13 +65,15 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
                       <span className="text-danger-foreground">×{t.no}</span>
                     </div>
                   </div>
-                  <form action={confirmAction} className="flex gap-2">
-                    <input type="hidden" name="eventId" value={detail.id} />
-                    <input type="hidden" name="eventDateId" value={t.eventDate.id} />
-                    <button type="submit" className="btn-primary text-xs" disabled={confirming}>
-                      この日に決定
-                    </button>
-                  </form>
+                  {/* 決定すると通知が飛び回答も締め切られるので、ここでは送信せず確認ダイアログを開く */}
+                  <button
+                    type="button"
+                    className="btn-primary text-xs"
+                    aria-haspopup="dialog"
+                    onClick={() => setConfirmingDateId(t.eventDate.id)}
+                  >
+                    この日に決定  
+                  </button>
                   <form action={removeAction}>
                     <input type="hidden" name="eventId" value={detail.id} />
                     <input type="hidden" name="eventDateId" value={t.eventDate.id} />
@@ -88,8 +96,17 @@ export function OrganizerPanel({ detail, shareUrl }: { detail: EventDetailDto; s
               </li>
             ))}
           </ul>
-          <FormMessage state={confirmState} />
           <FormMessage state={removeState} />
+          {confirmingTally ? (
+            <ConfirmDateDialog
+              key={confirmingTally.eventDate.id}
+              eventId={detail.id}  
+              tally={confirmingTally}
+              totalResponders={detail.responders.length}
+              hasMeetingUrl={Boolean(detail.meetingUrl)}
+              onClose={() => setConfirmingDateId(null)}
+            />
+          ) : null}
         </div>
       ) : isClosed ? (
         <div className="rounded-[1.25rem] border-[1.5px] border-card-border bg-muted p-4 text-sm text-muted-foreground">

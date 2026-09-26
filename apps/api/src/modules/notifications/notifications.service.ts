@@ -101,6 +101,23 @@ export class NotificationsService {
   }
 
   /**
+   * 主催したLT会に登壇の表明があった。主催者にだけ知らせる（Discord には流さない）。
+   * 主催者がブロックした相手の表明と、同じ登壇者の未読の通知がある場合は作らない（リポジトリで判定）
+   */
+  speakerEntered(
+    event: Pick<EventForNotification, 'id' | 'title'> & { organizerId: string },
+    speaker: { id: string; displayName: string },
+    talkTitle: string,
+  ): void {
+    const n: NewNotification<'SPEAKER_ENTERED'> = {
+      type: 'SPEAKER_ENTERED',
+      eventId: event.id,
+      data: { eventTitle: event.title, speakerId: speaker.id, speakerName: speaker.displayName, talkTitle },
+    };
+    this.saveInApp(() => this.notifications.createSpeakerEntered(event.organizerId, n));
+  }
+
+  /**
    * アプリ内通知を保存する。Discord と同じく、失敗しても本処理（LT会の作成・決定）は止めずにログに残す。
    */
   private saveInApp(save: () => Promise<void>): void {

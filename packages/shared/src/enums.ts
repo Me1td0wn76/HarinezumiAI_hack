@@ -52,7 +52,7 @@ export const EVENT_FORMAT_LABEL: Record<EventFormat, string> = {
 };
 
 /** アプリ内通知の種類 */
-export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED'] as const;
+export const NOTIFICATION_TYPE = ['EVENT_CREATED', 'EVENT_CONFIRMED', 'SPEAKER_ENTERED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPE)[number];
 
 /** 団体での役割。OWNER は団体の編集・メンバーの追加と削除ができる */
@@ -62,4 +62,13 @@ export type OrganizationRole = (typeof ORGANIZATION_ROLE)[number];
 export const ORGANIZATION_ROLE_LABEL: Record<OrganizationRole, string> = {
   OWNER: 'オーナー',
   MEMBER: 'メンバー',
+};
+
+/** LT会への参加表明の役割 */
+export const ENTRY_ROLE = ['SPEAKER', 'AUDIENCE'] as const;
+export type EntryRole = (typeof ENTRY_ROLE)[number];
+
+export const ENTRY_ROLE_LABEL: Record<EntryRole, string> = {
+  SPEAKER: '登壇',
+  AUDIENCE: '聴講',
 };

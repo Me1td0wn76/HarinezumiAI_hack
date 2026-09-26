@@ -5,6 +5,7 @@ import { EventsRepository, encodeEventCursor } from './events.repository.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { OrganizationsRepository } from '../organizations/organizations.repository.js';
+import { ENTRY_LIMIT, EntriesRepository } from '../entries/entries.repository.js';
 import { buildEvent, buildUser } from '../../test-support/event-factories.js';
 import type { CreateEventDto } from './dto/create-event.dto.js';
 import type { ListEventsQueryDto } from './dto/list-events-query.dto.js';
@@ -28,6 +29,8 @@ describe('EventsService', () => {
   };
   let notifications: { eventCreated: ReturnType<typeof vi.fn>; eventConfirmed: ReturnType<typeof vi.fn> };
   let organizations: { findRole: ReturnType<typeof vi.fn>; findBySlug: ReturnType<typeof vi.fn> };
+  let entries: { findForEvent: ReturnType<typeof vi.fn> };
+  let blocks: { findBlockedIds: ReturnType<typeof vi.fn> };
 
   const organizer = buildUser({ id: 'user-1' });
   const stranger = buildUser({ id: 'user-2', email: 'stranger@example.com' });
@@ -47,13 +50,16 @@ describe('EventsService', () => {
     };
     notifications = { eventCreated: vi.fn(), eventConfirmed: vi.fn() };
     organizations = { findRole: vi.fn().mockResolvedValue(null), findBySlug: vi.fn().mockResolvedValue(null) };
+    entries = { findForEvent: vi.fn().mockResolvedValue({ list: [], mine: null }) };
+    blocks = { findBlockedIds: vi.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
         { provide: EventsRepository, useValue: repo },
         { provide: NotificationsService, useValue: notifications },
-        { provide: BlocksRepository, useValue: { findBlockedIds: vi.fn().mockResolvedValue([]) } },
+        { provide: BlocksRepository, useValue: blocks },
+        { provide: EntriesRepository, useValue: entries },
         { provide: OrganizationsRepository, useValue: organizations },
       ],
     }).compile();
@@ -535,6 +541,42 @@ describe('EventsService', () => {
 
       await expect(service.close('event-1', stranger)).rejects.toThrow(ForbiddenException);
       expect(repo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('toDetail（参加表明の一覧の取り方）', () => {
+    it('主催者には、ブロックした相手も含めて上限なしで全員を返す', async () => {
+      blocks.findBlockedIds.mockResolvedValue(['blocked-user']);
+
+      await service.toDetail(buildEvent(), { user: organizer });
+
+      expect(blocks.findBlockedIds).not.toHaveBeenCalled();
+      expect(entries.findForEvent).toHaveBeenCalledWith('event-1', {
+        excludeUserIds: [],
+        viewerId: 'user-1',
+        limit: null,
+      });
+    });
+
+    it('主催者以外のログインユーザーには、ブロックした相手を除いて上限つきで返す', async () => {
+      blocks.findBlockedIds.mockResolvedValue(['blocked-user']);
+
+      await service.toDetail(buildEvent(), { user: buildUser({ id: 'viewer' }) });
+
+      expect(entries.findForEvent).toHaveBeenCalledWith('event-1', {
+        excludeUserIds: ['blocked-user'],
+        viewerId: 'viewer',
+        limit: ENTRY_LIMIT,
+      });
+    });
+
+    it('編集・決定・終了の応答も同じ経路で組み立てる（主催者なので全員）', async () => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ status: 'OPEN' }));
+      repo.update.mockResolvedValue(buildEvent({ status: 'CLOSED' }));
+
+      await service.close('event-1', organizer);
+
+      expect(entries.findForEvent).toHaveBeenCalledWith('event-1', expect.objectContaining({ limit: null }));
     });
   });
 

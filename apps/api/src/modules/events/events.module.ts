@@ -7,11 +7,14 @@ import { BlocksModule } from '../blocks/blocks.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { OrganizationEventsController } from './organization-events.controller.js';
 import { EventsRepository } from './events.repository.js';
+import { EntriesRepository } from '../entries/entries.repository.js';
 
 @Module({
   imports: [BlocksModule, OrganizationsModule],
   controllers: [EventsController, MyEventsController, TagsController, OrganizationEventsController],
-  providers: [EventsService, EventsRepository],
-  exports: [EventsService, EventsRepository],
+  // EntriesRepository は詳細の参加表明一覧（EventsService.toDetail）でも使うのでここで提供し、EntriesModule にも渡す
+  // （EntriesModule が EventsModule を import しているため、逆向きに import すると循環する）
+  providers: [EventsService, EventsRepository, EntriesRepository],
+  exports: [EventsService, EventsRepository, EntriesRepository],
 })
 export class EventsModule {}

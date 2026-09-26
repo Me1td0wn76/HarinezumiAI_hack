@@ -11,6 +11,7 @@ import { EventsModule } from './modules/events/events.module.js';
 import { ResponsesModule } from './modules/responses/responses.module.js';
 import { ShareModule } from './modules/share/share.module.js';
 import { CommentsModule } from './modules/comments/comments.module.js';
+import { EntriesModule } from './modules/entries/entries.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { BlocksModule } from './modules/blocks/blocks.module.js';
@@ -37,6 +38,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
     ReportsModule,
     AdminModule,
     CommentsModule,
+    EntriesModule,
     ScheduleModule,
     FollowsModule,
     OrganizationsModule,

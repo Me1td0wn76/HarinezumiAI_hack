@@ -1,5 +1,6 @@
 import type {
   Availability,
+  EntryRole,
   EventFormat,
   EventStatus,
   NotificationType,
@@ -91,7 +92,7 @@ export interface UserProfileDto {
   user: PublicUserDto & { bio: string | null; createdAt: string };
   /** 主催したLT会（非表示を除く。新しい順） */
   organized: EventSummaryDto[];
-  /** 参加予定: 候補日に回答したLT会のうち、日程調整中か開催日がまだ来ていないもの（主催分・非表示を除く） */
+  /** 参加予定: 候補日に回答したか参加表明したLT会のうち、日程調整中か開催日がまだ来ていないもの（主催分・非表示を除く） */
   upcoming: EventSummaryDto[];
   followerCount: number;
   followingCount: number;
@@ -242,14 +243,48 @@ export interface EventDetailDto {
   format: EventFormat;
   venue: string | null;
   /**
-   * 配信URL。主催者にはいつでも、回答者には開催日決定後にのみ返す。それ以外は null。
+   * 配信URL。主催者にはいつでも、回答者・参加表明した人には開催日決定後にのみ返す。それ以外は null。
    * 設定されているが閲覧者に見せられない場合は hasMeetingUrl が true になる
    */
   meetingUrl: string | null;
   hasMeetingUrl: boolean;
   /** 紐付いた団体。無ければ null */
   organization: OrganizationSummaryDto | null;
+  /** 参加表明。登壇者が先、それぞれ表明の古い順 */
+  entries: EventEntryDto[];
+  /** 閲覧者自身の参加表明。未ログイン・未表明なら null */
+  myEntry: EventEntryDto | null;
   createdAt: string;
+}
+
+// ---------- 参加表明（登壇 / 聴講） ----------
+
+/** 発表時間の見込みの上限（分） */
+export const TALK_DURATION_MAX_MINUTES = 60;
+export const TALK_TITLE_MAX_LENGTH = 100;
+export const TALK_DETAIL_MAX_LENGTH = 1000;
+
+/** LT会への参加表明1件 */
+export interface EventEntryDto {
+  user: PublicUserDto;
+  role: EntryRole;
+  /** 発表タイトル（公開）。SPEAKER のときだけ入る */
+  talkTitle: string | null;
+  /** 発表内容の説明。主催者と本人にのみ返す（それ以外は null） */
+  talkDetail: string | null;
+  /** 発表時間の見込み（分）。主催者と本人にのみ返す（それ以外は null） */
+  durationMinutes: number | null;
+  createdAt: string;
+}
+
+/** 参加表明の作成・更新（1人1件。送ると上書き） */
+export interface SubmitEntryRequest {
+  role: EntryRole;
+  /** SPEAKER のとき必須。AUDIENCE では無視する */
+  talkTitle?: string | null;
+  talkDetail?: string | null;
+  /** 1〜TALK_DURATION_MAX_MINUTES */
+  durationMinutes?: number | null;
 }
 
 // ---------- 回答 ----------
@@ -341,7 +376,7 @@ export interface ModerateEventRequest {
 /** 自分の主催・参加履歴（新しい順） */
 export interface MyEventsDto {
   organized: EventSummaryDto[];
-  /** 候補日に1つ以上回答したLT会（自分が主催したものは除く） */
+  /** 候補日に1つ以上回答したか、参加表明（登壇 / 聴講）したLT会（自分が主催したものは除く） */
   participated: EventSummaryDto[];
 }
 
@@ -366,7 +401,7 @@ export interface ScheduleItemDto {
   eventId: string;
   title: string;
   status: EventStatus;
-  /** 自分が主催しているか、回答者として関わっているか */
+  /** 自分が主催しているか、回答・参加表明で関わっているか */
   role: 'ORGANIZER' | 'RESPONDENT';
   eventDateId: string;
   startsAt: string;
@@ -375,7 +410,35 @@ export interface ScheduleItemDto {
   confirmed: boolean;
   /** この候補日への自分の回答。主催者や未回答なら null */
   myAvailability: Availability | null;
+  /** 自分の参加表明（登壇 / 聴講）。未表明なら null */
+  myEntryRole: EntryRole | null;
 }
+
+/** みんなのカレンダーの1件（公開中のLT会）。確定したLT会は確定日1件、調整中は候補日ごとに1件 */
+export interface PublicScheduleItemDto {
+  eventId: string;
+  title: string;
+  status: EventStatus;
+  format: EventFormat;
+  organizer: PublicUserDto;
+  eventDateId: string;
+  startsAt: string;
+  endsAt: string | null;
+  confirmed: boolean;
+}
+
+/** みんなのカレンダーの応答 */
+export interface PublicScheduleDto {
+  /** 開始日時の昇順 */
+  items: PublicScheduleItemDto[];
+  /** 件数の上限（PUBLIC_SCHEDULE_ITEM_LIMIT）で打ち切ったか。true なら期間の後ろのほうの予定が欠けている */
+  truncated: boolean;
+}
+
+/** みんなのカレンダーで一度に取得できる期間の上限（日） */
+export const PUBLIC_SCHEDULE_MAX_DAYS = 62;
+/** みんなのカレンダーで一度に返す予定（開催日 / 候補日）の上限 */
+export const PUBLIC_SCHEDULE_ITEM_LIMIT = 1000;
 
 // ---------- 通知 ----------
 
@@ -390,6 +453,13 @@ export interface NotificationDataMap {
     eventTitle: string;
     /** 決まった開催日時（ISO 8601） */
     startsAt: string;
+  };
+  SPEAKER_ENTERED: {
+    eventTitle: string;
+    /** 同じ登壇者の通知を重ねて作らないために使う */
+    speakerId: string;
+    speakerName: string;
+    talkTitle: string;
   };
 }
 

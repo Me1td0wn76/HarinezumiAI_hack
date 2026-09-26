@@ -105,3 +105,11 @@ body {
     @apply inline-flex items-center gap-2 rounded-full border border-primary bg-secondary px-3 py-1.5 font-display text-xs font-bold text-secondary-foreground;
   }
 }
+
+/*
+ * カレンダー（components/schedule-calendar.tsx）。FullCalendar の classic テーマの変数を上書きする。
+ * 既定の「今日」のマス（#facc1526）はページの背景色とほとんど同じで見分けにくいので、プライマリの黄色を濃く混ぜる
+ */
+.lt-calendar {
+  --fc-classic-today: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}

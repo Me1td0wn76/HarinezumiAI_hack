@@ -1,11 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import type { ScheduleItemDto } from '@lt/shared';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  PUBLIC_SCHEDULE_ITEM_LIMIT,
+  PUBLIC_SCHEDULE_MAX_DAYS,
+  type PublicScheduleDto,
+  type PublicScheduleItemDto,
+  type ScheduleItemDto,
+} from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
+import { BlocksRepository } from '../blocks/blocks.repository.js';
+import { toPublicUserDto } from '../users/users.mapper.js';
 import { ScheduleRepository } from './schedule.repository.js';
+import { PublicScheduleQueryDto } from './dto/public-schedule-query.dto.js';
+
+const DAY = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class ScheduleService {
-  constructor(private readonly schedule: ScheduleRepository) {}
+  constructor(
+    private readonly schedule: ScheduleRepository,
+    private readonly blocks: BlocksRepository,
+  ) {}
 
   /**
    * 開催日が決まったLT会は確定日だけ、日程調整中のLT会は候補日をすべて返す。
@@ -30,9 +44,40 @@ export class ScheduleService {
           endsAt: date.endsAt?.toISOString() ?? null,
           confirmed: date.id === event.confirmedDateId,
           myAvailability: date.responses[0]?.availability ?? null,
+          myEntryRole: event.entries[0]?.role ?? null,
         });
       }
     }
     return items.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  }
+
+  /**
+   * みんなのカレンダー。[from, to) の公開中のLT会の開催日 / 候補日を開始日時の昇順で最大 PUBLIC_SCHEDULE_ITEM_LIMIT 件。
+   * 上限を超えたら truncated で知らせる。ログインしていればブロックした相手のLT会を除く
+   */
+  async publicBetween(query: PublicScheduleQueryDto, viewer: User | null): Promise<PublicScheduleDto> {
+    const from = new Date(query.from);
+    const to = new Date(query.to);
+    if (to <= from) throw new BadRequestException('to は from より後にしてください');
+    if (to.getTime() - from.getTime() > PUBLIC_SCHEDULE_MAX_DAYS * DAY) {
+      throw new BadRequestException(`期間は ${PUBLIC_SCHEDULE_MAX_DAYS} 日以内にしてください`);
+    }
+    const blockedIds = viewer ? await this.blocks.findBlockedIds(viewer.id) : [];
+    // 1件多く取って、上限を超えたか（打ち切ったか）を判定する
+    const dates = await this.schedule.findPublicDatesBetween(from, to, PUBLIC_SCHEDULE_ITEM_LIMIT + 1, blockedIds);
+    const truncated = dates.length > PUBLIC_SCHEDULE_ITEM_LIMIT;
+
+    const items: PublicScheduleItemDto[] = dates.slice(0, PUBLIC_SCHEDULE_ITEM_LIMIT).map((date) => ({
+      eventId: date.event.id,
+      title: date.event.title,
+      status: date.event.status,
+      format: date.event.format,
+      organizer: toPublicUserDto(date.event.organizer),
+      eventDateId: date.id,
+      startsAt: date.startsAt.toISOString(),
+      endsAt: date.endsAt?.toISOString() ?? null,
+      confirmed: date.id === date.event.confirmedDateId,
+    }));
+    return { items, truncated };
   }
 }

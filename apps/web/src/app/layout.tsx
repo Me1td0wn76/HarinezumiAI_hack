@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
-import { DM_Sans, Nunito } from "next/font/google";
+import { Zen_Kaku_Gothic_New } from "next/font/google";
 import Link from "next/link";
+import { CardTilt } from "@/components/card-tilt";
+import { ClickRipples, EffectsToggle } from "@/components/click-effects";
 import { Nav } from "@/components/nav";
+import { PageTransition } from "@/components/page-transition";
 import "./globals.css";
 
-// 見出し・ボタンなど強調用のフォント。CSS変数 --font-nunito として globals.css の --font-display から参照する。
-// weight を固定値の配列で指定すると静的ウェイトごとに別ファイルを取得するため、
-// 可変フォント1本だけで済む "variable" を使ってダウンロード量を減らす
-const nunito = Nunito({
+// 見出し・本文とも同じ書体。CSS変数 --font-zen として globals.css の --font-display / --font-body から参照する。
+// 和文の字形はページで使った文字の分だけ（unicode-range ごとに）読み込まれるので、先読みするのは英数字（latin）だけにする
+const zen = Zen_Kaku_Gothic_New({
   subsets: ["latin"],
-  weight: "variable",
-  variable: "--font-nunito",
-  display: "swap",
-});
-
-// 本文用のフォント。CSS変数 --font-dm-sans として globals.css の --font-body から参照する
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: "variable",
-  variable: "--font-dm-sans",
+  weight: ["500", "700", "900"],
+  variable: "--font-zen",
   display: "swap",
 });
 
@@ -34,25 +28,39 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ja" className={`h-full antialiased ${nunito.variable} ${dmSans.variable}`}>
+    <html lang="ja" className={`h-full antialiased ${zen.variable}`}>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <Nav />
         {/*
-          ここでは幅・余白を持たせない。トップページのヒーローのように画面幅いっぱいの背景を
+          ここでは幅・余白を持たせない。ページ上部の黄色い帯のように画面幅いっぱいの背景を
           敷きたいページがあるため、中央寄せ・最大幅・左右余白は各ページ（が持つコンテナ）側で指定する。
-          以前は max-w-4xl px-4 py-8 をここに置き、トップページ側で負のマージンで打ち消していたが、
-          896px（max-w-4xl）を超える画面幅では黄色い帯が中央の箱になってしまう不具合があったため撤去した。
         */}
-        <main className="flex-1">{children}</main>
-        <footer className="flex flex-wrap justify-center gap-x-4 gap-y-1 border-t border-card-border px-4 py-4 text-xs text-subtle">
-          <span>LT会支援アプリ</span>
-          <Link href="/terms" className="hover:text-foreground">
-            利用規約
-          </Link>
-          <Link href="/privacy" className="hover:text-foreground">
-            プライバシーポリシー
-          </Link>
+        {/* 波紋や逃げる図形が画面の端からはみ出しても横スクロールが出ないよう、横方向だけ切る（clip はスクロール領域を作らない） */}
+        <main className="flex-1 overflow-x-clip">{children}</main>
+        <footer className="bg-sunny px-4 py-6">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 text-sm font-bold">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <span className="font-display text-base font-black">LT会支援</span>
+              <Link href="/events" className="hover:underline">
+                LT会を探す
+              </Link>
+              <Link href="/calendar?view=all" className="hover:underline">
+                カレンダー
+              </Link>
+              <Link href="/terms" className="hover:underline">
+                利用規約
+              </Link>
+              <Link href="/privacy" className="hover:underline">
+                プライバシーポリシー
+              </Link>
+            </div>
+            <EffectsToggle />
+          </div>
         </footer>
+        {/* 演出（どれも「動きの演出」OFF と OS の「視差効果を減らす」設定で止まる） */}
+        <ClickRipples />
+        <CardTilt />
+        <PageTransition />
       </body>
     </html>
   );

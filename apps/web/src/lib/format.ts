@@ -23,6 +23,18 @@ const dateOnly = new Intl.DateTimeFormat('ja-JP', {
   day: 'numeric',
 });
 
+const monthDay = new Intl.DateTimeFormat('ja-JP', {
+  timeZone: TIME_ZONE,
+  month: 'numeric',
+  day: 'numeric',
+  weekday: 'short',
+});
+
+/** 「10/10(金)」。候補日を短く並べる表示に使う */
+export function formatMonthDay(iso: string): string {
+  return monthDay.format(new Date(iso));
+}
+
 /** 「2026年9月25日」。登録日など時刻が要らない表示に使う */
 export function formatDate(iso: string): string {
   return dateOnly.format(new Date(iso));

@@ -3,34 +3,45 @@
 /*
  * Tailwind v4 のテーマトークン。--color-* / --font-* を定義すると
  * bg-primary, text-muted-foreground, font-display のようなユーティリティクラスが自動生成される。
- * 各トークンは Figma Make のデザイン案（LT会支援Webアプリ.zip）の配色をそのまま移植したもの。
+ * 配色はリデザイン案「案5 ミニマル・モーション（明るめ）」: 黄色が主役で、黒は文字だけに使う。
+ * 主な操作ボタンはオレンジ（accent）、ページ上部の帯は明るい黄色（sunny）、カードは淡いクリーム（card）。
  */
 @theme {
-  /* ページ全体の背景・文字色 */
-  --color-background: #fffdf4;
-  --color-foreground: #1a1814;
-  /* カード（.card）の背景・枠線 */
-  --color-card: #ffffff;
-  --color-card-border: #ede8d8;
+  /* ページ全体の背景・文字色。文字は真っ黒ではなく濃い茶色（白・黄色の上でも 10:1 以上） */
+  --color-background: #ffffff;
+  --color-foreground: #2b2410;
+  /* カード（.card）の背景・枠線。枠線は区切り線（divide-card-border など）にも使う */
+  --color-card: #fff9db;
+  --color-card-border: #f3e3a0;
 
-  /* ブランドカラー（黄色）。主要ボタンやアクセントに使う */
+  /* ブランドカラー（黄色）。強調の背景やカレンダーの候補日に使う */
   --color-primary: #f5c800;
-  --color-primary-hover: #ffdd00;
-  --color-primary-foreground: #1a1814;
+  --color-primary-hover: #ffd84d;
+  --color-primary-foreground: #2b2410;
+
+  /* ページ上部の帯（ヘッダー・見出しエリア）の明るい黄色 */
+  --color-sunny: #ffe45c;
+  /* 「LT会を作る」の色（HOME の入口の箱・作成ページ上部の帯・画面切り替えの幕） */
+  --color-peach: #ffd7b0;
+
+  /* 主な操作ボタン（.btn-primary）のオレンジ。文字は濃い茶色（7:1 以上） */
+  --color-accent: #ff9f43;
+  --color-accent-hover: #ffb36b;
+  /* オレンジの線・アイコン・フォーカスリング用の濃いめのオレンジ */
+  --color-accent-strong: #e07a1f;
+  --color-accent-foreground: #2b2410;
 
   /* 淡い黄色。バッジ「日程調整中」や強調ボックスの背景に使う */
-  --color-secondary: #fff8d6;
-  --color-secondary-foreground: #8a6e00;
+  --color-secondary: #fff3b8;
+  --color-secondary-foreground: #7a5a00;
 
-  /* グレー系。補足テキストや非アクティブな要素に使う。
-     元は #7a7060 / #b8afa0 だったが、レビューで白背景に対するコントラスト比不足（WCAG AA未達）を指摘され、
-     文字色として使っても 4.5:1 以上を確保できる濃さに調整した */
-  --color-muted: #f7f3e8;
-  --color-muted-foreground: #6b6152;
-  --color-subtle: #7d7360;
+  /* 補足テキストや非アクティブな要素。文字色として使っても白背景で 4.5:1 以上（WCAG AA）を確保する */
+  --color-muted: #f7f1de;
+  --color-muted-foreground: #5a4b1a;
+  --color-subtle: #74633a;
 
   /* 入力欄やカードの標準的な枠線色（装飾用。文字を乗せない） */
-  --color-border: #e8e0cc;
+  --color-border: #f0de9a;
   /* 投票ボタンなど、境界線自体が意味を持つUI部品用。WCAG非テキストコントラスト基準(3:1)を満たす濃さ */
   --color-border-strong: #9c8d76;
 
@@ -48,12 +59,9 @@
   --color-warning-bg: #fff3cd;
   --color-warning-foreground: #8a6e00;
 
-  /* 見出し・ボタン用フォント（layout.tsx の Nunito）。font-display ユーティリティになる。
-     Nunito/DM Sans は日本語グリフを持たないため、和文は必ずこのフォールバック列で描画される。
-     --font-body と同じ和文フォールバックに揃え、見出しと本文で書体が食い違わないようにする */
-  --font-display: var(--font-nunito), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, system-ui, sans-serif;
-  /* 本文用フォント（layout.tsx の DM Sans）。body のデフォルトフォントとして下で使う */
-  --font-body: var(--font-dm-sans), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, system-ui, sans-serif;
+  /* 見出し・本文とも Zen Kaku Gothic New（layout.tsx で読み込む）。和文を含むので同じ書体に揃える */
+  --font-display: var(--font-zen), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, system-ui, sans-serif;
+  --font-body: var(--font-zen), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, system-ui, sans-serif;
 }
 
 /* box-sizing・背景色・文字色・antialiased は Tailwind の preflight と layout.tsx の
@@ -78,31 +86,263 @@ body {
 /* よく使う部品。JSX 側の className を短く保つためのもの */
 @layer components {
   .card {
-    @apply rounded-[1.25rem] border-[1.5px] border-card-border bg-card p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)];
+    @apply rounded-[1.75rem] border-2 border-transparent bg-card p-6;
   }
   .label {
     @apply mb-1 block font-display text-xs font-bold text-muted-foreground;
   }
   .input {
-    @apply w-full rounded-[0.625rem] border-[1.5px] border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-primary focus:ring-4 focus:ring-primary/20;
+    @apply w-full rounded-2xl border-2 border-border bg-white px-4 py-2.5 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/30;
   }
-  /* 影の色は色コードを直書きせず color-mix() で --color-primary を参照する。
-     ブランドカラーを変える際にここを直さなくても追従する */
+
+  /*
+   * ボタン。押すとばねのように縮んで戻る（:active で縮め、離したときに transition の cubic-bezier で行き過ぎて戻る）。
+   * 押している間は短い transition にして、指を置いた瞬間に反応が見えるようにする
+   */
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    padding: 0.7rem 1.5rem;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      transform 0.35s cubic-bezier(0.3, 1.8, 0.5, 1),
+      background-position 0.35s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-danger:active {
+    transform: scale(0.93);
+    transition-duration: 0.08s;
+  }
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-danger:focus-visible {
+    outline: 3px solid var(--color-foreground);
+    outline-offset: 3px;
+  }
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-danger:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+  }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 font-display text-sm font-extrabold text-primary-foreground shadow-[0_2px_8px_color-mix(in_srgb,var(--color-primary)_35%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-[0_4px_14px_color-mix(in_srgb,var(--color-primary)_45%,transparent)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
+    border: 2px solid var(--color-accent);
+    background-color: var(--color-accent);
+    color: var(--color-accent-foreground);
   }
+  .btn-primary:hover:not(:disabled) {
+    border-color: var(--color-accent-strong);
+    background-color: var(--color-accent-hover);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-accent-strong) 30%, transparent);
+  }
+  /* ホバーすると左からオレンジが満ちていく（背景の位置をずらすだけなので、レイアウトは動かない） */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-border bg-card px-5 py-2.5 font-display text-sm font-bold text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_2px_8px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
+    border: 2px solid #e0a800;
+    background: linear-gradient(90deg, var(--color-accent) 50%, #ffffff 50%) right / 200% 100% no-repeat;
+    color: var(--color-foreground);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-position: left;
+    border-color: var(--color-accent-strong);
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-border bg-card px-5 py-2.5 font-display text-sm font-bold text-danger-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5 hover:border-danger hover:bg-danger-bg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
+    border: 2px solid var(--color-border);
+    background-color: #ffffff;
+    color: var(--color-danger-foreground);
   }
+  .btn-danger:hover:not(:disabled) {
+    border-color: var(--color-danger);
+    background-color: var(--color-danger-bg);
+  }
+
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 font-display text-xs font-bold;
   }
-  /* ページ上部の小さなラベル（例: "⚡ LIGHTNING TALK", "⚡ NEW EVENT"）。見出しの前に置く飾り */
+  /* ページ上部の小さなラベル（例: "LIGHTNING TALK"）。見出しの前に置く飾り */
   .eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full border border-primary bg-secondary px-3 py-1.5 font-display text-xs font-bold text-secondary-foreground;
+    @apply inline-flex items-center gap-2 rounded-full border-2 border-accent bg-white px-3 py-1.5 font-display text-xs font-bold text-foreground;
+  }
+
+  /* カード全体がリンクになっているもの（一覧のカードなど）。ホバーでふわっと浮き、押すと少し縮む */
+  .card-hover {
+    transition:
+      transform 0.4s cubic-bezier(0.3, 1.6, 0.5, 1),
+      box-shadow 0.3s ease,
+      background-color 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-6px);
+    background-color: #fff3b8;
+    box-shadow: 0 18px 30px rgba(224, 150, 0, 0.22);
+  }
+  .card-hover:active {
+    transform: scale(0.98);
+    transition-duration: 0.08s;
+  }
+
+  /* 選択式のピル（タグ・絞り込み）。選ぶと弾む */
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border-2 border-primary bg-white px-4 py-2 font-display text-sm font-bold text-foreground;
+    transition:
+      transform 0.3s cubic-bezier(0.3, 1.8, 0.5, 1),
+      background-color 0.2s ease;
+  }
+  .pill:hover {
+    background-color: var(--color-card);
+    transform: translateY(-2px);
+  }
+  .pill:active {
+    transform: scale(0.92);
+    transition-duration: 0.08s;
+  }
+  .pill-active {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+    animation: lt-pop 0.4s cubic-bezier(0.3, 1.8, 0.5, 1);
+  }
+  .pill-active:hover {
+    background-color: var(--color-accent-hover);
+  }
+  .pill:focus-visible,
+  .card-hover:focus-visible {
+    outline: 3px solid var(--color-foreground);
+    outline-offset: 3px;
+  }
+
+  /* タブ（状態の絞り込みなど）。選ぶとオレンジの下線がばねのように伸びる */
+  .tab {
+    @apply relative inline-flex h-11 items-center px-1 font-display text-base font-bold text-muted-foreground;
+  }
+  .tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .tab:hover::after {
+    transform: scaleX(0.4);
+  }
+  .tab-active {
+    @apply text-foreground;
+    font-weight: 900;
+  }
+  .tab-active::after,
+  .tab-active:hover::after {
+    transform: scaleX(1);
+  }
+  .tab:focus-visible {
+    outline: 3px solid var(--color-foreground);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+/* ---------- 動きの演出（components/click-effects.tsx などから使う） ---------- */
+
+@keyframes lt-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 何もない所をクリックしたときに広がる波紋。クリックを受け取らないよう pointer-events: none */
+.lt-ripple {
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: rgba(255, 159, 67, 0.4);
+  pointer-events: none;
+  z-index: 60;
+  animation: lt-ripple 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@keyframes lt-ripple {
+  to {
+    transform: scale(9);
+    opacity: 0;
+  }
+}
+
+/* 完了時に描かれるチェックマーク */
+.lt-check path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: lt-draw 0.5s 0.1s ease forwards;
+}
+@keyframes lt-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 完了メッセージが下からふわっと出る */
+.lt-rise {
+  animation: lt-rise 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes lt-rise {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ヒーローの図形。マウスに合わせてゆっくり動く（components/hero-shapes.tsx） */
+.lt-shape {
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 「動きを減らす」設定の人には、演出をすべて止める */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .card-hover,
+  .pill,
+  .tab::after,
+  .lt-shape {
+    transition: none;
+  }
+  .pill-active,
+  .lt-rise {
+    animation: none;
+  }
+  .lt-ripple {
+    display: none;
+  }
+  .lt-shape {
+    transform: none !important;
+  }
+  .lt-check path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 
@@ -112,4 +352,224 @@ body {
  */
 .lt-calendar {
   --fc-classic-today: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+/* ---------- 演出の追加（画面切り替え・選択・スクロール・カーソル） ---------- */
+
+/* 日程の ○△×（ResponseFields）: 選ぶと、その色の輪が外へ広がる */
+.lt-vote {
+  position: relative;
+}
+.peer:checked + .lt-vote::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 3px solid currentColor;
+  pointer-events: none;
+  animation: lt-ring 0.6s ease-out forwards;
+}
+@keyframes lt-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* 登壇する / 聴講する（EntryForm）: 選んだカードから大きな波紋が周りまで広がる */
+.lt-bigwave {
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  background: rgba(255, 159, 67, 0.3);
+  pointer-events: none;
+  animation: lt-bigwave 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@keyframes lt-bigwave {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(22);
+    opacity: 0;
+  }
+}
+
+/*
+ * スクロールで現れる（components/reveal.tsx）。隠すクラスは JS が付けるので、JS が動かなくても内容は見える。
+ * 中の見出しにはマーカーが引かれ（.lt-marker）、数字は弾む（.lt-pop）
+ */
+.lt-reveal {
+  transition:
+    opacity 0.6s ease,
+    transform 0.75s cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+.lt-reveal-hidden {
+  opacity: 0;
+  transform: translateY(48px) rotate(var(--lt-tilt, 0deg));
+}
+.lt-marker {
+  background: linear-gradient(transparent 58%, #ffb86b 58%) no-repeat left / 100% 100%;
+  transition: background-size 0.7s cubic-bezier(0.6, 0, 0.3, 1) 0.35s;
+}
+.lt-reveal-hidden .lt-marker {
+  background-size: 0% 100%;
+}
+.lt-pop {
+  display: inline-block;
+  transition: transform 0.5s cubic-bezier(0.3, 1.9, 0.5, 1) 0.3s;
+}
+.lt-reveal-hidden .lt-pop {
+  transform: scale(0.3);
+}
+
+/* カードが傾く（components/card-tilt.tsx が --lt-rx などを設定する）。カーソルの位置に光も当てる */
+.card-hover {
+  position: relative;
+}
+.card-hover[data-tilting] {
+  transform: perspective(700px) rotateX(var(--lt-rx)) rotateY(var(--lt-ry)) translateY(-6px);
+  transition-duration: 0.18s;
+}
+.card-hover[data-tilting]:active {
+  transform: perspective(700px) rotateX(var(--lt-rx)) rotateY(var(--lt-ry)) scale(0.98);
+}
+.card-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(180px circle at var(--lt-mx, 50%) var(--lt-my, 50%), rgba(255, 255, 255, 0.65), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.card-hover[data-tilting]::after {
+  opacity: 1;
+}
+
+/* カーソルから逃げる図形（components/fleeing-shapes.tsx） */
+.lt-flee {
+  transition: transform 0.55s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+/* 画面切り替え（components/page-transition.tsx）。ページの上に重ね、クリックは受け取らない */
+.lt-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peer:checked + .lt-vote::after,
+  .lt-bigwave,
+  .lt-transition {
+    display: none;
+  }
+  .lt-reveal,
+  .lt-marker,
+  .lt-pop,
+  .lt-flee {
+    transition: none;
+  }
+  .lt-reveal-hidden {
+    opacity: 1;
+    transform: none;
+  }
+  .lt-reveal-hidden .lt-marker {
+    background-size: 100% 100%;
+  }
+  .lt-reveal-hidden .lt-pop {
+    transform: none;
+  }
+  .card-hover[data-tilting] {
+    transform: none;
+  }
+}
+
+/* フッターの「動きの演出」を OFF にしたとき（click-effects.tsx が <html data-effects="off"> にする） */
+html[data-effects="off"] .peer:checked + .lt-vote::after,
+html[data-effects="off"] .lt-bigwave {
+  display: none;
+}
+
+/* 「LT会を作る」の稲妻の充電（components/hero-shapes.tsx の charge）。満タンで光り、周りがキラッとする */
+.lt-charge {
+  transition: transform 0.7s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.lt-charged {
+  filter: drop-shadow(0 0 14px rgba(255, 159, 67, 0.9));
+}
+.lt-spark {
+  animation: lt-spark 1s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes lt-spark {
+  from {
+    opacity: 0.2;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* 「LT会を作る」の番号と縦の線（components/event-form.tsx）。済んだ区切りの番号がぽんと弾み、線が伸びる */
+.lt-step-line {
+  transition: height 0.7s cubic-bezier(0.3, 1.2, 0.5, 1);
+}
+.lt-step {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.45s cubic-bezier(0.3, 1.9, 0.5, 1);
+}
+.lt-step[data-done] {
+  transform: scale(1.12);
+}
+
+/* 「LT会を探す」の人気のタグが流れる帯（components/tag-marquee.tsx）。同じ並びを2回つなげて、半分動いたら最初に戻す */
+.lt-marquee {
+  animation: lt-marquee 40s linear infinite;
+}
+.lt-marquee-wrap:hover .lt-marquee {
+  animation-play-state: paused;
+}
+@keyframes lt-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* 動かさないとき（「動きを減らす」設定・演出 OFF）は帯ごと出さない（同じタグは一覧の上の「人気のタグ」にもある） */
+@media (prefers-reduced-motion: reduce) {
+  .lt-charge,
+  .lt-step-line,
+  .lt-step {
+    transition: none;
+  }
+  .lt-spark {
+    animation: none;
+  }
+  .lt-marquee-wrap {
+    display: none;
+  }
+}
+html[data-effects="off"] .lt-spark {
+  animation: none;
+}
+html[data-effects="off"] .lt-marquee-wrap {
+  display: none;
 }

@@ -51,8 +51,13 @@ export function toEventsSearchParams(query: EventListQuery): string {
   return sp.toString();
 }
 
-/** 画面のリンク用。cursor / limit は含めない */
-export function toHomeHref(query: EventListQuery, overrides: Partial<EventListQuery> = {}): string {
+/** 一覧の検索条件を持っているか（HOME に来た古い URL を /events へ転送するかの判定に使う） */
+export function hasEventListQuery(params: Record<string, string | string[] | undefined>): boolean {
+  return ["q", "tag", "status", "format", "organization"].some((k) => params[k] !== undefined);
+}
+
+/** 「LT会を探す」（/events）のリンク用。cursor / limit は含めない */
+export function toEventsHref(query: EventListQuery, overrides: Partial<EventListQuery> = {}): string {
   const merged: EventListQuery = {
     q: query.q,
     tag: query.tag,
@@ -62,5 +67,5 @@ export function toHomeHref(query: EventListQuery, overrides: Partial<EventListQu
     ...overrides,
   };
   const qs = toEventsSearchParams(merged);
-  return qs ? `/?${qs}` : "/";
+  return qs ? `/events?${qs}` : "/events";
 }

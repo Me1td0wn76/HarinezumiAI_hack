@@ -6,7 +6,8 @@ import { CommentSection } from "@/components/comment-section";
 import { EntryForm, WithdrawEntryForm } from "@/components/entry-form";
 import { EntryList } from "@/components/entry-list";
 import { EventHeader } from "@/components/event-header";
-import { EventPlace } from "@/components/event-place";
+import { EventFacts, ResponseBars } from "@/components/event-facts";
+import { HeroShapes } from "@/components/hero-shapes";
 import { OrganizerPanel } from "@/components/organizer-panel";
 import { ResponseForm } from "@/components/response-form";
 import { ResponseGrid } from "@/components/response-grid";
@@ -16,6 +17,9 @@ import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser, getMyBlocks } from "@/lib/auth";
 import { eventShareText, getEventDetail, webUrl } from "@/lib/events";
 import { eventDescription } from "@/lib/og-image";
+
+/** 本文側の見出し（発表内容・回答状況など） */
+const H2 = "font-display text-2xl font-black tracking-tight";
 
 /** 見つからない・不正な ID は 404 に寄せる */
 async function loadDetail(id: string): Promise<EventDetailDto> {
@@ -69,99 +73,104 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
 
   // layout.tsx の <main> は余白を持たないため、ページごとにコンテナ（中央寄せ・最大幅・左右上下の余白）を持つ
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      {/* 非表示のLT会は主催者と運営にしか返らないので、見えている人に状態を知らせる */}
-      {detail.hidden && (
-        <p role="status" className="rounded-xl border border-danger bg-danger-bg px-4 py-3 text-sm text-danger-foreground">
-          このLT会は運営により非表示になっています。一覧や共有URLからは閲覧できません。
-        </p>
-      )}
-      <EventHeader
-        title={detail.title}
-        status={detail.status}
-        organizer={detail.organizer}
-        confirmedDate={detail.confirmedDate}
-        tags={detail.tags}
-        organization={detail.organization}
-      />
-      {/* 参加表明の欄はページの下のほうにあるので、上部から飛べるようにする（主催者・終了したLT会では出さない） */}
-      {canEnter && (
-        <div className="flex flex-wrap items-center gap-3">
-          {detail.myEntry ? (
-            <>
-              <span className="badge bg-secondary text-secondary-foreground">
-                {ENTRY_ROLE_LABEL[detail.myEntry.role]}で参加表明済み
-              </span>
-              <a href="#entry" className="text-sm font-semibold text-secondary-foreground underline">
-                参加表明を確認・変更する
+    <>
+    {/* ヘッダーから続く黄色い見出しエリア。タイトル・主催者・参加の入口・共有をまとめる */}
+    <section className="relative overflow-hidden bg-sunny">
+      <HeroShapes size="small" />
+      <div className="relative mx-auto max-w-5xl space-y-5 px-4 pt-4 pb-10">
+        <Link href="/events" className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
+          ← LT会を探す
+        </Link>
+        {/* 非表示のLT会は主催者と運営にしか返らないので、見えている人に状態を知らせる */}
+        {detail.hidden && (
+          <p role="status" className="rounded-xl border border-danger bg-danger-bg px-4 py-3 text-sm text-danger-foreground">
+            このLT会は運営により非表示になっています。一覧や共有URLからは閲覧できません。
+          </p>
+        )}
+        <EventHeader
+          title={detail.title}
+          status={detail.status}
+          organizer={detail.organizer}
+          confirmedDate={detail.confirmedDate}
+          tags={detail.tags}
+          organization={detail.organization}
+        />
+        {/* 参加表明の欄はページの下のほうにあるので、上部から飛べるようにする（主催者・終了したLT会では出さない） */}
+        {canEnter && (
+          <div className="flex flex-wrap items-center gap-3">
+            {detail.myEntry ? (
+              <>
+                <span className="badge bg-white text-foreground">
+                  {ENTRY_ROLE_LABEL[detail.myEntry.role]}で参加表明済み
+                </span>
+                <a href="#entry" className="text-sm font-bold underline decoration-accent-strong decoration-2 underline-offset-4">
+                  参加表明を確認・変更する
+                </a>
+              </>
+            ) : (
+              <a href="#entry" className="btn-primary h-14 px-8 text-base">
+                このLT会に参加する
               </a>
-            </>
-          ) : (
-            <a href="#entry" className="btn-primary">
-              <span aria-hidden="true">🙋</span> このLT会に参加する
-            </a>
-          )}
-        </div>
-      )}
-      {/* 非表示のLT会は主催者と運営以外に見えないので、共有ボタンは出さない */}
-      {!detail.hidden && <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />}
+            )}
+          </div>
+        )}
+        {/* 非表示のLT会は主催者と運営以外に見えないので、共有ボタンは出さない */}
+        {!detail.hidden && <ShareButtons url={webUrl(`/events/${detail.id}`)} text={shareText} compact />}
+      </div>
+    </section>
 
-      <EventPlace detail={detail} />
-
-      {detail.description && (
-        <section className="card">
-          <h2 className="mb-2 font-display text-sm font-bold text-muted-foreground">発表内容</h2>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{detail.description}</p>
-        </section>
-      )}
-
-      <section className="card">
-        <h2 className="mb-3 font-display font-extrabold text-foreground">回答状況</h2>
-        <ResponseGrid detail={detail} highlightKey={user?.id} />
-      </section>
-
-      {detail.status === "OPEN" && (
-        <section id="respond" className="card scroll-mt-6">
-          <h2 className="mb-1 font-display font-extrabold text-foreground">
-            {myRow ? "あなたの回答" : "参加可否を回答する"}
-          </h2>
-          {user ? (
-            <ResponseForm eventId={detail.id} candidateDates={detail.candidateDates} initial={myRow?.answers} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              回答するには{" "}
-              <Link href="/login" className="font-semibold text-secondary-foreground underline">
-                ログイン
-              </Link>{" "}
-              してください。主催者から共有URLをもらった場合はログインなしで回答できます。
-            </p>
-          )}
-        </section>
-      )}
+    {/*
+      提案（案5）の2段組み。左に開催情報・回答状況など、右に参加表明の欄を置く。
+      スマホでは「開催情報・発表内容 → 参加表明 → 残り」の順に縦に並ぶよう、左の列を2つに分けている
+    */}
+    <div className="mx-auto grid max-w-5xl gap-10 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+      <div className="min-w-0 space-y-10">
+        <EventFacts detail={detail} />
+        {detail.description && (
+          <section className="space-y-3">
+            <h2 className={H2}>発表内容</h2>
+            <p className="text-base leading-loose font-medium whitespace-pre-wrap [overflow-wrap:anywhere]">{detail.description}</p>
+          </section>
+        )}
+      </div>
 
       {/* id="entry": 上部の「参加する」ボタンと、みんなのカレンダーからのリンクの飛び先 */}
-      <section id="entry" className="card scroll-mt-6 space-y-5">
-        <h2 className="font-display font-extrabold text-foreground">登壇者・参加者</h2>
-        <EntryList entries={detail.entries} showTotal={isOrganizer} />
-        {detail.status === "CLOSED" ? (
-          <div className="space-y-3 border-t border-card-border pt-4">
-            <p className="text-sm text-muted-foreground">
+      <aside
+        id="entry"
+        aria-labelledby="entry-heading"
+        className="scroll-mt-6 space-y-5 rounded-[1.75rem] bg-card p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+      >
+        {isOrganizer ? (
+          <>
+            <h2 id="entry-heading" className={H2}>主催者のあなたへ</h2>
+            <p className="text-sm leading-relaxed">
+              主催者は参加表明できません。共有URL・候補日の追加・開催日の決定は
+              <a href="#organizer" className="font-bold underline decoration-accent-strong decoration-2 underline-offset-4">
+                主催者メニュー
+              </a>
+              から行えます。
+            </p>
+          </>
+        ) : detail.status === "CLOSED" ? (
+          <>
+            <h2 id="entry-heading" className={H2}>参加表明</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               このLT会は終了したため、参加表明の受け付けも終了しています。
               {detail.myEntry && "参加履歴から外したい場合は、表明を取り消せます。"}
             </p>
             {/* 表明済みの人だけ。取り消し後も結果のメッセージを出すため、myEntry が消えても置いておく */}
-            {user && !isOrganizer && <WithdrawEntryForm eventId={detail.id} hasEntry={detail.myEntry !== null} />}
-          </div>
-        ) : isOrganizer ? null : (
-          <div className="border-t border-card-border pt-4">
-            <h3 className="mb-2 font-display font-extrabold text-foreground">
+            {user && <WithdrawEntryForm eventId={detail.id} hasEntry={detail.myEntry !== null} />}
+          </>
+        ) : (
+          <>
+            <h2 id="entry-heading" className={H2}>
               {detail.myEntry ? "あなたの参加表明" : "このLT会に参加する"}
-            </h3>
+            </h2>
             {/* 参加表明と候補日への回答は別の操作なので、表明しただけで日程が未回答なら回答も促す */}
             {detail.myEntry && detail.status === "OPEN" && !myRow && (
-              <p className="mb-3 rounded-xl border border-primary bg-warning-bg px-3 py-2 text-sm text-warning-foreground">
+              <p className="rounded-xl bg-white px-4 py-3 text-sm leading-relaxed font-bold">
                 開催日はまだ調整中です。
-                <a href="#respond" className="font-semibold underline">
+                <a href="#respond" className="underline decoration-accent-strong decoration-2 underline-offset-4">
                   候補日への回答
                 </a>
                 もお願いします。参加できる日が多い日に開催日が決まります。
@@ -178,25 +187,80 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
                 してください。
               </p>
             )}
+          </>
+        )}
+      </aside>
+
+      <div className="min-w-0 space-y-10 lg:col-start-1">
+        <section className="space-y-5">
+          <h2 className={H2}>回答状況</h2>
+          {detail.tallies.length > 0 ? (
+            <>
+              <ResponseBars detail={detail} />
+              {/* 回答者ごとの ○△× と回答時のコメントは、たたんでおき、押すと開く（ブラウザ標準の details なのでキーボード・読み上げでも開ける） */}
+              <details className="group card">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl font-display font-black [&::-webkit-details-marker]:hidden">
+                  回答者ごとの回答を見る（{detail.responders.length}人）
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </summary>
+                <div className="mt-4">
+                  <ResponseGrid detail={detail} highlightKey={user?.id} />
+                </div>
+              </details>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">候補日がまだありません。</p>
+          )}
+        </section>
+
+        {detail.status === "OPEN" && (
+          <section id="respond" className="card scroll-mt-6">
+            <h2 className="mb-1 font-display text-lg font-black">
+              {myRow ? "あなたの回答" : "参加可否を回答する"}
+            </h2>
+            {user ? (
+              <ResponseForm eventId={detail.id} candidateDates={detail.candidateDates} initial={myRow?.answers} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                回答するには{" "}
+                <Link href="/login" className="font-semibold text-secondary-foreground underline">
+                  ログイン
+                </Link>{" "}
+                してください。主催者から共有URLをもらった場合はログインなしで回答できます。
+              </p>
+            )}
+          </section>
+        )}
+
+        <section className="space-y-4">
+          <h2 className={H2}>登壇者・参加者</h2>
+          <EntryList entries={detail.entries} showTotal={isOrganizer} />
+        </section>
+
+        {isOrganizer && (
+          <div id="organizer" className="scroll-mt-6">
+            <OrganizerPanel detail={detail} shareUrl={shareUrl} />
           </div>
         )}
-      </section>
 
-      {isOrganizer && <OrganizerPanel detail={detail} shareUrl={shareUrl} />}
-
-      {user && !isOrganizer && (
-        <SafetyMenu
+        <CommentSection
           eventId={detail.id}
-          organizer={detail.organizer}
-          organizerBlocked={blocks.some((b) => b.id === detail.organizer.id)}
+          organizerId={detail.organizer.id}
+          comments={comments}
+          viewerId={user?.id ?? null}
         />
-      )}
-      <CommentSection
-        eventId={detail.id}
-        organizerId={detail.organizer.id}
-        comments={comments}
-        viewerId={user?.id ?? null}
-      />
+
+        {user && !isOrganizer && (
+          <SafetyMenu
+            eventId={detail.id}
+            organizer={detail.organizer}
+            organizerBlocked={blocks.some((b) => b.id === detail.organizer.id)}
+          />
+        )}
+      </div>
     </div>
+    </>
   );
 }

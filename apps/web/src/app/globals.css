@@ -573,3 +573,432 @@ html[data-effects="off"] .lt-spark {
 html[data-effects="off"] .lt-marquee-wrap {
   display: none;
 }
+
+/* ---------- 読み込み中の画面（app/loading.tsx → components/loading-screen.tsx） ---------- */
+
+/*
+ * ハリネズミの頭の上で、ロゴの稲妻が下から充電されていき、満タンになるとキラッと光って、ハリネズミが跳ねる。
+ * 1周 --lt-cycle（2.4 秒）。どの動きも同じ長さのキーフレームで、充電が満ちる 62% を合図にそろえている。
+ * すぐ終わる読み込みでちらつかないよう、0.25 秒待ってからふわっと出す
+ */
+.lt-loading {
+  --lt-cycle: 2.4s;
+  display: flex;
+  min-height: 70vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 3rem 1rem;
+  background: var(--color-sunny);
+  animation: lt-loading-in 0.4s ease 0.25s both;
+}
+@keyframes lt-loading-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.lt-loading-stage {
+  position: relative;
+  width: 16rem;
+  height: 15rem;
+}
+/* HOME の帯と同じ、うすい白の円 */
+.lt-loading-halo {
+  position: absolute;
+  inset: 0 0.5rem;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.7;
+}
+
+/* 稲妻（ロゴと同じ形）。下から満ちていき、満タンで弾んで光る */
+.lt-loading-bolt {
+  position: absolute;
+  left: 50%;
+  top: 0.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-left: -2.25rem;
+  overflow: visible;
+  animation:
+    lt-bolt-bounce var(--lt-cycle) ease-in-out infinite,
+    lt-bolt-glow var(--lt-cycle) ease-in-out infinite;
+}
+.lt-bolt-empty {
+  fill: #fff3e0;
+}
+.lt-bolt-full {
+  fill: var(--color-accent);
+}
+.lt-bolt-line {
+  fill: none;
+  stroke: var(--color-accent-strong);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+.lt-bolt-sparks path {
+  fill: none;
+  stroke: var(--color-accent-strong);
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lt-bolt-spark var(--lt-cycle) ease-out infinite;
+}
+/* 満ちた分だけ下から見せる。translateY は SVG の座標（0〜24）で効く */
+.lt-loading-level {
+  animation: lt-bolt-charge var(--lt-cycle) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes lt-bolt-charge {
+  0% {
+    transform: translateY(24px);
+  }
+  62%,
+  90% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(24px);
+  }
+}
+@keyframes lt-bolt-bounce {
+  0%,
+  60% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-4px) scale(1) rotate(0deg);
+  }
+  68% {
+    transform: translateY(-6px) scale(1.18) rotate(-6deg);
+  }
+  78% {
+    transform: translateY(-2px) scale(1.06) rotate(4deg);
+  }
+  90%,
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+@keyframes lt-bolt-glow {
+  0%,
+  58%,
+  96%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 159, 67, 0));
+  }
+  68%,
+  88% {
+    filter: drop-shadow(0 0 12px rgba(255, 159, 67, 0.9));
+  }
+}
+@keyframes lt-bolt-spark {
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  86% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* ハリネズミ。充電中はぴょこぴょこ揺れ、満タンになると針を立ててジャンプ（目もにっこり） */
+.lt-loading-hh {
+  position: absolute;
+  left: 50%;
+  bottom: 1.4rem;
+  width: 10.5rem;
+  margin-left: -5.4rem;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  animation: lt-hh-hop var(--lt-cycle) infinite;
+}
+.lt-loading-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  width: 7.5rem;
+  height: 0.8rem;
+  margin-left: -3.9rem;
+  border-radius: 50%;
+  background: rgba(224, 150, 0, 0.22);
+  animation: lt-hh-shadow var(--lt-cycle) infinite;
+}
+.lt-hh-spikes {
+  fill: #ffb86b;
+  stroke: var(--color-accent-strong);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  animation: lt-hh-charged var(--lt-cycle) ease-in-out infinite;
+}
+.lt-hh-quills,
+.lt-hh-ear-in {
+  fill: none;
+  stroke: var(--color-accent-strong);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.lt-hh-ear-in {
+  stroke: #ffb86b;
+  stroke-width: 3;
+}
+.lt-hh-skin,
+.lt-hh-foot {
+  fill: var(--color-card);
+  stroke: var(--color-accent-strong);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.lt-hh-foot {
+  fill: var(--color-peach);
+}
+/* おなかは塗りだけにして、下の輪郭だけ線を引く（針の上に横線が出ないように） */
+.lt-hh-belly {
+  fill: var(--color-card);
+}
+.lt-hh-line {
+  fill: none;
+  stroke: var(--color-accent-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.lt-hh-back {
+  transform-box: fill-box;
+  transform-origin: 70% 90%;
+  animation: lt-hh-bristle var(--lt-cycle) ease-out infinite;
+}
+.lt-hh-cheek {
+  fill: #ffb0b8;
+}
+.lt-hh-eye ellipse,
+.lt-hh-nose {
+  fill: var(--color-foreground);
+}
+.lt-hh-eye circle {
+  fill: #ffffff;
+}
+.lt-hh-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    lt-hh-eye-open var(--lt-cycle) step-end infinite,
+    lt-hh-blink var(--lt-cycle) ease-in-out infinite;
+}
+.lt-hh-happy,
+.lt-hh-mouth {
+  fill: none;
+  stroke: var(--color-foreground);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.lt-hh-mouth {
+  stroke-width: 2.2;
+}
+.lt-hh-happy {
+  opacity: 0;
+  animation: lt-hh-eye-happy var(--lt-cycle) step-end infinite;
+}
+@keyframes lt-hh-hop {
+  0%,
+  20%,
+  40% {
+    transform: translateY(0) scale(1, 1);
+  }
+  10%,
+  30%,
+  50% {
+    transform: translateY(-3px) scale(1, 1);
+  }
+  60% {
+    transform: translateY(0) scale(1.1, 0.9);
+    animation-timing-function: ease-out;
+  }
+  66% {
+    transform: translateY(0) scale(0.94, 1.08);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  76% {
+    transform: translateY(-30px) scale(1, 1);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
+  }
+  86% {
+    transform: translateY(0) scale(1.08, 0.92);
+    animation-timing-function: ease-out;
+  }
+  92%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+@keyframes lt-hh-shadow {
+  0%,
+  66%,
+  92%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  76% {
+    transform: scale(0.55);
+    opacity: 0.5;
+  }
+  86% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+@keyframes lt-hh-bristle {
+  0%,
+  62%,
+  94%,
+  100% {
+    transform: scale(1);
+  }
+  70% {
+    transform: scale(1.09);
+  }
+  84% {
+    transform: scale(1.04);
+  }
+}
+@keyframes lt-hh-charged {
+  0%,
+  60%,
+  96%,
+  100% {
+    fill: #ffb86b;
+  }
+  68%,
+  88% {
+    fill: var(--color-accent);
+  }
+}
+@keyframes lt-hh-eye-open {
+  0% {
+    opacity: 1;
+  }
+  64% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 1;
+  }
+}
+@keyframes lt-hh-eye-happy {
+  0% {
+    opacity: 0;
+  }
+  64% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0;
+  }
+}
+@keyframes lt-hh-blink {
+  0%,
+  26%,
+  34%,
+  100% {
+    transform: scaleY(1);
+  }
+  30% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* 「読み込み中」の白いラベル（HOME の稲妻の「充電 1/3」と同じ形）。3つの点が順に跳ねる */
+.lt-loading-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: #ffffff;
+  padding: 0.4rem 1.1rem;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--color-foreground);
+}
+.lt-loading-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 5px;
+}
+.lt-loading-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent-strong);
+  animation: lt-loading-dot 1.2s ease-in-out infinite;
+}
+.lt-loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.lt-loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes lt-loading-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* 動かさないとき（「動きを減らす」設定・演出 OFF）は、充電が 2/3 たまった絵で止める */
+@media (prefers-reduced-motion: reduce) {
+  .lt-loading,
+  .lt-loading-bolt,
+  .lt-loading-level,
+  .lt-bolt-sparks path,
+  .lt-loading-hh,
+  .lt-loading-shadow,
+  .lt-hh-spikes,
+  .lt-hh-back,
+  .lt-hh-eye,
+  .lt-hh-happy,
+  .lt-loading-dots span {
+    animation: none;
+  }
+  .lt-loading-level {
+    transform: translateY(8px);
+  }
+}
+html[data-effects="off"] .lt-loading-bolt,
+html[data-effects="off"] .lt-loading-level,
+html[data-effects="off"] .lt-bolt-sparks path,
+html[data-effects="off"] .lt-loading-hh,
+html[data-effects="off"] .lt-loading-shadow,
+html[data-effects="off"] .lt-hh-spikes,
+html[data-effects="off"] .lt-hh-back,
+html[data-effects="off"] .lt-hh-eye,
+html[data-effects="off"] .lt-hh-happy,
+html[data-effects="off"] .lt-loading-dots span {
+  animation: none;
+}
+html[data-effects="off"] .lt-loading-level {
+  transform: translateY(8px);
+}

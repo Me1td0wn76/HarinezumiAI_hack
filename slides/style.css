@@ -1,0 +1,404 @@
+/*
+ * スライド全体の見た目。配色はアプリ（apps/web/src/app/globals.css）のトークンに合わせる:
+ * 黄色が主役、操作はオレンジ、カードは淡いクリーム、文字は真っ黒ではなく濃い茶色。
+ */
+:root {
+  --lt-fg: #2b2410;
+  --lt-muted: #5a4b1a;
+  --lt-subtle: #74633a;
+  --lt-card: #fff9db;
+  --lt-card-border: #f3e3a0;
+  --lt-border: #f0de9a;
+  --lt-primary: #f5c800;
+  --lt-sunny: #ffe45c;
+  --lt-peach: #ffd7b0;
+  --lt-accent: #ff9f43;
+  --lt-accent-strong: #e07a1f;
+  --lt-marker: #ffb86b;
+  --lt-success: #52b76b;
+  --lt-danger: #e87070;
+  --slidev-theme-primary: #e07a1f;
+}
+
+.slidev-layout {
+  color: var(--lt-fg);
+  background: #fff;
+  font-feature-settings: 'palt';
+}
+
+/* 見出しは、アプリのセクション見出しと同じくマーカーを引く */
+.slidev-layout h1 {
+  display: inline-block;
+  margin: 0.35rem 0 0.9rem;
+  padding: 0 0.12em;
+  background: linear-gradient(transparent 60%, var(--lt-marker) 60%);
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+.slidev-layout h1 + p {
+  margin-top: -0.2rem;
+  color: var(--lt-muted);
+  opacity: 1;
+}
+.slidev-layout h3 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.4;
+}
+.slidev-layout p {
+  margin: 0.4rem 0;
+  line-height: 1.75;
+}
+.slidev-layout strong {
+  color: var(--lt-accent-strong);
+  font-weight: 900;
+}
+
+/* 箇条書きは、アプリの HOME と同じオレンジのチェック */
+.slidev-layout ul {
+  margin: 0.3rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+.slidev-layout li {
+  position: relative;
+  margin: 0.55rem 0;
+  padding-left: 1.55em;
+  line-height: 1.6;
+}
+.slidev-layout li::before {
+  content: '';
+  position: absolute;
+  top: 0.42em;
+  left: 0.15em;
+  width: 0.72em;
+  height: 0.38em;
+  border-bottom: 3px solid var(--lt-accent-strong);
+  border-left: 3px solid var(--lt-accent-strong);
+  transform: rotate(-45deg);
+}
+.slidev-layout li p {
+  margin: 0;
+}
+
+/* 見出しの上の小さなラベル（アプリの「⚡ NEW EVENT」） */
+.eyebrow {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.8rem;
+  border: 2px solid var(--lt-accent);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--lt-fg);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* 見出しの右上に置く逃げるアイコン */
+.corner-icons {
+  position: absolute;
+  top: 2.3rem;
+  right: 3.5rem;
+}
+
+/* 表紙・締め */
+.hero-title {
+  display: block !important;
+  margin: 1rem 0 1.2rem !important;
+  padding: 0 !important;
+  background: none !important;
+  font-size: 3.6rem !important;
+  line-height: 1.18 !important;
+}
+.hero-lead {
+  color: var(--lt-fg) !important;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.slidev-layout .hero-meta {
+  margin-top: 1.6rem;
+  color: var(--lt-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* カード（アプリの .card と同じ淡いクリーム） */
+.lt-card {
+  padding: 1.3rem 1.5rem;
+  border-radius: 1.4rem;
+  background: var(--lt-card);
+}
+.lt-card p {
+  margin: 0.3rem 0 0;
+  color: var(--lt-muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+/* 大きな番号（アプリの「LT会ができるまで」の 1 2 3） */
+.num {
+  color: var(--lt-accent-strong);
+  font-size: 2.3rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+/* 役割のバッジ */
+.role {
+  display: inline-block;
+  padding: 0.05rem 0.65rem;
+  border-radius: 999px;
+  background: #fff3b8;
+  color: #7a5a00;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+/* タグのような小さな枠 */
+.chip {
+  display: inline-block;
+  margin: 0.18rem 0.12rem;
+  padding: 0.1rem 0.7rem;
+  border: 2px solid var(--lt-primary);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* 「立てる / 見つける / 参加する」の大きな箱（アプリの「どこから始める？」と同じ色） */
+.verb {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 15rem;
+  padding: 1.4rem 1.5rem;
+  border-radius: 1.5rem;
+}
+.verb p {
+  margin: 0;
+  color: var(--lt-fg);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.verb-label {
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.verb-yellow {
+  background: var(--lt-sunny);
+}
+.verb-peach {
+  background: var(--lt-peach);
+}
+.verb-cream {
+  background: var(--lt-card);
+  outline: 2px solid var(--lt-card-border);
+}
+
+/* 画面紹介のスライド: 左に説明、右にスクリーンショット */
+.screen-slide {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2.2rem;
+  align-items: start;
+}
+.screen-slide ul {
+  font-size: 0.88rem;
+}
+.screen-stack {
+  position: relative;
+}
+.screen-stack .overlay {
+  position: absolute;
+  right: -1.2rem;
+  bottom: -2.6rem;
+  width: 58%;
+}
+
+/* 表 */
+.slidev-layout table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.98rem;
+}
+.slidev-layout th {
+  padding: 0.55rem 0.9rem;
+  border-bottom: 2px solid var(--lt-primary);
+  color: var(--lt-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: left;
+}
+.slidev-layout td {
+  padding: 1rem 0.9rem;
+  border-bottom: 1px solid var(--lt-border);
+  line-height: 1.6;
+  vertical-align: top;
+}
+.slidev-layout td:first-child {
+  width: 30%;
+  font-weight: 900;
+}
+
+/* 構成図の箱 */
+.arch-box {
+  padding: 0.8rem 1rem;
+  border: 2px solid var(--lt-border);
+  border-radius: 1rem;
+  background: #fff;
+  text-align: center;
+}
+.arch-box .arch-name {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+.arch-box .arch-sub {
+  color: var(--lt-muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.arch-box .arch-host {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  background: var(--lt-card);
+  color: var(--lt-subtle);
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+.arch-box.is-key {
+  border-color: var(--lt-accent);
+  background: var(--lt-card);
+}
+.arch-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--lt-accent-strong);
+  font-size: 1.7rem;
+  font-weight: 900;
+}
+.arch-arrow small {
+  color: var(--lt-subtle);
+  font-size: 0.55rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 数字で見る */
+.stat {
+  padding: 1.4rem 1.4rem;
+  border-radius: 1.3rem;
+  background: var(--lt-card);
+}
+.stat-value {
+  color: var(--lt-accent-strong);
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+.stat-value small {
+  margin-left: 0.2rem;
+  color: var(--lt-fg);
+  font-size: 0.9rem;
+}
+.stat-label {
+  margin-top: 0.3rem;
+  color: var(--lt-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* 配色の見本 */
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.45rem 0;
+  font-size: 0.8rem;
+}
+.swatch i {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 2px solid rgba(43, 36, 16, 0.08);
+  border-radius: 0.7rem;
+}
+.swatch b {
+  display: block;
+  font-weight: 900;
+}
+.swatch span {
+  color: var(--lt-subtle);
+  font-size: 0.65rem;
+}
+
+/* LT会ができるまで: カード → 矢印 → カード */
+.flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+/* 構成図 */
+.arch {
+  display: grid;
+  grid-template-columns: 0.9fr auto 1.1fr auto 1.1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+.shared-bar {
+  grid-column: 3 / 6;
+  padding: 0.4rem 1rem;
+  border: 2px dashed var(--lt-accent);
+  border-radius: 0.8rem;
+  background: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* API の 3 層 */
+.layer {
+  padding: 0.5rem 0.9rem;
+  border: 2px solid var(--lt-border);
+  border-radius: 0.9rem;
+  background: #fff;
+}
+.layer b {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+.layer span {
+  color: var(--lt-muted);
+  font-size: 0.68rem;
+}
+.layer.is-key {
+  border-color: var(--lt-accent);
+  background: var(--lt-card);
+}
+.layer-arrow {
+  color: var(--lt-accent-strong);
+  font-weight: 900;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.ai-card {
+  outline: 2px solid var(--lt-accent);
+}

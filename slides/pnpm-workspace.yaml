@@ -1,0 +1,5 @@
+# slides/ はアプリの workspace（ルートの pnpm-workspace.yaml）に含めない。
+# ここを独立した workspace のルートにして、Render / Vercel のビルドに Slidev の依存を入れないようにする。
+
+onlyBuiltDependencies:
+  - esbuild

@@ -3,6 +3,7 @@ import type { EventFormat, EventStatus, TagCountDto } from '@lt/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { Event, EventDate, Prisma } from '../../generated/prisma/client.js';
 import { publicUserSelect } from '../users/users.repository.js';
+import { organizationSummarySelect } from '../organizations/organizations.repository.js';
 import type { FormatFields } from './format.js';
 
 /** /me の履歴で返す件数の上限（それぞれ新しい順） */
@@ -14,6 +15,8 @@ export const HISTORY_LIMIT = 50;
  */
 export const eventDetailInclude = {
   organizer: { select: publicUserSelect },
+  // webhookUrl は通知の送り先に使う。mapper で落とすので API のレスポンスには出ない
+  organization: { select: { ...organizationSummarySelect, webhookUrl: true } },
   confirmedDate: true,
   tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
@@ -42,6 +45,7 @@ export type EventAccessInfo = Prisma.EventGetPayload<{ select: typeof eventAcces
 /** 一覧表示に必要な最小限の関連 */
 export const eventSummaryInclude = {
   organizer: { select: publicUserSelect },
+  organization: { select: organizationSummarySelect },
   confirmedDate: true,
   tags: { select: { tag: true }, orderBy: { tag: 'asc' } },
   candidateDates: {
@@ -64,6 +68,8 @@ export interface EventListFilter {
   status?: EventStatus;
   format?: EventFormat;
   organizerId?: string;
+  /** 団体の id（slug は Service で id に引き直す。events_organization_id_idx が効く） */
+  organizationId?: string;
 }
 
 export interface EventPage {
@@ -131,6 +137,7 @@ export class EventsRepository {
     if (filter.status) where.status = filter.status;
     if (filter.format) where.format = filter.format;
     if (filter.organizerId) where.organizerId = filter.organizerId;
+    if (filter.organizationId) where.organizationId = filter.organizationId;
     if (filter.tag) where.tags = { some: { tag: filter.tag } };
     if (filter.q) {
       // ILIKE '%q%'。events.title / description の pg_trgm GIN index が効く
@@ -242,6 +249,7 @@ export class EventsRepository {
     webhookUrl: string | null;
     tags: string[];
     formatFields: FormatFields;
+    organizationId: string | null;
   }): Promise<EventDetail> {
     return this.prisma.event.create({
       data: {
@@ -250,6 +258,7 @@ export class EventsRepository {
         webhookUrl: input.webhookUrl,
         ...input.formatFields,
         organizer: { connect: { id: input.organizerId } },
+        ...(input.organizationId ? { organization: { connect: { id: input.organizationId } } } : {}),
         candidateDates: { create: input.candidateDates },
         tags: { create: input.tags.map((tag) => ({ tag })) },
       },
@@ -262,7 +271,7 @@ export class EventsRepository {
     id: string,
     data: Pick<
       Prisma.EventUpdateInput,
-      'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl' | 'webhookUrl'
+      'title' | 'description' | 'status' | 'format' | 'venue' | 'meetingUrl' | 'webhookUrl' | 'organization'
     >,
     tags?: string[],
   ): Promise<EventDetail> {

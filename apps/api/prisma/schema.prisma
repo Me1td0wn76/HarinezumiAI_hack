@@ -49,6 +49,7 @@ model User {
   oauthAccounts       OAuthAccount[]
   comments            EventComment[]
   notifications       Notification[]
+  organizationMembers OrganizationMember[]
   entries             EventEntry[]
 
   /// 自分がフォローしている relations (自分 -> 相手)
@@ -111,6 +112,10 @@ model Event {
   organizerId String @map("organizer_id")
   organizer   User   @relation(fields: [organizerId], references: [id])
 
+  /// 紐付いた団体（任意）。団体を削除してもLT会は残す
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
   /// 主催者が決定した開催日
   confirmedDateId String?    @unique @map("confirmed_date_id")
   confirmedDate   EventDate? @relation("ConfirmedDate", fields: [confirmedDateId], references: [id], onDelete: SetNull)
@@ -128,6 +133,7 @@ model Event {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([organizerId])
+  @@index([organizationId])
   @@index([status, createdAt])
   @@index([format])
   // 新着順のカーソルページネーション用
@@ -136,6 +142,46 @@ model Event {
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("events")
+}
+
+/// 団体での役割
+enum OrganizationRole {
+  OWNER  // 団体の編集・削除、メンバーの追加・削除・役割変更ができる
+  MEMBER // 団体に紐付けたLT会を作れる
+}
+
+/// 団体（サークル・研究室・コミュニティなど）。参加は招待制で、OWNER がメンバーを追加する
+model Organization {
+  id          String  @id @default(uuid())
+  name        String
+  /// URL（/orgs/<slug>）に使う一意の ID。小文字で保存する（形式は shared の ORGANIZATION_SLUG_PATTERN）
+  slug        String  @unique
+  description String?
+  /// 団体に紐付いたLT会の通知を流す Discord Webhook URL（任意）。OWNER 以外には返さない
+  webhookUrl  String? @map("webhook_url")
+
+  members OrganizationMember[]
+  events  Event[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+/// 団体の所属
+model OrganizationMember {
+  organizationId String           @map("organization_id")
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String           @map("user_id")
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrganizationRole @default(MEMBER)
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@id([organizationId, userId])
+  // 「自分が所属する団体」の取得用
+  @@index([userId])
+  @@map("organization_members")
 }
 
 /// LT会に付けるタグ。正規化済み（前後空白・先頭 # を除去、小文字）の文字列をそのまま持つ

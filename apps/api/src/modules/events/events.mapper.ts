@@ -9,6 +9,7 @@ import type {
 } from '@lt/shared';
 import type { EventDate } from '../../generated/prisma/client.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
+import { toOrganizationSummaryDto } from '../organizations/organizations.mapper.js';
 import type { EntryWithUser, EventEntries } from '../entries/entries.repository.js';
 import type { EventDetail, EventSummary } from './events.repository.js';
 
@@ -47,6 +48,7 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
     responderCount: responders.size,
     tags: event.tags.map((t) => t.tag),
     format: event.format,
+    organization: event.organization ? toOrganizationSummaryDto(event.organization) : null,
     createdAt: event.createdAt.toISOString(),
   };
 }
@@ -122,6 +124,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer, entries: Ev
     venue: event.venue,
     meetingUrl: canSeeMeetingUrl ? event.meetingUrl : null,
     hasMeetingUrl: event.meetingUrl !== null,
+    organization: event.organization ? toOrganizationSummaryDto(event.organization) : null,
     entries: entryList,
     myEntry,
     createdAt: event.createdAt.toISOString(),

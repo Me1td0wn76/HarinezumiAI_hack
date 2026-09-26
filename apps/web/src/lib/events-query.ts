@@ -2,6 +2,7 @@ import {
   EVENT_FORMAT,
   EVENT_SEARCH_MAX_LENGTH,
   EVENT_STATUS,
+  ORGANIZATION_SLUG_PATTERN,
   TAG_MAX_LENGTH,
   type EventFormat,
   type EventListQuery,
@@ -24,11 +25,13 @@ export function parseEventListQuery(params: Record<string, string | string[] | u
   };
   const status = one("status");
   const format = one("format");
+  const organization = one("organization")?.toLowerCase();
   return {
     q: one("q")?.slice(0, EVENT_SEARCH_MAX_LENGTH).trim() || undefined,
     tag: one("tag"),
     status: status && (EVENT_STATUS as readonly string[]).includes(status) ? (status as EventStatus) : undefined,
     format: format && (EVENT_FORMAT as readonly string[]).includes(format) ? (format as EventFormat) : undefined,
+    organization: organization && ORGANIZATION_SLUG_PATTERN.test(organization) ? organization : undefined,
   };
 }
 
@@ -55,6 +58,7 @@ export function toHomeHref(query: EventListQuery, overrides: Partial<EventListQu
     tag: query.tag,
     status: query.status,
     format: query.format,
+    organization: query.organization,
     ...overrides,
   };
   const qs = toEventsSearchParams(merged);

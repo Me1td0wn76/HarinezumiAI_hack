@@ -1,5 +1,6 @@
 "use client";
 
+import type { OrganizationSummaryDto } from "@lt/shared";
 import type { ReactNode } from "react";
 import { useActionState } from "react";
 import { createEvent } from "@/actions/events";
@@ -7,6 +8,7 @@ import { CandidateDatesField } from "./candidate-dates-field";
 import { WebhookUrlField } from "./webhook-url-field";
 import { FormMessage } from "./form-message";
 import { FormatFields } from "./format-fields";
+import { OrganizationSelect } from "./organization-select";
 import { TagsField } from "./tags-field";
 
 /**
@@ -23,7 +25,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function EventForm() {
+/** @param organizations 自分が所属する団体。LT会を紐付ける選択肢になる */
+export function EventForm({ organizations }: { organizations: OrganizationSummaryDto[] }) {
   const [state, action, pending] = useActionState(createEvent, undefined);
 
   return (
@@ -49,6 +52,7 @@ export function EventForm() {
           />
         </div>
         <TagsField />
+        <OrganizationSelect organizations={organizations} />
       </Section>
 
       <Section title="📍 開催形式">

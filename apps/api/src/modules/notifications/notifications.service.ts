@@ -11,6 +11,8 @@ interface EventForNotification {
   confirmedDate: { startsAt: Date } | null;
   /** 主催者が設定したLT会ごとの送り先 */
   webhookUrl: string | null;
+  /** 紐付いた団体。団体の OWNER が設定した送り先にも流す */
+  organization: { webhookUrl: string | null } | null;
 }
 
 const dateFormat = new Intl.DateTimeFormat('ja-JP', {
@@ -48,7 +50,7 @@ export class NotificationsService {
       dates,
       `参加できる日を回答してください → ${this.eventUrl(event.id)}`,
     ].join('\n');
-    void this.discord.send(content, event.webhookUrl);
+    void this.discord.send(content, ...webhookUrlsOf(event));
 
     // TODO(#8): フォロー機能の実装後はフォロワーのみに絞る。当面は主催者以外の全ユーザー（主催者をブロックした人は除く）。
     // 行が増え続けないよう、既読から90日たった通知は NotificationsCleanupService が消す
@@ -72,7 +74,7 @@ export class NotificationsService {
       `📅 ${dateFormat.format(event.confirmedDate.startsAt)}`,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content, event.webhookUrl);
+    void this.discord.send(content, ...webhookUrlsOf(event));
 
     const n: NewNotification<'EVENT_CONFIRMED'> = {
       type: 'EVENT_CONFIRMED',
@@ -82,7 +84,10 @@ export class NotificationsService {
     this.saveInApp(() => this.notifications.createForRespondents(respondentIds(event), event.organizer.id, n));
   }
 
-  /** LT会にコメントが付いた */
+  /**
+   * LT会にコメントが付いた。団体の送り先には流さない: コメントは LT会と無関係な人でも投稿できるので、
+   * 流すと誰でも団体（第三者）の Discord に書き込めてしまう。主催者自身の送り先と全体向けにだけ流す
+   */
   commentPosted(
     event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl'>,
     authorName: string,
@@ -96,6 +101,23 @@ export class NotificationsService {
       this.eventUrl(event.id),
     ].join('\n');
     void this.discord.send(content, event.webhookUrl);
+  }
+
+  /**
+   * 作成後にLT会が団体に紐付けられた（編集で団体を選んだ・付け替えた）。作成時の通知は団体に届いていないので、
+   * その団体の送り先にだけ知らせる（全体向け・LT会ごとの送り先には作成時に流れている）
+   */
+  eventLinkedToOrganization(
+    event: Pick<EventForNotification, 'id' | 'title' | 'organizer'> & {
+      organization: { name: string; webhookUrl: string | null } | null;
+    },
+  ): void {
+    if (!event.organization?.webhookUrl) return;
+    const content = [
+      `🔗 LT会「${event.title}」が ${event.organization.name} のLT会になりました（主催: ${event.organizer.displayName}）`,
+      this.eventUrl(event.id),
+    ].join('\n');
+    void this.discord.sendOnly(content, event.organization.webhookUrl);
   }
 
   /**
@@ -128,6 +150,11 @@ export class NotificationsService {
   private eventUrl(id: string): string {
     return `${this.webUrl}/events/${id}`;
   }
+}
+
+/** LT会ごとの送り先と、団体の送り先 */
+function webhookUrlsOf(event: Pick<EventForNotification, 'webhookUrl' | 'organization'>): (string | null)[] {
+  return [event.webhookUrl, event.organization?.webhookUrl ?? null];
 }
 
 /** そのLT会の候補日に回答したログインユーザー（ゲスト・主催者本人は除く。ブロックの除外はリポジトリで行う） */

@@ -82,6 +82,7 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         organizer={detail.organizer}
         confirmedDate={detail.confirmedDate}
         tags={detail.tags}
+        organization={detail.organization}
       />
       {/* 参加表明の欄はページの下のほうにあるので、上部から飛べるようにする（主催者・終了したLT会では出さない） */}
       {canEnter && (

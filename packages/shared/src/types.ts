@@ -4,6 +4,7 @@ import type {
   EventFormat,
   EventStatus,
   NotificationType,
+  OrganizationRole,
   ReportReason,
   ReportTargetType,
   UserRole,
@@ -116,6 +117,8 @@ export interface CreateEventRequest {
   venue?: string | null;
   /** 配信URL。ONLINE / HYBRID のとき。開催日決定後に回答者へ公開される */
   meetingUrl?: string | null;
+  /** 紐付ける団体。作成者がその団体のメンバーであること */
+  organizationId?: string | null;
 }
 
 export interface CandidateDateInput {
@@ -133,6 +136,8 @@ export interface UpdateEventRequest {
   format?: EventFormat;
   venue?: string | null;
   meetingUrl?: string | null;
+  /** null で団体から外す。付け替え先の団体のメンバーであること */
+  organizationId?: string | null;
 }
 
 export interface EventDateDto {
@@ -152,6 +157,8 @@ export interface EventSummaryDto {
   responderCount: number;
   tags: string[];
   format: EventFormat;
+  /** 紐付いた団体。無ければ null */
+  organization: OrganizationSummaryDto | null;
   createdAt: string;
 }
 
@@ -180,6 +187,8 @@ export interface EventListQuery {
   format?: EventFormat;
   /** 主催者で絞り込む（ユーザーページやフォロー中フィードの土台） */
   organizerId?: string;
+  /** 団体の slug で絞り込む */
+  organization?: string;
 }
 
 /** カーソルページネーションの共通レスポンス */
@@ -239,6 +248,8 @@ export interface EventDetailDto {
    */
   meetingUrl: string | null;
   hasMeetingUrl: boolean;
+  /** 紐付いた団体。無ければ null */
+  organization: OrganizationSummaryDto | null;
   /** 参加表明。登壇者が先、それぞれ表明の古い順 */
   entries: EventEntryDto[];
   /** 閲覧者自身の参加表明。未ログイン・未表明なら null */
@@ -468,4 +479,81 @@ export type NotificationDto = {
 
 export interface UnreadCountDto {
   count: number;
+}
+
+// ---------- 団体 ----------
+
+/**
+ * 団体の slug（URL の /orgs/<slug>）の形式。3〜30文字の英小文字・数字・ハイフンで、先頭と末尾はハイフン以外。
+ * API とフォームの両方で使う
+ */
+export const ORGANIZATION_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
+export const ORGANIZATION_SLUG_MIN_LENGTH = 3;
+export const ORGANIZATION_SLUG_MAX_LENGTH = 30;
+
+/** ルーティングと紛らわしいため使えない slug（/orgs/new など） */
+export const RESERVED_ORGANIZATION_SLUGS: readonly string[] = ['new', 'edit', 'me', 'admin', 'api', 'settings'];
+
+/** LT会のカードや詳細に載せる最小限の団体情報 */
+export interface OrganizationSummaryDto {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface OrganizationMemberDto {
+  user: PublicUserDto;
+  role: OrganizationRole;
+  joinedAt: string;
+}
+
+/** 団体一覧（GET /organizations）の1件 */
+export interface OrganizationListItemDto extends OrganizationSummaryDto {
+  description: string | null;
+  memberCount: number;
+}
+
+/** 自分が所属する団体（GET /users/me/organizations）。LT会作成フォームの選択肢に使う */
+export interface MyOrganizationDto extends OrganizationSummaryDto {
+  role: OrganizationRole;
+}
+
+/** 団体ページ（GET /organizations/:slug） */
+export interface OrganizationDetailDto extends OrganizationListItemDto {
+  /** OWNER が先、その中は参加が古い順 */
+  members: OrganizationMemberDto[];
+  /** 閲覧者の役割。未ログイン・非メンバーなら null */
+  viewerRole: OrganizationRole | null;
+  /** OWNER にのみ返す。団体に紐付いたLT会の通知を流す Discord Webhook URL */
+  webhookUrl: string | null;
+  createdAt: string;
+}
+
+export interface CreateOrganizationRequest {
+  name: string;
+  /** ORGANIZATION_SLUG_PATTERN に合うこと（大文字は API 側で小文字にする） */
+  slug: string;
+  description?: string | null;
+  webhookUrl?: string | null;
+}
+
+/** OWNER のみ。slug を変えると団体ページの URL も変わる */
+export interface UpdateOrganizationRequest {
+  name?: string;
+  slug?: string;
+  /** null / 空文字で解除 */
+  description?: string | null;
+  /** null / 空文字で解除 */
+  webhookUrl?: string | null;
+}
+
+/** 団体は招待制。OWNER がハンドルを指定してメンバーを追加する */
+export interface AddOrganizationMemberRequest {
+  handle: string;
+  /** 省略時は MEMBER */
+  role?: OrganizationRole;
+}
+
+export interface UpdateOrganizationMemberRequest {
+  role: OrganizationRole;
 }

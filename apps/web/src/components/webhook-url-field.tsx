@@ -1,5 +1,16 @@
-/** Discord Webhook URL の入力欄。作成フォームと主催者メニューで共通 */
-export function WebhookUrlField({ id, defaultValue }: { id: string; defaultValue?: string | null }) {
+const DEFAULT_HELP =
+  "設定すると、作成・開催日決定のお知らせを自分の Discord チャンネルに流せます。URL は主催者にしか表示されません。";
+
+/** Discord Webhook URL の入力欄。LT会の作成フォーム・主催者メニュー・団体のフォームで共通 */
+export function WebhookUrlField({
+  id,
+  defaultValue,
+  help = DEFAULT_HELP,
+}: {
+  id: string;
+  defaultValue?: string | null;
+  help?: string;
+}) {
   return (
     <div>
       <label className="label" htmlFor={id}>
@@ -17,7 +28,7 @@ export function WebhookUrlField({ id, defaultValue }: { id: string; defaultValue
         aria-describedby={`${id}-help`}
       />
       <p id={`${id}-help`} className="mt-1 text-xs text-subtle">
-        設定すると、作成・開催日決定のお知らせを自分の Discord チャンネルに流せます。URL は主催者にしか表示されません。
+        {help}
       </p>
     </div>
   );

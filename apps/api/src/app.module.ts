@@ -20,6 +20,7 @@ import { AdminModule } from './modules/admin/admin.module.js';
 import { ScheduleModule } from './modules/schedule/schedule.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
 import { FollowsModule } from './modules/follows/follows.module.js';
+import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { FollowsModule } from './modules/follows/follows.module.js';
     EntriesModule,
     ScheduleModule,
     FollowsModule,
+    OrganizationsModule,
     // GET /users/:handle。/users/me などを先に登録するため UsersModule より後に置く
     ProfilesModule,
   ],

@@ -6,6 +6,7 @@ import {
   type EventFormat,
   type EventListQuery,
   type EventStatus,
+  type OrganizationSummaryDto,
   type TagCountDto,
 } from "@lt/shared";
 import Link from "next/link";
@@ -25,14 +26,32 @@ const FORMAT_FILTERS: { value: EventFormat | undefined; label: string }[] = [
 const chip = (active: boolean) =>
   `badge transition ${active ? "bg-foreground text-background" : "border-[1.5px] border-border bg-card text-muted-foreground hover:border-primary"}`;
 
-/** 検索欄・状態フィルタ・開催形式フィルタ・人気タグ。すべて GET リンク / フォームなので JS 不要 */
-export function DiscoverControls({ query, topTags }: { query: EventListQuery; topTags: TagCountDto[] }) {
+/**
+ * 検索欄・状態フィルタ・開催形式フィルタ・団体フィルタ・人気タグ。すべて GET リンク / フォームなので JS 不要
+ * @param organizations 団体フィルタの選択肢（ログイン中なら自分の所属団体）
+ */
+export function DiscoverControls({
+  query,
+  topTags,
+  organizations = [],
+}: {
+  query: EventListQuery;
+  topTags: TagCountDto[];
+  organizations?: OrganizationSummaryDto[];
+}) {
+  // 所属していない団体で絞り込んでいる（団体ページのリンクから来たなど）ときも、解除できるよう選択肢に出す
+  const orgFilters =
+    query.organization && !organizations.some((o) => o.slug === query.organization)
+      ? [...organizations, { id: query.organization, slug: query.organization, name: query.organization }]
+      : organizations;
+
   return (
     <div className="space-y-3">
       <form action="/" method="get" className="flex gap-2">
         {query.tag ? <input type="hidden" name="tag" value={query.tag} /> : null}
         {query.status ? <input type="hidden" name="status" value={query.status} /> : null}
         {query.format ? <input type="hidden" name="format" value={query.format} /> : null}
+        {query.organization ? <input type="hidden" name="organization" value={query.organization} /> : null}
         <input
           type="search"
           name="q"
@@ -82,6 +101,25 @@ export function DiscoverControls({ query, topTags }: { query: EventListQuery; to
           </Link>
         ) : null}
       </div>
+
+      {orgFilters.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="mr-1 font-display text-xs font-bold text-subtle">団体:</span>
+          {[{ slug: undefined, name: "すべて" }, ...orgFilters].map((o) => {
+            const active = query.organization === o.slug;
+            return (
+              <Link
+                key={o.slug ?? ""}
+                href={toHomeHref(query, { organization: o.slug })}
+                className={chip(active)}
+                aria-current={active ? "page" : undefined}
+              >
+                {o.name}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
 
       {topTags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">

@@ -24,6 +24,9 @@ export async function Nav() {
               <Link href="/calendar" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 カレンダー
               </Link>
+              <Link href="/orgs" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
+                団体
+              </Link>
               {user.role === "ADMIN" && (
                 <Link href="/admin" className="font-display text-sm font-bold text-danger-foreground hover:text-foreground">
                   運営
@@ -61,6 +64,10 @@ export async function Nav() {
                 className="font-display text-sm font-bold text-muted-foreground hover:text-foreground"
               >
                 カレンダー
+              </Link>
+              {/* 団体のページもログインなしで見られる（LT会のカードから団体ページに来た人が一覧に戻れるように） */}
+              <Link href="/orgs" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
+                団体
               </Link>
               <Link href="/login" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 ログイン

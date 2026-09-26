@@ -4,6 +4,7 @@ import { EventsService } from './events.service.js';
 import { EventsRepository, encodeEventCursor } from './events.repository.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
+import { OrganizationsRepository } from '../organizations/organizations.repository.js';
 import { ENTRY_LIMIT, EntriesRepository } from '../entries/entries.repository.js';
 import { buildEvent, buildUser } from '../../test-support/event-factories.js';
 import type { CreateEventDto } from './dto/create-event.dto.js';
@@ -26,7 +27,12 @@ describe('EventsService', () => {
     deleteDate: ReturnType<typeof vi.fn>;
     confirm: ReturnType<typeof vi.fn>;
   };
-  let notifications: { eventCreated: ReturnType<typeof vi.fn>; eventConfirmed: ReturnType<typeof vi.fn> };
+  let notifications: {
+    eventCreated: ReturnType<typeof vi.fn>;
+    eventConfirmed: ReturnType<typeof vi.fn>;
+    eventLinkedToOrganization: ReturnType<typeof vi.fn>;
+  };
+  let organizations: { findRole: ReturnType<typeof vi.fn>; findBySlug: ReturnType<typeof vi.fn> };
   let entries: { findForEvent: ReturnType<typeof vi.fn> };
   let blocks: { findBlockedIds: ReturnType<typeof vi.fn> };
 
@@ -46,7 +52,8 @@ describe('EventsService', () => {
       deleteDate: vi.fn(),
       confirm: vi.fn(),
     };
-    notifications = { eventCreated: vi.fn(), eventConfirmed: vi.fn() };
+    notifications = { eventCreated: vi.fn(), eventConfirmed: vi.fn(), eventLinkedToOrganization: vi.fn() };
+    organizations = { findRole: vi.fn().mockResolvedValue(null), findBySlug: vi.fn().mockResolvedValue(null) };
     entries = { findForEvent: vi.fn().mockResolvedValue({ list: [], mine: null }) };
     blocks = { findBlockedIds: vi.fn().mockResolvedValue([]) };
 
@@ -57,6 +64,7 @@ describe('EventsService', () => {
         { provide: NotificationsService, useValue: notifications },
         { provide: BlocksRepository, useValue: blocks },
         { provide: EntriesRepository, useValue: entries },
+        { provide: OrganizationsRepository, useValue: organizations },
       ],
     }).compile();
 
@@ -96,6 +104,28 @@ describe('EventsService', () => {
     });
   });
 
+  describe('listByOrganization', () => {
+    it('存在しない団体は 404', async () => {
+      await expect(service.listByOrganization('no-such-org', { limit: 20 }, null)).rejects.toThrow(NotFoundException);
+      expect(repo.findPage).not.toHaveBeenCalled();
+    });
+
+    it('団体の slug（小文字）で絞り込む', async () => {
+      organizations.findBySlug.mockResolvedValue({ id: 'org-1', slug: 'my-lab' });
+      repo.findPage.mockResolvedValue({ items: [], nextCursor: null });
+
+      await service.listByOrganization('My-Lab', { limit: 20 }, null);
+
+      expect(organizations.findBySlug).toHaveBeenCalledWith('my-lab');
+      expect(repo.findPage).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: 'org-1' }),
+        20,
+        undefined,
+        [],
+      );
+    });
+  });
+
   describe('create', () => {
     it('候補日を作成して Discord 通知を送る', async () => {
       const event = buildEvent();
@@ -114,6 +144,34 @@ describe('EventsService', () => {
       expect(notifications.eventCreated).toHaveBeenCalledWith(event);
       // 作成した本人が viewer なので shareToken を含む
       expect(result.shareToken).toBe(event.shareToken);
+    });
+
+    it('所属している団体を選ぶと、その団体に紐付けて作成する', async () => {
+      organizations.findRole.mockResolvedValue('MEMBER');
+      repo.create.mockResolvedValue(buildEvent());
+      const dto: CreateEventDto = {
+        title: 'タイトル',
+        description: '',
+        candidateDates: [{ startsAt: '2026-02-01T10:00:00.000Z' }],
+        organizationId: 'org-1',
+      };
+
+      await service.create(organizer, dto);
+
+      expect(organizations.findRole).toHaveBeenCalledWith('org-1', organizer.id);
+      expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ organizationId: 'org-1' }));
+    });
+
+    it('所属していない団体は選べない（403）', async () => {
+      const dto: CreateEventDto = {
+        title: 'タイトル',
+        description: '',
+        candidateDates: [{ startsAt: '2026-02-01T10:00:00.000Z' }],
+        organizationId: 'org-1',
+      };
+
+      await expect(service.create(organizer, dto)).rejects.toThrow(ForbiddenException);
+      expect(repo.create).not.toHaveBeenCalled();
     });
 
     it('終了日時が開始日時以前だと 400', async () => {
@@ -276,6 +334,57 @@ describe('EventsService', () => {
 
       expect(result.meetingUrl).toBe('https://meet.example.com/abc');
       expect(result.hasMeetingUrl).toBe(true);
+    });
+
+    it('別の団体に付け替えるときは、付け替え先のメンバーでないと 403', async () => {
+      repo.findDetailById.mockResolvedValue(buildEvent({ organizerId: organizer.id }));
+
+      await expect(service.update('event-1', organizer, { organizationId: 'org-2' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('別の団体に紐付けたら、その団体に知らせる', async () => {
+      organizations.findRole.mockResolvedValue('MEMBER');
+      const event = buildEvent({ organizerId: organizer.id });
+      repo.findDetailById.mockResolvedValue(event);
+      const updated = { ...event, organizationId: 'org-2' };
+      repo.update.mockResolvedValue(updated);
+
+      await service.update('event-1', organizer, { organizationId: 'org-2' });
+
+      expect(notifications.eventLinkedToOrganization).toHaveBeenCalledWith(updated);
+    });
+
+    it('団体を変えなければ、団体を抜けた後でも他の項目を編集できる', async () => {
+      const event = buildEvent({ organizerId: organizer.id, organizationId: 'org-1' });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      await service.update('event-1', organizer, { title: '新', organizationId: 'org-1' });
+
+      expect(organizations.findRole).not.toHaveBeenCalled();
+      expect(notifications.eventLinkedToOrganization).not.toHaveBeenCalled();
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        expect.objectContaining({ organization: { connect: { id: 'org-1' } } }),
+        undefined,
+      );
+    });
+
+    it('null / 空文字で団体から外す', async () => {
+      const event = buildEvent({ organizerId: organizer.id, organizationId: 'org-1' });
+      repo.findDetailById.mockResolvedValue(event);
+      repo.update.mockResolvedValue(event);
+
+      await service.update('event-1', organizer, { organizationId: '' });
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'event-1',
+        expect.objectContaining({ organization: { disconnect: true } }),
+        undefined,
+      );
     });
 
     it('LT会が存在しないと 404', async () => {

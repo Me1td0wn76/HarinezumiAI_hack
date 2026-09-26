@@ -94,6 +94,30 @@ export class NotificationsRepository {
     }
   }
 
+  /**
+   * 登壇の表明を主催者に知らせる。次の場合は作らない:
+   * - 主催者がその登壇者をブロックしている（向きは「受け取る側 → 登壇者」。audienceOf と同じ考え方）
+   * - 同じLT会・同じ登壇者の登壇通知が未読のまま残っている（登壇 / 聴講の切り替えや取り消し → 再表明を
+   *   繰り返しても主催者の通知が埋まらないようにする）
+   */
+  async createSpeakerEntered(organizerId: string, n: NewNotification<'SPEAKER_ENTERED'>): Promise<void> {
+    const speakerId = n.data.speakerId;
+    const [blocked, unread] = await Promise.all([
+      this.prisma.block.count({ where: { blockerId: organizerId, blockedId: speakerId } }),
+      this.prisma.notification.count({
+        where: {
+          userId: organizerId,
+          type: 'SPEAKER_ENTERED',
+          eventId: n.eventId,
+          readAt: null,
+          data: { path: ['speakerId'], equals: speakerId },
+        },
+      }),
+    ]);
+    if (blocked > 0 || unread > 0) return;
+    await this.insert([organizerId], n);
+  }
+
   private async insert(userIds: string[], n: NewNotification): Promise<void> {
     if (userIds.length === 0) return;
     await this.prisma.notification.createMany({

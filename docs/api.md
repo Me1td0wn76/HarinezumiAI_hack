@@ -16,9 +16,10 @@
 | POST | `/auth/password-reset/confirm` | - | 新しいパスワードを設定（`ConfirmPasswordResetRequest`）。以前の JWT は無効になる | 204 |
 | GET | `/users/me` | 必須 | 自分の情報 | `UserDto` |
 | PATCH | `/users/me` | 必須 | プロフィール更新（`UpdateProfileRequest`）。`handle` が使用済みなら 409、`avatarUrl` は https のみ（`null` か空文字で解除）。`displayName` / `handle` に `null` は送れない（400） | `UserDto` |
-| GET | `/users/me/events` | 必須 | 自分の主催・参加（回答）履歴（それぞれ新しい順に最大 50 件）。`participated` は自分が主催していない（非表示を除く）LT会のうち、候補日に1つでも回答したもの（YES / MAYBE / NO を問わない） | `MyEventsDto` |
-| GET | `/users/me/schedule` | 必須 | 自分が主催・回答したLT会の日程（確定済みは開催日、調整中は候補日。開始順） | `ScheduleItemDto[]` |
-| GET | `/users/:handle` | 任意 | 公開プロフィール（大文字小文字を区別しない）。主催したLT会（非表示を除く）と参加予定（候補日に回答したLT会のうち、日程調整中か開催日が未来のもの。主催分・非表示を除く）をそれぞれ新しい順に最大 50 件。ログイン時はブロックした相手が主催したLT会を除く。フォロワー数・フォロー中の数と、ログイン時は自分がフォロー中か（`isFollowing`。本人なら false）も返す。メールアドレスは返さない。存在しなければ 404 | `UserProfileDto` |
+| GET | `/users/me/events` | 必須 | 自分の主催・参加履歴（それぞれ新しい順に最大 50 件）。`participated` は自分が主催していない（非表示を除く）LT会のうち、候補日に1つでも回答したもの（YES / MAYBE / NO を問わない）か、参加表明（登壇 / 聴講）したもの | `MyEventsDto` |
+| GET | `/users/me/schedule` | 必須 | 自分が主催・回答・参加表明したLT会の日程（確定済みは開催日、調整中は候補日。開始順）。`myEntryRole` は自分の参加表明 | `ScheduleItemDto[]` |
+| GET | `/schedule` | 任意 | みんなのカレンダー。`?from=&to=`（ISO 8601、`[from, to)`、最大 62 日）に候補日（調整中）か開催日（決定済み）がある公開中のLT会の日程（開始順）。終了・非表示のLT会と、ログイン時はブロックした相手のLT会を除く。日付の単位で先頭から最大 1000 件で、超えた分は返さず `truncated: true` にする | `PublicScheduleDto` |
+| GET | `/users/:handle` | 任意 | 公開プロフィール（大文字小文字を区別しない）。主催したLT会（非表示を除く）と参加予定（候補日に回答したか参加表明したLT会のうち、日程調整中か開催日が未来のもの。主催分・非表示を除く）をそれぞれ新しい順に最大 50 件。ログイン時はブロックした相手が主催したLT会を除く。フォロワー数・フォロー中の数と、ログイン時は自分がフォロー中か（`isFollowing`。本人なら false）も返す。メールアドレスは返さない。存在しなければ 404 | `UserProfileDto` |
 | POST | `/users/:id/follow` | 必須 | フォローする。自分自身は 400、存在しないユーザーは 404。フォロー済みでも 204 | 204 |
 | DELETE | `/users/:id/follow` | 必須 | フォロー解除。フォローしていなくても 204 | 204 |
 | GET | `/users/:id/followers` | - | フォロワー一覧（新しい順に最大 50 件） | `PublicUserDto[]` |
@@ -33,6 +34,8 @@
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
 | POST | `/events/:id/confirm` | 主催者 | 開催日決定（`ConfirmEventRequest`）。Discord 通知 + 回答したログインユーザーにアプリ内通知（主催者をブロックした人は除く）。同じ日で決定し直したときは通知しない | `EventDetailDto` |
 | PUT | `/events/:id/responses` | 必須 | 自分の回答を一括登録・更新（`SubmitResponsesRequest`）。OPEN のときのみ | `EventDetailDto` |
+| PUT | `/events/:id/entry` | 必須 | 自分の参加表明（登壇 / 聴講）を登録・更新（`SubmitEntryRequest`。1人1件で上書き）。CLOSED は 400。下記「参加表明」参照 | `EventEntryDto` |
+| DELETE | `/events/:id/entry` | 必須 | 自分の参加表明を取り消す。表明していなければ 404 | 204 |
 | POST | `/events/:id/report` | 必須 | LT会を通報（`ReportRequest`）。同じ対象への再通報は理由の更新 | 204 |
 | POST | `/users/:id/report` | 必須 | ユーザーを通報（`ReportRequest`） | 204 |
 | GET | `/users/me/blocks` | 必須 | ブロック中のユーザー | `PublicUserDto[]` |
@@ -74,9 +77,25 @@
 - `format` は `ONLINE`（既定）/ `OFFLINE` / `HYBRID`
 - 形式に合わない項目は API 側で落とす: ONLINE なら `venue` を null に、OFFLINE なら `meetingUrl` を null にする。PATCH で形式を変えたときも同様
 - `meetingUrl` は `http(s)://` 必須（400）
-- **`meetingUrl` の出し分け**（`EventDetailDto`）: 主催者にはいつでも返す。回答者には開催日決定（CONFIRMED）後にだけ返す。それ以外は null。
+- **`meetingUrl` の出し分け**（`EventDetailDto`）: 主催者にはいつでも返す。回答者・参加表明した人には開催日決定（CONFIRMED）後にだけ返す。それ以外は null。
   設定されているのに閲覧者に見せられない場合は `hasMeetingUrl: true` になるので、UI は「決定後に表示」と案内できる
 - ゲスト（共有URL）は `GET /share/:token?guestKey=` で回答済みかを判定する
+
+## 参加表明（登壇 / 聴講）
+
+候補日への回答（いつ行けるか）とは別に、「どう関わるか」を表明する（#2）。ログインユーザーのみ、1人1件。
+
+- `role` は `SPEAKER`（登壇）/ `AUDIENCE`（聴講）。OPEN / CONFIRMED のLT会で表明でき、CLOSED は 400（取り消しは CLOSED でもできる）
+- 主催者は表明できない（400）。主催者は詳細の `organizer` として表示される
+- `SPEAKER` は `talkTitle`（1〜100文字）が必須。`talkDetail`（〜1000文字）と `durationMinutes`（1〜60）は任意。`AUDIENCE` ではこれらを捨てて保存する
+- **出し分け**（`EventDetailDto.entries`）: 名前・役割・`talkTitle` は誰にでも返す。`talkDetail` と `durationMinutes` は主催者と本人にだけ返し、それ以外は null。並びは登壇者が先、それぞれ表明の古い順
+- **主催者には全員を返す**（ブロックした相手も含め、件数の上限なし）。登壇者を把握するのが主催者向けの中心的な要件のため
+- 主催者以外には最大 500 件（上限を超えたら新しい表明から 500 件）。ログインしていれば、ブロックした相手の表明を除く（コメント欄と同じ）
+- この出し分けは `GET /events/:id` だけでなく、詳細を返すすべての経路（`PATCH /events/:id`、`/confirm`、`/close`、`/dates`、共有URL、回答）で同じ
+- `EventDetailDto.myEntry` は閲覧者自身の表明（未ログイン・未表明は null。一覧の上限の外でも含める）
+- 新しく登壇を表明したとき（聴講から登壇への変更を含む）、主催者にアプリ内通知（`SPEAKER_ENTERED`）を送る。次の場合は送らない:
+  登壇のまま内容を更新したとき、主催者がブロックした相手の表明、同じ登壇者の登壇通知が未読のまま残っているとき（切り替えを繰り返しても通知が重ならない）
+- 参加表明したLT会は「参加した LT会」に含める（[open-questions.md](open-questions.md) F-8）
 
 ## Discord 通知
 
@@ -94,10 +113,10 @@ NestJS 標準の形式。`message` は文字列か、バリデーションエラ
 
 | ステータス | 主な原因 |
 | --- | --- |
-| 400 | バリデーションエラー、無効・期限切れのパスワード再設定リンク、締め切り後の回答、決定済み候補日の削除、終了済みLT会の再終了・開催日決定 |
+| 400 | バリデーションエラー、無効・期限切れのパスワード再設定リンク、締め切り後の回答、決定済み候補日の削除、終了済みLT会の再終了・開催日決定・参加表明 |
 | 401 | トークンなし・無効、ログイン失敗 |
 | 403 | 主催者以外による操作、運営以外による `/admin` の操作 |
-| 404 | LT会・候補日・通知が存在しない |
+| 404 | LT会・候補日・通知・参加表明が存在しない |
 | 409 | メールアドレス重複 |
 | 429 | レート制限超過（下記） |
 
@@ -119,6 +138,7 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 | `PUT /events/:id/responses` | 30 回 / 分 |
 | `PUT /share/:token/responses` | 30 回 / 分 |
 | `POST /events/:id/comments` | 10 回 / 分 |
+| `PUT` / `DELETE /events/:id/entry` | 30 回 / 分 |
 
 会場 Wi-Fi など NAT 配下では参加者全員が同じ IP になるため、その場で数十人が一斉に登録・回答しても詰まらない上限にしている。
 

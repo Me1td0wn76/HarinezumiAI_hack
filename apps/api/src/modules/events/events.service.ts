@@ -3,7 +3,14 @@ import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
-import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
+import { ENTRY_LIMIT, EntriesRepository } from '../entries/entries.repository.js';
+import {
+  EventsRepository,
+  decodeEventCursor,
+  type EventAccessInfo,
+  type EventDetail,
+  type NewCandidateDate,
+} from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
 import { normalizeFormatFields } from './format.js';
@@ -20,6 +27,7 @@ export class EventsService {
     private readonly events: EventsRepository,
     private readonly notifications: NotificationsService,
     private readonly blocks: BlocksRepository,
+    private readonly entries: EntriesRepository,
   ) {}
 
   /** @param viewer ログインしていれば、ブロックしている相手のLT会を除く */
@@ -66,12 +74,34 @@ export class EventsService {
       formatFields: normalizeFormatFields(dto.format ?? 'ONLINE', dto.venue, dto.meetingUrl),
     });
     this.notifications.eventCreated(event);
-    return toEventDetailDto(event, { userId: organizer.id });
+    return this.toDetail(event, { user: organizer });
   }
 
   async getDetail(id: string, viewer: User | null): Promise<EventDetailDto> {
     const event = await this.findVisibleOrThrow(id, viewer);
-    return toEventDetailDto(event, { userId: viewer?.id });
+    return this.toDetail(event, { user: viewer });
+  }
+
+  /**
+   * LT会の詳細を EventDetailDto にする。詳細を返す経路（取得・編集・決定・終了・共有URL・回答）はすべてここを通す。
+   * 参加表明の一覧は閲覧者によって変わる:
+   * - 主催者: 全員（ブロックした相手も、上限なしで）。登壇者を把握するのが主催者向けの中心的な要件のため
+   * - それ以外のログインユーザー: ブロックした相手を除いて最大 ENTRY_LIMIT 件（コメント欄と同じ扱い）
+   * - ゲスト・未ログイン: 最大 ENTRY_LIMIT 件
+   */
+  async toDetail(
+    event: EventDetail,
+    viewer: { user?: User | null; guestKey?: string | null },
+  ): Promise<EventDetailDto> {
+    const user = viewer.user ?? null;
+    const isOrganizer = user?.id === event.organizerId;
+    const excludeUserIds = user && !isOrganizer ? await this.blocks.findBlockedIds(user.id) : [];
+    const entries = await this.entries.findForEvent(event.id, {
+      excludeUserIds,
+      viewerId: user?.id,
+      limit: isOrganizer ? null : ENTRY_LIMIT,
+    });
+    return toEventDetailDto(event, { userId: user?.id, guestKey: viewer.guestKey }, entries);
   }
 
   async update(id: string, user: User, dto: UpdateEventDto): Promise<EventDetailDto> {
@@ -93,7 +123,7 @@ export class EventsService {
       },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
-    return toEventDetailDto(updated, { userId: user.id });
+    return this.toDetail(updated, { user });
   }
 
   async remove(id: string, user: User): Promise<void> {
@@ -135,7 +165,7 @@ export class EventsService {
     const alreadyConfirmed = event.status === 'CONFIRMED' && event.confirmedDateId === dto.eventDateId;
     const confirmed = await this.events.confirm(id, dto.eventDateId);
     if (!alreadyConfirmed) this.notifications.eventConfirmed(confirmed);
-    return toEventDetailDto(confirmed, { userId: user.id });
+    return this.toDetail(confirmed, { user });
   }
 
   /** 主催者がLT会を終了する（開催済み・中止など） */
@@ -145,7 +175,7 @@ export class EventsService {
       throw new BadRequestException('すでに終了しています');
     }
     const closed = await this.events.update(id, { status: 'CLOSED' });
-    return toEventDetailDto(closed, { userId: user.id });
+    return this.toDetail(closed, { user });
   }
 
   async findOrThrow(id: string): Promise<EventDetail> {
@@ -156,11 +186,17 @@ export class EventsService {
 
   /** 運営が非表示にしたLT会は、主催者と運営以外には存在しないものとして扱う */
   async findVisibleOrThrow(id: string, viewer: User | null): Promise<EventDetail> {
-    const event = await this.findOrThrow(id);
-    if (event.hiddenAt && viewer?.id !== event.organizerId && viewer?.role !== 'ADMIN') {
-      throw new NotFoundException('LT会が見つかりません');
-    }
-    return event;
+    return assertVisible(await this.findOrThrow(id), viewer);
+  }
+
+  /**
+   * findVisibleOrThrow の軽量版。詳細グラフ（候補日・回答など）を読まず、状態と主催者だけを返す。
+   * 参加表明のように、閲覧可否と状態だけを見る操作で使う
+   */
+  async findVisibleAccessInfoOrThrow(id: string, viewer: User | null): Promise<EventAccessInfo> {
+    const event = await this.events.findAccessInfoById(id);
+    if (!event) throw new NotFoundException('LT会が見つかりません');
+    return assertVisible(event, viewer);
   }
 
   private async findOwnedOrThrow(id: string, user: User): Promise<EventDetail> {
@@ -170,6 +206,14 @@ export class EventsService {
     }
     return event;
   }
+}
+
+/** 非表示のLT会は主催者と運営以外には 404（findVisibleOrThrow / findVisibleAccessInfoOrThrow で同じ判定を使う） */
+function assertVisible<T extends { hiddenAt: Date | null; organizerId: string }>(event: T, viewer: User | null): T {
+  if (event.hiddenAt && viewer?.id !== event.organizerId && viewer?.role !== 'ADMIN') {
+    throw new NotFoundException('LT会が見つかりません');
+  }
+  return event;
 }
 
 function parseCandidateDates(dates: CandidateDateDto[]): NewCandidateDate[] {

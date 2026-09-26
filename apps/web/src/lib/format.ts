@@ -68,3 +68,34 @@ export function toTokyoWallClock(iso: string): string {
   const p = Object.fromEntries(tokyoParts.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
+
+// ---------- 月（"2026-10" 形式）: カレンダーの月表示に使う ----------
+
+/** 日本時間の今月（"2026-10"） */
+export function currentTokyoMonth(): string {
+  return toTokyoWallClock(new Date().toISOString()).slice(0, 7);
+}
+
+/** 月を delta だけずらす（"2026-12", 1 → "2027-01"） */
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+/** "2026-10" → "2026年10月" */
+export function formatMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return `${y}年${m}月`;
+}
+
+/**
+ * その月の 1 日 0:00（TIME_ZONE の壁時計）の瞬間。オフセットを文字列に書かず、TIME_ZONE から求める
+ */
+export function tokyoMonthStart(month: string): Date {
+  const [y, m] = month.split('-').map(Number);
+  const utcMidnight = Date.UTC(y, m - 1, 1);
+  // UTC の 0:00 を TIME_ZONE の壁時計で見たときのずれ（日本時間なら +9 時間）だけ戻す
+  const offset = Date.parse(`${toTokyoWallClock(new Date(utcMidnight).toISOString())}:00Z`) - utcMidnight;
+  return new Date(utcMidnight - offset);
+}

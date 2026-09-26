@@ -26,6 +26,12 @@ function describe(n: NotificationDto): { icon: string; title: string; body: stri
         title: `「${n.data.eventTitle}」の開催日が決まりました`,
         body: `📅 ${formatDateTime(n.data.startsAt)}`,
       };
+    case "SPEAKER_ENTERED":
+      return {
+        icon: "🎤",
+        title: `「${n.data.eventTitle}」に登壇の表明がありました`,
+        body: `${n.data.speakerName} さん: ${n.data.talkTitle}`,
+      };
   }
 }
 
@@ -97,7 +103,8 @@ export default async function NotificationsPage(props: PageProps<"/notifications
                 {n.eventId ? (
                   <NotificationLink
                     id={n.id}
-                    href={`/events/${n.eventId}`}
+                    // 登壇の表明は、主催者が確認する「登壇者・参加者」の欄へ直接飛ばす
+                    href={`/events/${n.eventId}${n.type === "SPEAKER_ENTERED" ? "#entry" : ""}`}
                     unread={isUnread}
                     className={`${className} transition hover:bg-muted focus-visible:bg-muted`}
                   >

@@ -3,7 +3,6 @@ import type { EventDetailDto } from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import type { EventDetail } from '../events/events.repository.js';
 import { EventsService } from '../events/events.service.js';
-import { toEventDetailDto } from '../events/events.mapper.js';
 import { ResponsesRepository, type ResponseValue } from './responses.repository.js';
 import { ResponseInputDto } from './dto/response-input.dto.js';
 import { SubmitResponsesDto } from './dto/submit-responses.dto.js';
@@ -29,7 +28,7 @@ export class ResponsesService {
     const values = this.validate(event, dto.responses);
     await this.responses.upsertForGuest(dto.guestKey, dto.guestName.trim(), values);
     const updated = await this.events.findOrThrow(event.id);
-    return toEventDetailDto(updated, { guestKey: dto.guestKey });
+    return this.events.toDetail(updated, { guestKey: dto.guestKey });
   }
 
   /** 回答先が本当にこのLT会の候補日か、まだ回答を受け付けているかを確認する */

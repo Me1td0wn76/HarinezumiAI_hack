@@ -55,6 +55,13 @@ export async function Nav() {
             </>
           ) : (
             <>
+              {/* みんなのカレンダーはログインなしで見られる */}
+              <Link
+                href="/calendar?view=all"
+                className="font-display text-sm font-bold text-muted-foreground hover:text-foreground"
+              >
+                カレンダー
+              </Link>
               <Link href="/login" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 ログイン
               </Link>

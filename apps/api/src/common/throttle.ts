@@ -40,6 +40,8 @@ export const THROTTLE = {
   passwordResetConfirm: { default: { ttl: 10 * MINUTE, limit: 10 } },
   /** コメントの連投を防ぐ */
   comment: { default: { ttl: MINUTE, limit: 10 } },
+  /** 参加表明の連打を防ぐ（登壇の表明ごとに主催者へ通知が飛ぶため） */
+  entry: { default: { ttl: MINUTE, limit: 20 } },
   /** 通報の連投で運営画面を埋められないようにする（同じ対象への再通報は理由の更新なので件数は増えない） */
   report: { default: { ttl: MINUTE, limit: 10 } },
   /** ブロック・解除の連打を防ぐ */

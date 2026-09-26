@@ -1,8 +1,17 @@
 import { createHash } from 'node:crypto';
-import type { DateTallyDto, EventDateDto, EventDetailDto, EventSummaryDto, ResponderRowDto } from '@lt/shared';
+import type {
+  DateTallyDto,
+  EventDateDto,
+  EventDetailDto,
+  EventEntryDto,
+  EventSummaryDto,
+  ResponderRowDto,
+} from '@lt/shared';
 import type { EventDate } from '../../generated/prisma/client.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
 import type { EventDetail, EventSummary } from './events.repository.js';
+
+type EventEntryWithUser = EventDetail['entries'][number];
 
 export function toEventDateDto(date: EventDate): EventDateDto {
   return {
@@ -47,6 +56,8 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
 export interface Viewer {
   userId?: string | null;
   guestKey?: string | null;
+  /** 参加表明の一覧から除くユーザー（閲覧者がブロックした相手） */
+  excludeEntryUserIds?: string[];
 }
 
 /**
@@ -86,7 +97,15 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
   }
 
   const isOrganizer = viewerId === event.organizerId;
-  const canSeeMeetingUrl = isOrganizer || (event.status === 'CONFIRMED' && viewerResponded);
+  const excluded = new Set(viewer.excludeEntryUserIds);
+  const entries = event.entries
+    .filter((e) => !excluded.has(e.userId))
+    // 登壇者を先に。同じ役割の中では表明の古い順（取得時の並び）を保つ
+    .sort((a, b) => Number(a.role === 'AUDIENCE') - Number(b.role === 'AUDIENCE'))
+    .map((e) => toEventEntryDto(e, isOrganizer || e.userId === viewerId));
+  const myEntry = viewerId ? (entries.find((e) => e.user.id === viewerId) ?? null) : null;
+  // 参加表明した人も「関わっている人」なので、開催日決定後は配信URL を見せる
+  const canSeeMeetingUrl = isOrganizer || (event.status === 'CONFIRMED' && (viewerResponded || myEntry !== null));
 
   return {
     id: event.id,
@@ -106,6 +125,22 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
     venue: event.venue,
     meetingUrl: canSeeMeetingUrl ? event.meetingUrl : null,
     hasMeetingUrl: event.meetingUrl !== null,
+    entries,
+    myEntry,
     createdAt: event.createdAt.toISOString(),
+  };
+}
+
+/**
+ * @param showPrivate 発表内容の説明と発表時間を含めるか（主催者と本人のみ）。発表タイトルは公開する
+ */
+export function toEventEntryDto(entry: EventEntryWithUser, showPrivate: boolean): EventEntryDto {
+  return {
+    user: toPublicUserDto(entry.user),
+    role: entry.role,
+    talkTitle: entry.talkTitle,
+    talkDetail: showPrivate ? entry.talkDetail : null,
+    durationMinutes: showPrivate ? entry.durationMinutes : null,
+    createdAt: entry.createdAt.toISOString(),
   };
 }

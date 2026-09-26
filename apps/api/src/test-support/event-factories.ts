@@ -54,8 +54,26 @@ export function buildEvent(overrides: Partial<EventDetail> = {}): EventDetail {
         responses: [],
       },
     ],
+    entries: [],
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+/** ユニットテスト用の参加表明（EventDetail['entries'] の1件）ビルダー */
+export function buildEntry(overrides: Partial<EventDetail['entries'][number]> = {}): EventDetail['entries'][number] {
+  return {
+    id: 'entry-1',
+    eventId: 'event-1',
+    userId: 'user-2',
+    user: { id: 'user-2', handle: 'speaker', displayName: '登壇者', avatarUrl: null },
+    role: 'SPEAKER',
+    talkTitle: '発表タイトル',
+    talkDetail: '発表内容の説明',
+    durationMinutes: 5,
+    createdAt: new Date('2026-01-02T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     ...overrides,
   };
 }

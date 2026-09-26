@@ -40,7 +40,7 @@ export default async function MePage() {
       <EventSection
         title="参加したLT会"
         events={history.participated}
-        empty="候補日に回答したLT会がここに表示されます。"
+        empty="候補日に回答したり、登壇・聴講を表明したりしたLT会がここに表示されます。"
       />
 
       <section className="card mx-auto max-w-md space-y-3">

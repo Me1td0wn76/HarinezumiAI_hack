@@ -8,6 +8,12 @@ import type { FormatFields } from './format.js';
 /** /me の履歴で返す件数の上限（それぞれ新しい順） */
 export const HISTORY_LIMIT = 50;
 
+/**
+ * 詳細で返す参加表明の上限。1人1件でレート制限もあるので通常は届かない。
+ * 上限を超えたLT会でも閲覧者自身の表明は EventsService.getDetail が別に取得して含める
+ */
+export const ENTRY_LIMIT = 500;
+
 /** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
   organizer: { select: publicUserSelect },
@@ -21,6 +27,12 @@ export const eventDetailInclude = {
         include: { user: { select: publicUserSelect } },
       },
     },
+  },
+  // 表明の古い順に最大 ENTRY_LIMIT 件。荒らされても詳細ページが重くならないようにする（コメント欄と同じ考え方）
+  entries: {
+    orderBy: { createdAt: 'asc' },
+    include: { user: { select: publicUserSelect } },
+    take: ENTRY_LIMIT,
   },
 } satisfies Prisma.EventInclude;
 
@@ -75,6 +87,16 @@ export function decodeEventCursor(raw: string): EventCursor | null {
   const createdAt = new Date(iso);
   if (rest.length > 0 || !id || Number.isNaN(createdAt.getTime())) return null;
   return { createdAt, id };
+}
+
+/**
+ * 「参加した LT会」の条件: 候補日に1つ以上回答したか、参加表明（登壇 / 聴講）した（docs/open-questions.md F-8）。
+ * where の OR を使うので、他の OR と組み合わせるときは AND に入れる
+ */
+export function participatedBy(userId: string): Prisma.EventWhereInput {
+  return {
+    OR: [{ candidateDates: { some: { responses: { some: { userId } } } } }, { entries: { some: { userId } } }],
+  };
 }
 
 @Injectable()
@@ -150,13 +172,13 @@ export class EventsRepository {
     });
   }
 
-  /** 候補日に1つ以上回答したLT会（主催したものと、運営が非表示にしたものは除く） */
+  /** 参加したLT会（participatedBy の定義。主催したものと、運営が非表示にしたものは除く） */
   findManyRespondedBy(userId: string): Promise<EventSummary[]> {
     return this.prisma.event.findMany({
       where: {
         organizerId: { not: userId },
         hiddenAt: null,
-        candidateDates: { some: { responses: { some: { userId } } } },
+        ...participatedBy(userId),
       },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
@@ -178,7 +200,7 @@ export class EventsRepository {
   }
 
   /**
-   * 公開プロフィールの「参加予定」。候補日に回答したLT会（findManyRespondedBy と同じ定義）のうち、
+   * 公開プロフィールの「参加予定」。参加したLT会（findManyRespondedBy と同じ定義）のうち、
    * 日程調整中のものと、開催日が now 以降に決まったもの
    * @param excludeOrganizerIds 閲覧者がブロックした相手の主催分を除く
    */
@@ -187,12 +209,22 @@ export class EventsRepository {
       where: {
         organizerId: { not: userId, notIn: excludeOrganizerIds },
         hiddenAt: null,
-        candidateDates: { some: { responses: { some: { userId } } } },
-        OR: [{ status: 'OPEN' }, { status: 'CONFIRMED', confirmedDate: { startsAt: { gte: now } } }],
+        AND: [
+          participatedBy(userId),
+          { OR: [{ status: 'OPEN' }, { status: 'CONFIRMED', confirmedDate: { startsAt: { gte: now } } }] },
+        ],
       },
       include: eventSummaryInclude,
       orderBy: { createdAt: 'desc' },
       take: HISTORY_LIMIT,
+    });
+  }
+
+  /** 1人分の参加表明（詳細の entries と同じ形） */
+  findEntry(eventId: string, userId: string): Promise<EventDetail['entries'][number] | null> {
+    return this.prisma.eventEntry.findUnique({
+      where: { eventId_userId: { eventId, userId } },
+      include: { user: { select: publicUserSelect } },
     });
   }
 

@@ -3,7 +3,13 @@ import type { EventDetailDto, EventSummaryDto, MyEventsDto, PageDto, TagCountDto
 import type { User } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
-import { EventsRepository, decodeEventCursor, type EventDetail, type NewCandidateDate } from './events.repository.js';
+import {
+  ENTRY_LIMIT,
+  EventsRepository,
+  decodeEventCursor,
+  type EventDetail,
+  type NewCandidateDate,
+} from './events.repository.js';
 import { toEventDetailDto, toEventSummaryDto } from './events.mapper.js';
 import { normalizeTags } from './tags.js';
 import { normalizeFormatFields } from './format.js';
@@ -69,9 +75,18 @@ export class EventsService {
     return toEventDetailDto(event, { userId: organizer.id });
   }
 
+  /** ログインしていれば、ブロックした相手の参加表明を一覧から除く（コメント欄と同じ扱い） */
   async getDetail(id: string, viewer: User | null): Promise<EventDetailDto> {
-    const event = await this.findVisibleOrThrow(id, viewer);
-    return toEventDetailDto(event, { userId: viewer?.id });
+    const [event, blockedIds] = await Promise.all([
+      this.findVisibleOrThrow(id, viewer),
+      viewer ? this.blocks.findBlockedIds(viewer.id) : Promise.resolve([]),
+    ]);
+    // 参加表明が上限（ENTRY_LIMIT）まで埋まっていると、閲覧者自身の表明が取得範囲の外にあり得る
+    if (viewer && event.entries.length >= ENTRY_LIMIT && !event.entries.some((e) => e.userId === viewer.id)) {
+      const mine = await this.events.findEntry(id, viewer.id);
+      if (mine) event.entries.push(mine);
+    }
+    return toEventDetailDto(event, { userId: viewer?.id, excludeEntryUserIds: blockedIds });
   }
 
   async update(id: string, user: User, dto: UpdateEventDto): Promise<EventDetailDto> {

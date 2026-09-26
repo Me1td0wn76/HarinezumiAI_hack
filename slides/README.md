@@ -30,9 +30,10 @@ Pages はサブパスで配信されるので、ビルドには `--base /Harinez
 | `style.css` | 全体の見た目（見出しのマーカー、カード、各スライドの部品） |
 | `layouts/hero.vue` | 表紙と締めの、黄色い帯のレイアウト。frontmatter の `mascot: hedgehog` でハリネズミを出す |
 | `slide-bottom.vue` | 各スライド下のアプリ名とページ番号 |
-| `components/` | 稲妻（`Bolt`）、アプリと同じアイコン（`LtIcon`）、カーソルから逃げるアイコン（`FleeingIcons`）、読み込み中の画面のハリネズミ（`LoadingHedgehog`）、ブラウザ枠つきのスクリーンショット（`Screen`） |
+| `components/` | 稲妻（`Bolt`）、アプリと同じアイコン（`LtIcon`）、カーソルから逃げるアイコン（`FleeingIcons`）、読み込み中の画面のハリネズミ（`LoadingHedgehog`）、メンバー紹介のカード（`Member`）、ブラウザ枠つきのスクリーンショット（`Screen`） |
 | `lib/lt-icons.ts` | `apps/web/src/components/lt-icons.ts` の写し |
 | `lib/lt-loading.css` | `apps/web/src/app/globals.css` の「読み込み中の画面」の写し。アプリ側を変えたら写し直す |
+| `public/members/` | メンバー紹介に載せる GitHub のアイコン（発表会場がオフラインでも出るよう、ダウンロードして置いている） |
 | `public/screens/` | デモのスライドに載せるアプリのスクリーンショット（1280×720 で撮影し一部を切り抜き。seed データ、`demo@example.com` でログイン） |
 
 ## スクリーンショットの撮り直し

@@ -24,10 +24,59 @@ mascot: hedgehog
 <p class="hero-lead">テーマ「AI」＝ 出会い（で<b>あい</b>）。<br>タイトルと候補日を書くだけで、話したい人と聞きたい人が出会う。</p>
 
 <!--
-【0:00〜0:15】
+【0:00〜0:10】
 みなさん、LT会で誰かと出会ったことはありますか？
 私たちはテーマの「AI（アイ）」を「出会い」と捉えて、LT会で人が出会えるアプリを作りました。
 （ハリネズミが稲妻を充電しているのは、アプリの読み込み中の画面です）
+-->
+
+---
+
+<div class="eyebrow"><Bolt :size="12" /> MEMBER</div>
+
+# 作ったのは、この 4 人
+
+<FleeingIcons class="corner-icons" :icons="['clap', 'mic', 'bubble']" />
+
+<div class="grid grid-cols-4 gap-4 mt-2">
+  <Member login="Me1td0wn76" img="/members/Me1td0wn76.jpg" role="設計・API・デプロイ">
+    <ul>
+      <li>検索・タグ・開催形式</li>
+      <li>共有・Discord 通知</li>
+      <li>通報・レート制限</li>
+      <li>主要な基盤の開発</li>
+    </ul>
+  </Member>
+  <Member login="Sabigon-MA" img="/members/Sabigon-MA.png" role="デザイン・参加表明">
+    <ul>
+      <li>画面のリデザイン</li>
+      <li>登壇・聴講の表明</li>
+      <li>みんなのカレンダー</li>
+      <li>API のテスト整備</li>
+    </ul>
+  </Member>
+  <Member login="Tongari-Boy" img="/members/Tongari-Boy.png" role="フォロー・回答">
+    <ul>
+      <li>ユーザーのフォロー</li>
+      <li>回答コメントの表示</li>
+      <li>決定前の確認ダイアログ</li>
+    </ul>
+  </Member>
+  <Member login="shouras" img="/members/shouras.png" role="通知・プロフィール・団体">
+    <ul>
+      <li>アプリ内通知</li>
+      <li>公開プロフィール</li>
+      <li>団体（サークル・研究室）</li>
+    </ul>
+  </Member>
+</div>
+
+<p class="!mt-5 text-center text-sm font-bold">機能ごとに Issue を分けて、4 人で 31 の PR をマージ</p>
+
+<!--
+【0:10〜0:25】
+メンバーは 4 人です。（一人ずつ名前と担当を一言で）
+機能ごとに Issue を分けて、それぞれが PR で持ち寄る形で作りました。
 -->
 
 ---
@@ -59,7 +108,7 @@ mascot: hedgehog
 <p v-click class="!mt-10 text-center text-xl font-bold">開くハードルが高いと、出会いの場そのものが生まれない</p>
 
 <!--
-【0:15〜0:45】
+【0:25〜0:50】
 LT会は、話したい人と聞きたい人が出会える場です。でも開こうとすると、3 つの壁があります。（クリックで 1 つずつ）
 人が集まらない。集まれる日がわからない。日程調整がめんどう。
 開くのが大変だと、出会いの場そのものが生まれません。
@@ -93,7 +142,7 @@ LT会は、話したい人と聞きたい人が出会える場です。でも開
 </div>
 
 <!--
-【0:45〜1:25】
+【0:50〜1:25】
 テーマの「AI」は、出会い（であい）の「アイ」として使いました。
 このアプリは、LT会を出会いの入口にします。生まれる出会いは 3 つです。（クリックで 1 つずつ）
 話したい人と聞きたい人。あなたと気になる話題。そしてコミュニティとコミュニティ。

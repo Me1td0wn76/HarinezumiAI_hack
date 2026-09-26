@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motionAllowed } from "./click-effects";
+import { LT_ICONS, type LtIconName } from "./lt-icons";
 
 /** カーソルがこの距離（px）より近づくと逃げる。逃げる強さ（近いほど遠くへ） */
 const MOTION = {
@@ -10,19 +11,23 @@ const MOTION = {
   small: { reach: 150, push: 0.3 },
 } as const;
 
-const SHAPES = [
-  { kind: "circle", fill: "#ffe45c" },
-  { kind: "tri", fill: "#ff9f43" },
-  { kind: "square", fill: "#ffd7b0" },
-] as const;
-
 /**
- * 見出しの横に置く ○▽□。カーソルが近づくと、くるっと回りながらよけて、離れるとばねのように戻る。
+ * 見出しの横に置く LT会にちなんだアイコン（見出しの内容に合わせて 3 つ選ぶ）。
+ * カーソルが近づくと、くるっと 1 回転しながらよけて、離れるとばねのように戻る（1 回転なので、よけた先でも向きはそのまま）。
  * 飾りなので読み上げず、クリックも受け取らない。マウスが無い小さい画面では出さない。
  * 位置の計算は、動かない外側の枠（span）を基準にする（動いている図形自体を測ると、逃げた先を基準にしてしまう）
+ * @param icons 並べるアイコン（lt-icons.ts の名前）
  * @param size HOME の見出しは large、フォームの見出しなどは small
  */
-export function FleeingShapes({ className = "", size = "large" }: { className?: string; size?: "large" | "small" }) {
+export function FleeingShapes({
+  icons,
+  className = "",
+  size = "large",
+}: {
+  icons: readonly LtIconName[];
+  className?: string;
+  size?: "large" | "small";
+}) {
   const refs = useRef<(HTMLSpanElement | null)[]>([]);
 
   const { reach, push } = MOTION[size];
@@ -41,7 +46,7 @@ export function FleeingShapes({ className = "", size = "large" }: { className?: 
           const d = Math.hypot(dx, dy) || 1;
           if (allowed && d < reach) {
             const k = (reach - d) * push;
-            el.style.transform = `translate(${(-dx / d) * k}px, ${(-dy / d) * k}px) rotate(180deg)`;
+            el.style.transform = `translate(${(-dx / d) * k}px, ${(-dy / d) * k}px) rotate(360deg)`;
           } else {
             el.style.transform = "";
           }
@@ -57,8 +62,8 @@ export function FleeingShapes({ className = "", size = "large" }: { className?: 
 
   return (
     <div aria-hidden="true" className={`pointer-events-none hidden items-center md:flex ${size === "small" ? "gap-3" : "gap-5"} ${className}`}>
-      {SHAPES.map((s, i) => (
-        <span key={s.kind} className={size === "small" ? "block h-7 w-7" : "block h-14 w-14"}>
+      {icons.map((name, i) => (
+        <span key={`${name}-${i}`} className={size === "small" ? "block h-8 w-8" : "block h-14 w-14"}>
           <span
             ref={(el) => {
               refs.current[i] = el;
@@ -66,9 +71,9 @@ export function FleeingShapes({ className = "", size = "large" }: { className?: 
             className="lt-flee block h-full w-full"
           >
             <svg viewBox="0 0 60 60" className="h-full w-full overflow-visible">
-              {s.kind === "circle" && <circle cx="30" cy="30" r="26" fill={s.fill} stroke="#e07a1f" strokeWidth="3" />}
-              {s.kind === "tri" && <path d="M5 9 H55 L30 55 Z" fill={s.fill} stroke="#e07a1f" strokeWidth="3" strokeLinejoin="round" />}
-              {s.kind === "square" && <rect x="6" y="6" width="48" height="48" rx="9" fill={s.fill} stroke="#e07a1f" strokeWidth="3" />}
+              {LT_ICONS[name].map((p, j) => (
+                <path key={j} d={p.d} fill={p.fill} stroke="#e07a1f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+              ))}
             </svg>
           </span>
         </span>

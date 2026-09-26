@@ -8,6 +8,7 @@ import { keepValuesOnSubmit } from "@/lib/keep-values-on-submit";
 import { CandidateDatesField } from "./candidate-dates-field";
 import { CREATE_STEPS, setCreateProgress } from "./create-progress";
 import { FleeingShapes } from "./fleeing-shapes";
+import type { LtIconName } from "./lt-icons";
 import { WebhookUrlField } from "./webhook-url-field";
 import { FormMessage } from "./form-message";
 import { FormatFields } from "./format-fields";
@@ -19,8 +20,21 @@ import { TagsField } from "./tags-field";
  * 左に番号を置き、入力が済んだらチェックに変える（番号は飾りで、済んだかどうかは右の欄の文字でも伝える）
  * @param num 左に出す番号
  * @param done 入力が済んだか。undefined なら任意の項目で、チェックにしない
+ * @param icons 見出しの横に置く、見出しの内容に合わせたアイコン
  */
-function Section({ title, num, done, children }: { title: string; num: number; done?: boolean; children: ReactNode }) {
+function Section({
+  title,
+  num,
+  done,
+  icons,
+  children,
+}: {
+  title: string;
+  num: number;
+  done?: boolean;
+  icons: readonly LtIconName[];
+  children: ReactNode;
+}) {
   return (
     <section className="relative space-y-4">
       <span
@@ -35,7 +49,7 @@ function Section({ title, num, done, children }: { title: string; num: number; d
       <div className="flex items-center gap-3">
         <h2 className="font-display text-2xl font-black tracking-tight text-foreground">{title}</h2>
         {done === undefined && <span className="text-sm font-bold text-muted-foreground">任意</span>}
-        <FleeingShapes size="small" className="mr-4 ml-auto" />
+        <FleeingShapes icons={icons} size="small" className="mr-4 ml-auto" />
       </div>
       {children}
     </section>
@@ -168,7 +182,7 @@ export function EventForm({ organizations }: { organizations: OrganizationSummar
           <div className="lt-step-line w-1 rounded-full bg-accent" style={{ height: `${(doneCount / CREATE_STEPS) * 100}%` }} />
         </div>
 
-        <Section title="基本情報" num={1} done={doneCount >= 1}>
+        <Section title="基本情報" num={1} done={doneCount >= 1} icons={["pencil", "slide", "tag"]}>
           <div>
             <label className="label" htmlFor="title">
               タイトル
@@ -192,16 +206,16 @@ export function EventForm({ organizations }: { organizations: OrganizationSummar
           <OrganizationSelect organizations={organizations} />
         </Section>
 
-        <Section title="開催形式" num={2} done={doneCount >= 2}>
+        <Section title="開催形式" num={2} done={doneCount >= 2} icons={["laptop", "pin", "mic"]}>
           <FormatFields />
         </Section>
 
-        <Section title="候補日" num={3} done={doneCount >= 3}>
+        <Section title="候補日" num={3} done={doneCount >= 3} icons={["calendar", "timer", "hourglass"]}>
           <p className="-mt-2 text-sm text-muted-foreground">終了時刻は任意です</p>
           <CandidateDatesField min={1} />
         </Section>
 
-        <Section title="通知" num={4}>
+        <Section title="通知" num={4} icons={["bell", "megaphone", "bubble"]}>
           <WebhookUrlField id="webhookUrl" />
         </Section>
       </div>

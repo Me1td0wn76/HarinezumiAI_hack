@@ -63,8 +63,9 @@ export function HeroShapes({
         <circle cx="100" cy="100" r="96" fill="#ffffff" opacity="0.7" />
       </svg>
       <div
-        className={`lt-shape absolute hidden md:block ${large ? "right-24 top-56 h-80 w-80" : "right-32 top-2 h-44 w-44"}`}
-        style={{ transform: `translate(${o.x * 36}px, ${o.y * 28}px) rotate(${o.x * 6}deg)` }}
+        className={`lt-shape absolute hidden md:block ${large ? "right-24 top-56 h-80 w-80" : "right-32 top-6 h-44 w-44"}`}
+        // 各ページの帯は高さが低いので、上下の動きを小さくして、稲妻が帯の上下で切れないようにする
+        style={{ transform: `translate(${o.x * 36}px, ${o.y * (large ? 28 : 16)}px) rotate(${o.x * 6}deg)` }}
       >
         <svg viewBox="0 0 24 24" className={`h-full w-full overflow-visible ${charging && full ? "lt-charged" : ""}`}>
           {charging && (

@@ -125,7 +125,8 @@ export default async function HomePage(props: PageProps<"/">) {
                 日程調整中のLT会は、候補日に回答すると開催日決定の通知が届きます
               </p>
             </Reveal>
-            <FleeingShapes className="ml-auto mr-6" />
+            {/* 見出しに合わせたアイコン: 開催の予定＝カレンダー・マイク・スポットライト */}
+            <FleeingShapes icons={["calendar", "mic", "spotlight"]} className="ml-auto mr-6" />
             <Link href="/calendar?view=all" className="text-base font-bold underline decoration-accent decoration-[3px] underline-offset-[6px]">
               カレンダーで見る →
             </Link>
@@ -178,7 +179,8 @@ export default async function HomePage(props: PageProps<"/">) {
                 <span className="lt-marker">どこから始める？</span>
               </h2>
             </Reveal>
-            <FleeingShapes className="mr-6" />
+            {/* 探す（虫眼鏡）・作る（鉛筆）・思いつき（ひらめき） */}
+            <FleeingShapes icons={["magnifier", "pencil", "bulb"]} className="mr-6" />
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <Reveal tilt={-3}>
@@ -224,7 +226,8 @@ export default async function HomePage(props: PageProps<"/">) {
                 <span className="lt-marker">LT会ができるまで</span>
               </h2>
             </Reveal>
-            <FleeingShapes className="mr-6" />
+            {/* 立てる（旗）・集まる（拍手）・決まる（チェック） */}
+            <FleeingShapes icons={["flag", "clap", "check"]} className="mr-6" />
           </div>
           <ol className="grid gap-6 md:grid-cols-3">
             {[

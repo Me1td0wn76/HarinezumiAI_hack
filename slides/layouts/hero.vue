@@ -1,8 +1,9 @@
-<!-- 表紙・締めのスライド。アプリの HOME 上部と同じ、黄色の帯に淡い円と稲妻 -->
+<!-- 表紙・締めのスライド。アプリの HOME 上部と同じ、黄色の帯に淡い円と稲妻（frontmatter の mascot: hedgehog で、読み込み中の画面のハリネズミ） -->
 <template>
   <div class="slidev-layout lt-hero">
     <div class="lt-hero-circle" aria-hidden="true">
-      <Bolt :size="210" />
+      <LoadingHedgehog v-if="$frontmatter.mascot === 'hedgehog'" :scale="1.35" />
+      <Bolt v-else :size="210" />
     </div>
     <div class="lt-hero-body">
       <slot />

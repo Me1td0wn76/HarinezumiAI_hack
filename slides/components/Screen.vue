@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 
 // スクリーンショットをブラウザの枠に入れて見せる。src は public/ からのパス（例: /screens/home.png）
-const props = withDefaults(defineProps<{ src: string; alt: string; url?: string }>(), { url: 'localhost:3000' })
+// height を渡すと、その高さで上端から切り取って見せる（縦横比の違う画像を並べるとき用）
+const props = withDefaults(defineProps<{ src: string; alt: string; url?: string; height?: string }>(), { url: 'localhost:3000' })
 const resolved = computed(() => import.meta.env.BASE_URL + props.src.replace(/^\//, ''))
 </script>
 
@@ -12,7 +13,7 @@ const resolved = computed(() => import.meta.env.BASE_URL + props.src.replace(/^\
       <i /><i /><i />
       <span>{{ url }}</span>
     </div>
-    <img :src="resolved" :alt="alt">
+    <img :src="resolved" :alt="alt" :style="height ? { height, objectFit: 'cover', objectPosition: 'top left' } : undefined">
   </figure>
 </template>
 

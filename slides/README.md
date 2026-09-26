@@ -1,6 +1,7 @@
 # 発表資料（Slidev）
 
-LT会支援アプリの発表スライド。本文は [slides.md](slides.md)、配色はアプリの `apps/web/src/app/globals.css` に合わせてある。
+LT会支援アプリの発表スライド（5 分・8 枚）。テーマ「AI（アイ）」を「出会い」と捉えた構成で、各スライドの発表者ノートに目安の時間と台本、デモの手順を書いてある。
+本文は [slides.md](slides.md)、配色はアプリの `apps/web/src/app/globals.css` に合わせてある。
 
 アプリの workspace には含めていない（Render / Vercel のビルドに Slidev の依存を入れないため）。このフォルダの中でインストールする。
 
@@ -18,12 +19,13 @@ PDF にするときは、先に `pnpm add -D playwright-chromium` を入れて�
 | パス | 内容 |
 | --- | --- |
 | `slides.md` | スライド本文。各スライド末尾の `<!-- -->` は発表者ノート |
-| `style.css` | 全体の見た目（見出しのマーカー、カード、表など） |
-| `layouts/hero.vue` | 表紙と締めの、黄色い帯のレイアウト |
+| `style.css` | 全体の見た目（見出しのマーカー、カード、各スライドの部品） |
+| `layouts/hero.vue` | 表紙と締めの、黄色い帯のレイアウト。frontmatter の `mascot: hedgehog` でハリネズミを出す |
 | `slide-bottom.vue` | 各スライド下のアプリ名とページ番号 |
-| `components/` | 稲妻（`Bolt`）、アプリと同じアイコン（`LtIcon`）、カーソルから逃げるアイコン（`FleeingIcons`）、ブラウザ枠つきのスクリーンショット（`Screen`） |
+| `components/` | 稲妻（`Bolt`）、アプリと同じアイコン（`LtIcon`）、カーソルから逃げるアイコン（`FleeingIcons`）、読み込み中の画面のハリネズミ（`LoadingHedgehog`）、ブラウザ枠つきのスクリーンショット（`Screen`） |
 | `lib/lt-icons.ts` | `apps/web/src/components/lt-icons.ts` の写し |
-| `public/screens/` | アプリのスクリーンショット（1280×720、seed データ、`demo@example.com` でログイン） |
+| `lib/lt-loading.css` | `apps/web/src/app/globals.css` の「読み込み中の画面」の写し。アプリ側を変えたら写し直す |
+| `public/screens/` | デモのスライドに載せるアプリのスクリーンショット（1280×720 で撮影し一部を切り抜き。seed データ、`demo@example.com` でログイン） |
 
 ## スクリーンショットの撮り直し
 

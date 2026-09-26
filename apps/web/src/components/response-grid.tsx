@@ -75,12 +75,22 @@ export function ResponseGrid({ detail, highlightKey }: { detail: EventDetailDto;
                   return (
                     <td key={d.id} className="p-1 text-center">
                       {a ? (
-                        <span
-                          className={`inline-flex w-8 items-center justify-center rounded-full py-1 font-display font-bold ${cellStyle[a.availability]}`}
-                          title={a.comment ?? undefined}
-                        >
-                          {AVAILABILITY_LABEL[a.availability]}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span
+                            className={`inline-flex w-8 items-center justify-center rounded-full py-1 font-display font-bold ${cellStyle[a.availability]}`}
+                            title={a.comment ?? undefined}
+                          >
+                            {AVAILABILITY_LABEL[a.availability]}
+                          </span>
+                          {a.comment && (
+                            <span
+                              title={a.comment}
+                              className="max-w-[6rem] truncate text-[10px] leading-tight text-subtle"
+                            >
+                            {a.comment}
+                          </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-subtle">-</span>
                       )}

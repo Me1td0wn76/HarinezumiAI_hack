@@ -1,9 +1,11 @@
 "use client";
 
 import type { EventListQuery, EventSummaryDto, PageDto } from "@lt/shared";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { loadMoreEvents } from "@/actions/events";
 import { EventCard } from "./event-card";
+import { Reveal } from "./reveal";
 
 /**
  * 一覧 + 「もっと見る」。初回ページはサーバーで取得し、続きは Server Function で取りに行く。
@@ -31,17 +33,24 @@ export function EventList({ initial, query }: { initial: PageDto<EventSummaryDto
 
   if (items.length === 0) {
     return (
-      <div className="card text-center text-muted-foreground">
-        <p>条件に合うLT会はありません。</p>
+      <div className="card flex flex-col items-center gap-3 py-12 text-center">
+        <p className="font-display text-lg font-black">条件に合うLT会はまだありません</p>
+        <p className="text-sm text-muted-foreground">条件を変えるか、自分で立ててみませんか？</p>
+        <Link href="/events/new" className="btn-primary">
+          LT会を作る
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        {items.map((e) => (
-          <EventCard key={e.id} event={e} />
+    <div className="space-y-6">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* 画面に入ったカードから、同じ行のものを少しずつ遅らせて着地させる */}
+        {items.map((e, i) => (
+          <Reveal key={e.id} delay={(i % 3) * 110} tilt={i % 2 ? 3 : -3}>
+            <EventCard event={e} />
+          </Reveal>
         ))}
       </div>
       {error ? <p className="text-center text-sm text-danger-foreground">{error}</p> : null}

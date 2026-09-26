@@ -11,6 +11,7 @@ import {
 import { useActionState, useId, useState } from "react";
 import { submitEntry, withdrawEntry } from "@/actions/entries";
 import { keepValuesOnSubmit } from "@/lib/keep-values-on-submit";
+import { motionAllowed } from "./click-effects";
 import { FormMessage } from "./form-message";
 
 const ROLE_OPTION: Record<EntryRole, { icon: string; label: string; hint: string }> = {
@@ -26,6 +27,8 @@ const ROLE_OPTION: Record<EntryRole, { icon: string; label: string; hint: string
 export function EntryForm({ eventId, initial }: { eventId: string; initial: EventEntryDto | null }) {
   const [state, action, pending] = useActionState(submitEntry, undefined);
   const [role, setRole] = useState<EntryRole | null>(initial?.role ?? null);
+  // 役割を選んだときの波紋。n は選ぶたびに増やし、波紋の要素を作り直すための key にする
+  const [wave, setWave] = useState<{ role: EntryRole; n: number } | null>(null);
   const [talkTitle, setTalkTitle] = useState(initial?.talkTitle ?? "");
   const [talkDetail, setTalkDetail] = useState(initial?.talkDetail ?? "");
   const [duration, setDuration] = useState(initial?.durationMinutes?.toString() ?? "");
@@ -49,24 +52,48 @@ export function EntryForm({ eventId, initial }: { eventId: string; initial: Even
         <input type="hidden" name="eventId" value={eventId} />
         <fieldset>
           <legend className="label">参加のしかた</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
             {ENTRY_ROLE.map((r) => (
-              <label key={r} className="cursor-pointer">
+              <label key={r} className="relative cursor-pointer">
                 <input
                   type="radio"
                   name="role"
                   value={r}
                   checked={role === r}
-                  onChange={() => setRole(r)}
+                  onChange={() => {
+                    setRole(r);
+                    if (motionAllowed()) setWave((w) => ({ role: r, n: (w?.n ?? 0) + 1 }));
+                  }}
                   className="peer sr-only"
                   required
                 />
-                <span className="block rounded-[1.25rem] border-2 border-border-strong bg-card px-4 py-3 transition-colors hover:border-primary/70 peer-checked:border-primary peer-checked:bg-secondary/60 peer-focus-visible:ring-4 peer-focus-visible:ring-primary/40">
-                  <span className="block font-display font-extrabold text-foreground">
-                    <span aria-hidden="true">{ROLE_OPTION[r].icon} </span>
-                    {ROLE_OPTION[r].label}
+                {/* 選んだカードの中心から、カードを越えて大きな波紋が広がる。選ぶたびに作り直して最初から再生する */}
+                {wave?.role === r && <span key={wave.n} aria-hidden="true" className="lt-bigwave left-1/2" />}
+                {/* 選ぶと黄色くなって弾み、丸にチェックが入る（色だけでなく印でも選択が分かるようにする） */}
+                <span
+                  className={`relative z-[1] flex items-center gap-3 rounded-[1.25rem] border-2 px-4 py-3 transition-[transform,background-color,border-color] duration-300 ease-[cubic-bezier(.3,1.8,.5,1)] hover:-translate-y-0.5 active:scale-[.96] peer-focus-visible:ring-4 peer-focus-visible:ring-accent/40 motion-reduce:transition-none ${
+                    role === r ? "pill-active border-accent bg-sunny" : "border-primary bg-white"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                      role === r ? "border-accent-strong bg-accent" : "border-[#e0a800] bg-white"
+                    }`}
+                  >
+                    {role === r && (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m5 12 5 5 9-10" />
+                      </svg>
+                    )}
                   </span>
-                  <span className="block text-xs text-muted-foreground">{ROLE_OPTION[r].hint}</span>
+                  <span>
+                    <span className="block font-display font-black text-foreground">
+                      <span aria-hidden="true">{ROLE_OPTION[r].icon} </span>
+                      {ROLE_OPTION[r].label}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">{ROLE_OPTION[r].hint}</span>
+                  </span>
                 </span>
               </label>
             ))}
@@ -137,7 +164,7 @@ export function EntryForm({ eventId, initial }: { eventId: string; initial: Even
           />
         )}
         {/* 役割が未選択でも押せるようにし、ブラウザの必須チェックで「選んでください」と案内させる（無言で押せないボタンにしない） */}
-        <button type="submit" className="btn-primary" disabled={pending}>
+        <button type="submit" className="btn-primary w-full sm:w-auto lg:w-full" disabled={pending}>
           {pending ? "送信中…" : initial ? "参加表明を更新する" : "参加表明する"}
         </button>
       </form>

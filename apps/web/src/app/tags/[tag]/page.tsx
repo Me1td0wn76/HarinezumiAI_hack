@@ -17,7 +17,7 @@ export default async function TagPage(props: PageProps<"/tags/[tag]">) {
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <div>
-        <Link href="/" className="text-sm text-subtle hover:text-foreground">
+        <Link href="/events" className="text-sm text-subtle hover:text-foreground">
           ← LT会を探す
         </Link>
         <h1 className="mt-1 font-display text-3xl font-black tracking-tight text-foreground">#{tag}</h1>

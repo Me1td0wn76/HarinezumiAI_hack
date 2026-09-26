@@ -5,11 +5,7 @@ export function TagChip({ tag, count, active = false }: { tag: string; count?: n
   return (
     <Link
       href={`/tags/${encodeURIComponent(tag)}`}
-      className={`badge transition hover:-translate-y-0.5 ${
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground hover:bg-secondary hover:text-secondary-foreground"
-      }`}
+      className={`pill px-3 py-1 text-xs ${active ? "pill-active" : ""}`}
       aria-label={count !== undefined ? `#${tag}（${count}件）` : `#${tag}`}
     >
       #{tag}

@@ -31,7 +31,9 @@ export async function createEvent(_prev: ActionState, formData: FormData): Promi
   } catch (err) {
     return { error: errorMessage(err) };
   }
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   redirect(`/events/${created.id}`);
 }
 
@@ -56,7 +58,9 @@ export async function updateEvent(_prev: ActionState, formData: FormData): Promi
     return { error: errorMessage(err) };
   }
   revalidatePath(`/events/${eventId}`);
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   redirect(`/events/${eventId}`);
 }
 
@@ -81,7 +85,9 @@ export async function deleteEvent(_prev: ActionState, formData: FormData): Promi
   } catch (err) {
     return { error: errorMessage(err) };
   }
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   redirect('/');
 }
 
@@ -95,7 +101,9 @@ export async function submitResponses(_prev: ActionState, formData: FormData): P
     return { error: errorMessage(err) };
   }
   revalidatePath(`/events/${eventId}`);
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   return { success: true };
 }
 
@@ -110,7 +118,9 @@ export async function confirmEvent(_prev: ActionState, formData: FormData): Prom
     return { error: errorMessage(err) };
   }
   revalidatePath(`/events/${eventId}`);
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   return { success: true };
 }
 
@@ -122,7 +132,9 @@ export async function closeEvent(_prev: ActionState, formData: FormData): Promis
     return { error: errorMessage(err) };
   }
   revalidatePath(`/events/${eventId}`);
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   return { success: true };
 }
 

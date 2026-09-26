@@ -48,6 +48,8 @@ export async function moderateEvent(_prev: ActionState, formData: FormData): Pro
   }
   revalidatePath('/admin');
   revalidatePath(`/events/${eventId}`);
+  // 一覧は「LT会を探す」（/events）、HOME（/）は近日開催のLT会を出すので、両方を作り直す
   revalidatePath('/');
+  revalidatePath('/events');
   return { success: true };
 }

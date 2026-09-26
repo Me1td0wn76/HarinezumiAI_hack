@@ -36,6 +36,11 @@ export class DiscordWebhookService {
     await Promise.all([...urls].map((url) => this.post(url, content)));
   }
 
+  /** 全体向けには送らず、指定した送り先にだけ送る */
+  async sendOnly(content: string, url: string): Promise<void> {
+    await this.post(url, content);
+  }
+
   private async post(url: string, content: string): Promise<void> {
     // DB に入っている値も念のため確認する（DTO の検証をすり抜けた値に POST しない）
     if (url !== this.url && !DISCORD_WEBHOOK_URL_PATTERN.test(url)) {

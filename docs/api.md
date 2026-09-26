@@ -28,7 +28,7 @@
 | GET | `/tags` | - | 使用回数の多いタグ（`?limit=30`、最大 100） | `TagCountDto[]` |
 | POST | `/events` | 必須 | LT会作成（`CreateEventRequest`、`tags` は最大 5 個、`format` 省略時は ONLINE、`webhookUrl` は任意。`organizationId` は自分が所属する団体のみで、それ以外は 403）。Discord 通知 + 全ユーザーにアプリ内通知（主催者本人と、主催者をブロックした人は除く） | `EventDetailDto` |
 | GET | `/events/:id` | 任意 | LT会詳細。主催者本人には `shareToken` と `webhookUrl` を含める。非表示のLT会は主催者と運営以外 404 | `EventDetailDto` |
-| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先・団体の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除、`organizationId: null` で団体から外す。別の団体に付け替えるときは付け替え先のメンバーでないと 403） | `EventDetailDto` |
+| PATCH | `/events/:id` | 主催者 | タイトル・説明・タグ・開催形式・会場・配信URL・Discord 通知先・団体の更新（`UpdateEventRequest`。`tags` を渡すと丸ごと置換、`webhookUrl: null` で通知先を解除、`organizationId: null` で団体から外す。別の団体に付け替えるときは付け替え先のメンバーでないと 403。団体に紐付けた・付け替えたときは、その団体の Discord にだけ知らせる） | `EventDetailDto` |
 | DELETE | `/events/:id` | 主催者 | LT会削除 | 204 |
 | POST | `/events/:id/dates` | 主催者 | 候補日追加（`{ candidateDates }`）。OPEN のときのみ | `EventDetailDto` |
 | DELETE | `/events/:id/dates/:dateId` | 主催者 | 候補日削除。決定済みの日は不可 | `EventDetailDto` |
@@ -51,7 +51,7 @@
 | PUT | `/share/:token/responses` | - | ゲスト回答（`SubmitGuestResponsesRequest`）。`guestKey` が同じなら更新 | `EventDetailDto` |
 | GET | `/organizations` | - | 団体一覧（新しい順に最大 50 件） | `OrganizationListItemDto[]` |
 | POST | `/organizations` | 必須 | 団体作成（`CreateOrganizationRequest`）。作成者が OWNER になる。`slug` が使用済みなら 409 | `OrganizationDetailDto` |
-| GET | `/organizations/:slug` | 任意 | 団体の詳細とメンバー（OWNER が先）。OWNER には `webhookUrl` を含める。存在しなければ 404 | `OrganizationDetailDto` |
+| GET | `/organizations/:slug` | 任意 | 団体の詳細とメンバー（OWNER が先、最大 200 人。総数は `memberCount`）。OWNER には `webhookUrl` を含める。存在しなければ 404 | `OrganizationDetailDto` |
 | PATCH | `/organizations/:slug` | OWNER | 団体名・slug・紹介文・Discord 通知先の更新（`UpdateOrganizationRequest`）。`slug` が使用済みなら 409 | `OrganizationDetailDto` |
 | DELETE | `/organizations/:slug` | OWNER | 団体削除。紐付いていたLT会は残り、団体なしになる | 204 |
 | GET | `/organizations/:slug/events` | 任意 | 団体に紐付いたLT会。クエリとレスポンスは `GET /events` と同じ。存在しない団体は 404 | `PageDto<EventSummaryDto>` |
@@ -115,6 +115,13 @@ LT会が紐付いた団体の OWNER が設定する `webhookUrl`（`POST` / `PAT
 あればすべてに送る（同じ URL は1回）。サーバーから任意の URL に POST させないよう、`webhookUrl` は
 `https://discord.com/api/webhooks/...`（`discordapp.com`、`ptb.` / `canary.` を含む）の形式だけを受け付ける。
 
+| できごと | 全体向け | LT会ごと | 団体 |
+| --- | --- | --- | --- |
+| LT会の作成 | ○ | ○ | ○ |
+| 開催日の決定 | ○ | ○ | ○ |
+| コメント | ○ | ○ | ×（コメントはLT会と無関係な人でも投稿できるので、第三者である団体のチャンネルには流さない） |
+| 作成後に団体へ紐付けた・付け替えた | × | × | ○（作成時の通知が団体に届いていないため、その団体にだけ知らせる） |
+
 ## エラー
 
 NestJS 標準の形式。`message` は文字列か、バリデーションエラー時は文字列の配列。
@@ -147,7 +154,7 @@ web（BFF）は利用者の IP を `X-Forwarded-For` で渡し、api は `TRUST_
 | `GET /auth/oauth/:provider/url` | 30 回 / 分 |
 | `POST /auth/oauth/:provider` | 20 回 / 分 |
 | `POST /events` | 10 回 / 時 |
-| `POST /organizations` | 5 回 / 時 |
+| `POST /organizations` | 20 回 / 時（slug の重複・形式違反も 1 回に数えるため、使える slug を探して送り直しても詰まらない程度） |
 | `PUT /events/:id/responses` | 30 回 / 分 |
 | `PUT /share/:token/responses` | 30 回 / 分 |
 | `POST /events/:id/comments` | 10 回 / 分 |

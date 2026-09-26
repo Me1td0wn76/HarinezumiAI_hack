@@ -4,6 +4,7 @@ import { OrganizationsService } from './organizations.service.js';
 import { OrganizationsRepository, type OrganizationDetail } from './organizations.repository.js';
 import { UsersRepository } from '../users/users.repository.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
+import type { OrganizationRole } from '@lt/shared';
 import { buildUser } from '../../test-support/event-factories.js';
 
 const owner = buildUser({ id: 'owner', handle: 'owner' });
@@ -47,7 +48,8 @@ function buildDetail(): OrganizationDetail {
 describe('OrganizationsService', () => {
   let service: OrganizationsService;
   let repo: Record<
-    | 'findBySlug'
+    | 'findBySlugWithRole'
+    | 'findRoleBySlug'
     | 'findDetailBySlug'
     | 'findRole'
     | 'countOwners'
@@ -61,15 +63,19 @@ describe('OrganizationsService', () => {
   >;
   let users: { findByHandle: ReturnType<typeof vi.fn> };
   let blocks: { findBlockedIds: ReturnType<typeof vi.fn> };
-  const roles: Record<string, 'OWNER' | 'MEMBER'> = {};
+  // テストごとに作り直す（あるテストで足した役割が後のテストに残らないように）
+  let roles: Record<string, OrganizationRole>;
 
   beforeEach(async () => {
-    Object.assign(roles, { owner: 'OWNER', member: 'MEMBER' });
-    delete roles.stranger;
+    roles = { owner: 'OWNER', member: 'MEMBER' };
+    const roleOf = (userId: string) => roles[userId] ?? null;
     repo = {
-      findBySlug: vi.fn().mockResolvedValue(org),
+      findBySlugWithRole: vi.fn((_slug: string, userId: string) =>
+        Promise.resolve({ organization: org, role: roleOf(userId) }),
+      ),
+      findRoleBySlug: vi.fn((_slug: string, userId: string) => Promise.resolve(roleOf(userId))),
       findDetailBySlug: vi.fn().mockResolvedValue(buildDetail()),
-      findRole: vi.fn((_orgId: string, userId: string) => Promise.resolve(roles[userId] ?? null)),
+      findRole: vi.fn((_orgId: string, userId: string) => Promise.resolve(roleOf(userId))),
       countOwners: vi.fn().mockResolvedValue(1),
       create: vi.fn(),
       update: vi.fn(),
@@ -102,6 +108,19 @@ describe('OrganizationsService', () => {
     it('閲覧者の役割を返す（非メンバー・未ログインは null）', async () => {
       expect((await service.getBySlug('my-lab', member)).viewerRole).toBe('MEMBER');
       expect((await service.getBySlug('my-lab', stranger)).viewerRole).toBeNull();
+    });
+
+    it('メンバー一覧の上限の外にいても、閲覧者の役割は別に引いて返す', async () => {
+      roles.late = 'MEMBER';
+      const late = buildUser({ id: 'late' });
+      const result = await service.getBySlug('my-lab', late);
+      expect(result.members.some((m) => m.user.id === 'late')).toBe(false);
+      expect(result.viewerRole).toBe('MEMBER');
+    });
+
+    it('存在しない団体は 404', async () => {
+      repo.findDetailBySlug.mockResolvedValue(null);
+      await expect(service.getBySlug('no-such', owner)).rejects.toThrow(NotFoundException);
     });
 
     it('形式に合わない slug は DB に問い合わせずに 404', async () => {

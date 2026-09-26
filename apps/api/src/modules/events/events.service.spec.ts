@@ -27,7 +27,11 @@ describe('EventsService', () => {
     deleteDate: ReturnType<typeof vi.fn>;
     confirm: ReturnType<typeof vi.fn>;
   };
-  let notifications: { eventCreated: ReturnType<typeof vi.fn>; eventConfirmed: ReturnType<typeof vi.fn> };
+  let notifications: {
+    eventCreated: ReturnType<typeof vi.fn>;
+    eventConfirmed: ReturnType<typeof vi.fn>;
+    eventLinkedToOrganization: ReturnType<typeof vi.fn>;
+  };
   let organizations: { findRole: ReturnType<typeof vi.fn>; findBySlug: ReturnType<typeof vi.fn> };
   let entries: { findForEvent: ReturnType<typeof vi.fn> };
   let blocks: { findBlockedIds: ReturnType<typeof vi.fn> };
@@ -48,7 +52,7 @@ describe('EventsService', () => {
       deleteDate: vi.fn(),
       confirm: vi.fn(),
     };
-    notifications = { eventCreated: vi.fn(), eventConfirmed: vi.fn() };
+    notifications = { eventCreated: vi.fn(), eventConfirmed: vi.fn(), eventLinkedToOrganization: vi.fn() };
     organizations = { findRole: vi.fn().mockResolvedValue(null), findBySlug: vi.fn().mockResolvedValue(null) };
     entries = { findForEvent: vi.fn().mockResolvedValue({ list: [], mine: null }) };
     blocks = { findBlockedIds: vi.fn().mockResolvedValue([]) };
@@ -114,7 +118,7 @@ describe('EventsService', () => {
 
       expect(organizations.findBySlug).toHaveBeenCalledWith('my-lab');
       expect(repo.findPage).toHaveBeenCalledWith(
-        expect.objectContaining({ organizationSlug: 'my-lab' }),
+        expect.objectContaining({ organizationId: 'org-1' }),
         20,
         undefined,
         [],
@@ -341,6 +345,18 @@ describe('EventsService', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
+    it('別の団体に紐付けたら、その団体に知らせる', async () => {
+      organizations.findRole.mockResolvedValue('MEMBER');
+      const event = buildEvent({ organizerId: organizer.id });
+      repo.findDetailById.mockResolvedValue(event);
+      const updated = { ...event, organizationId: 'org-2' };
+      repo.update.mockResolvedValue(updated);
+
+      await service.update('event-1', organizer, { organizationId: 'org-2' });
+
+      expect(notifications.eventLinkedToOrganization).toHaveBeenCalledWith(updated);
+    });
+
     it('団体を変えなければ、団体を抜けた後でも他の項目を編集できる', async () => {
       const event = buildEvent({ organizerId: organizer.id, organizationId: 'org-1' });
       repo.findDetailById.mockResolvedValue(event);
@@ -349,6 +365,7 @@ describe('EventsService', () => {
       await service.update('event-1', organizer, { title: '新', organizationId: 'org-1' });
 
       expect(organizations.findRole).not.toHaveBeenCalled();
+      expect(notifications.eventLinkedToOrganization).not.toHaveBeenCalled();
       expect(repo.update).toHaveBeenCalledWith(
         'event-1',
         expect.objectContaining({ organization: { connect: { id: 'org-1' } } }),

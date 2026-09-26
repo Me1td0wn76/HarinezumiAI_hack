@@ -1,23 +1,26 @@
 "use client";
 
 import { ORGANIZATION_ROLE_LABEL, type OrganizationRole } from "@lt/shared";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   addOrganizationMember,
   deleteOrganization,
   removeOrganizationMember,
   updateOrganizationMemberRole,
 } from "@/actions/organizations";
+import { keepValuesOnSubmit } from "@/lib/keep-values-on-submit";
 import { FormMessage } from "./form-message";
 
 /** OWNER 向け: ハンドルでメンバーを追加する（団体は招待制） */
 export function AddMemberForm({ slug }: { slug: string }) {
   const [state, action, pending] = useActionState(addOrganizationMember, undefined);
+  const id = useId();
 
   return (
-    <form action={action} className="space-y-2">
+    // ハンドルの打ち間違い（404）やすでにメンバー（409）で弾かれても、入力を直して送り直せるよう残す
+    <form action={action} onSubmit={keepValuesOnSubmit(action)} className="space-y-2">
       <input type="hidden" name="slug" value={slug} />
-      <label className="label" htmlFor="member-handle">
+      <label className="label" htmlFor={`${id}-handle`}>
         メンバーを追加
       </label>
       <div className="flex flex-wrap gap-2">
@@ -26,7 +29,7 @@ export function AddMemberForm({ slug }: { slug: string }) {
             @
           </span>
           <input
-            id="member-handle"
+            id={`${id}-handle`}
             name="handle"
             className="input"
             required
@@ -65,6 +68,7 @@ export function MemberActions({
   const [roleState, roleAction, changing] = useActionState(updateOrganizationMemberRole, undefined);
   const [removeState, removeAction, removing] = useActionState(removeOrganizationMember, undefined);
   const nextRole: OrganizationRole = role === "OWNER" ? "MEMBER" : "OWNER";
+  const roleLabel = nextRole === "OWNER" ? "オーナーにする" : "メンバーに戻す";
 
   return (
     <div className="space-y-1">
@@ -73,8 +77,14 @@ export function MemberActions({
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="role" value={nextRole} />
-          <button type="submit" className="btn-secondary px-3 py-1.5 text-xs" disabled={changing}>
-            {nextRole === "OWNER" ? "オーナーにする" : "メンバーに戻す"}
+          {/* 同じ名前のボタンがメンバーの数だけ並ぶので、読み上げでは誰への操作か分かるようにする */}
+          <button
+            type="submit"
+            className="btn-secondary px-3 py-1.5 text-xs"
+            disabled={changing}
+            aria-label={`${displayName} さんを${roleLabel}`}
+          >
+            {roleLabel}
           </button>
         </form>
         <form
@@ -85,7 +95,12 @@ export function MemberActions({
         >
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="userId" value={userId} />
-          <button type="submit" className="btn-danger px-3 py-1.5 text-xs" disabled={removing}>
+          <button
+            type="submit"
+            className="btn-danger px-3 py-1.5 text-xs"
+            disabled={removing}
+            aria-label={`${displayName} さんを団体から外す`}
+          >
             外す
           </button>
         </form>

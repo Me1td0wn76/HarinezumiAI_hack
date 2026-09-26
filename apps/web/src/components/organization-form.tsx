@@ -87,7 +87,7 @@ export function OrganizationForm({
       <WebhookUrlField
         id="org-webhook-url"
         defaultValue={organization?.webhookUrl}
-        help="設定すると、この団体に紐付いたLT会の作成・開催日決定のお知らせを団体の Discord チャンネルに流せます。URL はオーナーにしか表示されません。"
+        help="設定すると、この団体に紐付いたLT会の作成・開催日決定（あとから紐付けられたときも）のお知らせを団体の Discord チャンネルに流せます。コメントは流れません。URL はオーナーにしか表示されません。"
       />
       <FormMessage state={state} successText="保存しました" />
       <button type="submit" className="btn-primary" disabled={pending}>

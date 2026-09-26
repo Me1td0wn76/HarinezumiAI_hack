@@ -1,23 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { permanentRedirect, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { BlockButton } from "@/components/block-button";
 import { EventSection } from "@/components/event-section";
 import { FollowButton } from "@/components/follow-button";
 import { getCurrentUser, getMyBlocks } from "@/lib/auth";
+import { canonicalLowercaseParam } from "@/lib/canonical-param";
 import { formatDate } from "@/lib/format";
 import { getUserProfile } from "@/lib/users";
 
-/**
- * URL のハンドル（小文字）。/users/me は編集ページへ、/users/Taro のような URL は正規の小文字の URL へ移動させる。
- * generateMetadata とページは並行して動くので、両方で呼ぶ（片方だけだと、もう片方が先に 404 を出し得る）
- */
+/** URL のハンドル（小文字）。/users/me は編集ページへ、大文字を含む URL は小文字の URL へ移動させる */
 function canonicalHandle(raw: string): string {
-  const handle = raw.toLowerCase();
-  if (handle === "me") redirect("/me");
-  if (raw !== handle) permanentRedirect(`/users/${handle}`);
-  return handle;
+  if (raw.toLowerCase() === "me") redirect("/me");
+  return canonicalLowercaseParam(raw, "/users");
 }
 
 export async function generateMetadata(props: PageProps<"/users/[handle]">): Promise<Metadata> {

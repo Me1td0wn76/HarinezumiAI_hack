@@ -25,14 +25,14 @@ function makeEvent(overrides: Partial<Parameters<NotificationsService['eventCrea
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let repo: { createForRespondents: ReturnType<typeof vi.fn>; createForEventAudience: ReturnType<typeof vi.fn> };
-  let discord: { send: ReturnType<typeof vi.fn> };
+  let discord: { send: ReturnType<typeof vi.fn>; sendOnly: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     repo = {
       createForRespondents: vi.fn().mockResolvedValue(undefined),
       createForEventAudience: vi.fn().mockResolvedValue(undefined),
     };
-    discord = { send: vi.fn().mockResolvedValue(undefined) };
+    discord = { send: vi.fn().mockResolvedValue(undefined), sendOnly: vi.fn().mockResolvedValue(undefined) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         NotificationsService,
@@ -82,6 +82,24 @@ describe('NotificationsService', () => {
     const orgUrl = 'https://discord.com/api/webhooks/2/org';
     service.eventCreated(makeEvent({ webhookUrl: eventUrl, organization: { webhookUrl: orgUrl } }));
     expect(discord.send).toHaveBeenCalledWith(expect.stringContaining('テストLT'), eventUrl, orgUrl);
+  });
+
+  it('Discord: コメントは団体の送り先に流さない（無関係な人でも投稿できるため）', () => {
+    const eventUrl = 'https://discord.com/api/webhooks/1/event';
+    service.commentPosted({ id: 'event-1', title: 'テストLT', webhookUrl: eventUrl }, '投稿者', 'こんにちは');
+    expect(discord.send).toHaveBeenCalledWith(expect.stringContaining('こんにちは'), eventUrl);
+  });
+
+  it('Discord: 団体に紐付いたことは、その団体の送り先にだけ知らせる', () => {
+    const orgUrl = 'https://discord.com/api/webhooks/2/org';
+    service.eventLinkedToOrganization({ ...makeEvent(), organization: { name: '研究室', webhookUrl: orgUrl } });
+    expect(discord.sendOnly).toHaveBeenCalledWith(expect.stringContaining('研究室'), orgUrl);
+    expect(discord.send).not.toHaveBeenCalled();
+  });
+
+  it('Discord: 団体に送り先が無ければ何も送らない', () => {
+    service.eventLinkedToOrganization({ ...makeEvent(), organization: { name: '研究室', webhookUrl: null } });
+    expect(discord.sendOnly).not.toHaveBeenCalled();
   });
 
   it('開催日が未設定なら何もしない', () => {

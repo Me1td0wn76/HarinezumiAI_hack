@@ -65,6 +65,10 @@ export async function Nav() {
               >
                 カレンダー
               </Link>
+              {/* 団体のページもログインなしで見られる（LT会のカードから団体ページに来た人が一覧に戻れるように） */}
+              <Link href="/orgs" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
+                団体
+              </Link>
               <Link href="/login" className="font-display text-sm font-bold text-muted-foreground hover:text-foreground">
                 ログイン
               </Link>

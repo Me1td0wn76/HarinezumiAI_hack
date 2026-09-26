@@ -1,7 +1,8 @@
 import type { CreateOrganizationRequest } from '@lt/shared';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { IsOptionalDiscordWebhookUrl } from '../../events/dto/webhook-url.validator.js';
-import { IsOrganizationSlug, TrimString } from './slug.validator.js';
+import { TrimString } from '../../../common/validators.js';
+import { IsOrganizationSlug } from './slug.validator.js';
 
 export class CreateOrganizationDto implements CreateOrganizationRequest {
   @TrimString()

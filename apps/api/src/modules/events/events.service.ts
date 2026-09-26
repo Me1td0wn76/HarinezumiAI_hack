@@ -39,8 +39,42 @@ export class EventsService {
     private readonly entries: EntriesRepository,
   ) {}
 
-  /** @param viewer ログインしていれば、ブロックしている相手のLT会を除く */
+  /**
+   * @param viewer ログインしていれば、ブロックしている相手のLT会を除く
+   * `organization`（slug）は団体の id に引き直してから絞り込む（存在しない団体なら該当なし）
+   */
   async list(query: ListEventsQueryDto, viewer: User | null): Promise<PageDto<EventSummaryDto>> {
+    let organizationId: string | undefined;
+    if (query.organization) {
+      const org = await this.findOrganizationBySlug(query.organization);
+      if (!org) return { items: [], nextCursor: null };
+      organizationId = org.id;
+    }
+    return this.listPage(query, viewer, organizationId);
+  }
+
+  /** 団体ページのLT会一覧。存在しない団体は 404 */
+  async listByOrganization(
+    rawSlug: string,
+    query: ListEventsQueryDto,
+    viewer: User | null,
+  ): Promise<PageDto<EventSummaryDto>> {
+    const org = await this.findOrganizationBySlug(rawSlug);
+    if (!org) throw new NotFoundException('団体が見つかりません');
+    return this.listPage(query, viewer, org.id);
+  }
+
+  /** 形式に合わない slug は存在し得ないので DB に問い合わせない */
+  private async findOrganizationBySlug(rawSlug: string) {
+    const slug = rawSlug.trim().toLowerCase();
+    return ORGANIZATION_SLUG_PATTERN.test(slug) ? this.organizations.findBySlug(slug) : null;
+  }
+
+  private async listPage(
+    query: ListEventsQueryDto,
+    viewer: User | null,
+    organizationId: string | undefined,
+  ): Promise<PageDto<EventSummaryDto>> {
     const cursor = query.cursor ? decodeEventCursor(query.cursor) : undefined;
     if (cursor === null) throw new BadRequestException('cursor が不正です');
     const blockedIds = viewer ? await this.blocks.findBlockedIds(viewer.id) : [];
@@ -51,27 +85,13 @@ export class EventsService {
         status: query.status,
         format: query.format,
         organizerId: query.organizerId,
-        organizationSlug: query.organization?.trim().toLowerCase() || undefined,
+        organizationId,
       },
       query.limit,
       cursor,
       blockedIds,
     );
     return { items: page.items.map(toEventSummaryDto), nextCursor: page.nextCursor };
-  }
-
-  /** 団体ページのLT会一覧。存在しない団体は 404 */
-  async listByOrganization(
-    rawSlug: string,
-    query: ListEventsQueryDto,
-    viewer: User | null,
-  ): Promise<PageDto<EventSummaryDto>> {
-    const slug = rawSlug.toLowerCase();
-    const org = ORGANIZATION_SLUG_PATTERN.test(slug) ? await this.organizations.findBySlug(slug) : null;
-    if (!org) throw new NotFoundException('団体が見つかりません');
-    // クエリの DTO はリクエストごとに作られるので、そのまま書き換えてよい
-    query.organization = org.slug;
-    return this.list(query, viewer);
   }
 
   topTags(limit: number): Promise<TagCountDto[]> {
@@ -143,6 +163,7 @@ export class EventsService {
     if (nextOrganizationId && nextOrganizationId !== current.organizationId) {
       await this.assertMemberOf(nextOrganizationId, user);
     }
+    const linkedToNewOrganization = !!nextOrganizationId && nextOrganizationId !== current.organizationId;
     const updated = await this.events.update(
       id,
       {
@@ -160,6 +181,8 @@ export class EventsService {
       },
       dto.tags !== undefined ? normalizeTags(dto.tags) : undefined,
     );
+    // 作成時の通知は新しい団体の Discord に届いていないので、紐付いたことを知らせる
+    if (linkedToNewOrganization) this.notifications.eventLinkedToOrganization(updated);
     return this.toDetail(updated, { user });
   }
 

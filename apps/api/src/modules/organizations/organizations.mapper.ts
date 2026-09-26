@@ -3,6 +3,7 @@ import type {
   OrganizationDetailDto,
   OrganizationListItemDto,
   OrganizationMemberDto,
+  OrganizationRole,
   OrganizationSummaryDto,
 } from '@lt/shared';
 import { toPublicUserDto } from '../users/users.mapper.js';
@@ -30,9 +31,11 @@ export function toMyOrganizationDto(member: MyOrganization): MyOrganizationDto {
   return { ...toOrganizationSummaryDto(member.organization), role: member.role };
 }
 
-/** @param viewerId 閲覧者。OWNER のときだけ webhookUrl を含める */
-export function toOrganizationDetailDto(org: OrganizationDetail, viewerId: string | null): OrganizationDetailDto {
-  const viewerRole = org.members.find((m) => m.userId === viewerId)?.role ?? null;
+/** @param viewerRole 閲覧者の役割。OWNER のときだけ webhookUrl を含める */
+export function toOrganizationDetailDto(
+  org: OrganizationDetail,
+  viewerRole: OrganizationRole | null,
+): OrganizationDetailDto {
   return {
     ...toOrganizationListItemDto(org),
     members: org.members.map(toOrganizationMemberDto),

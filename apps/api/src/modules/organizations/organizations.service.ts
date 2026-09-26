@@ -11,6 +11,7 @@ import {
   type OrganizationDetailDto,
   type OrganizationListItemDto,
   type OrganizationMemberDto,
+  type OrganizationRole,
 } from '@lt/shared';
 import type { Organization, User } from '../../generated/prisma/client.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
@@ -53,9 +54,14 @@ export class OrganizationsService {
   async getBySlug(rawSlug: string, viewer: User | null): Promise<OrganizationDetailDto> {
     const slug = rawSlug.toLowerCase();
     // 形式に合わない slug は存在し得ないので DB に問い合わせない
-    const org = ORGANIZATION_SLUG_PATTERN.test(slug) ? await this.organizations.findDetailBySlug(slug) : null;
+    if (!ORGANIZATION_SLUG_PATTERN.test(slug)) throw new NotFoundException('団体が見つかりません');
+    // メンバー一覧は上限までしか返さないので、閲覧者の役割は別に引く（並列）
+    const [org, viewerRole] = await Promise.all([
+      this.organizations.findDetailBySlug(slug),
+      viewer ? this.organizations.findRoleBySlug(slug, viewer.id) : null,
+    ]);
     if (!org) throw new NotFoundException('団体が見つかりません');
-    return toOrganizationDetailDto(org, viewer?.id ?? null);
+    return toOrganizationDetailDto(org, viewerRole);
   }
 
   /** 作成者が OWNER になる */
@@ -70,7 +76,7 @@ export class OrganizationsService {
       user.id,
     );
     if (!org) throw new ConflictException(SLUG_TAKEN);
-    return this.getBySlug(org.slug, user);
+    return this.detailAsOwner(org.slug);
   }
 
   async update(rawSlug: string, user: User, dto: UpdateOrganizationDto): Promise<OrganizationDetailDto> {
@@ -83,7 +89,7 @@ export class OrganizationsService {
       webhookUrl: dto.webhookUrl === undefined ? undefined : dto.webhookUrl || null,
     });
     if (!updated) throw new ConflictException(SLUG_TAKEN);
-    return this.getBySlug(updated.slug, user);
+    return this.detailAsOwner(updated.slug);
   }
 
   /** 紐付いていたLT会は消さずに団体なしにする */
@@ -122,8 +128,7 @@ export class OrganizationsService {
 
   /** OWNER はメンバーを外せる。本人は自分で抜けられる。最後の OWNER は抜けられない */
   async removeMember(rawSlug: string, user: User, targetUserId: string): Promise<void> {
-    const org = await this.findOrThrow(rawSlug);
-    const viewerRole = await this.organizations.findRole(org.id, user.id);
+    const { organization: org, role: viewerRole } = await this.findWithRoleOrThrow(rawSlug, user);
     if (targetUserId !== user.id && viewerRole !== 'OWNER') {
       throw new ForbiddenException('オーナーのみ操作できます');
     }
@@ -133,19 +138,30 @@ export class OrganizationsService {
     await this.organizations.removeMember(org.id, targetUserId);
   }
 
-  private async findOrThrow(rawSlug: string): Promise<Organization> {
-    const slug = rawSlug.toLowerCase();
-    const org = ORGANIZATION_SLUG_PATTERN.test(slug) ? await this.organizations.findBySlug(slug) : null;
+  /** 作成・更新の直後に返す詳細。操作した本人が OWNER なのは確認済みなので役割は引き直さない */
+  private async detailAsOwner(slug: string): Promise<OrganizationDetailDto> {
+    const org = await this.organizations.findDetailBySlug(slug);
     if (!org) throw new NotFoundException('団体が見つかりません');
-    return org;
+    return toOrganizationDetailDto(org, 'OWNER');
+  }
+
+  /** 団体と閲覧者の役割を 1 回のクエリで引く */
+  private async findWithRoleOrThrow(
+    rawSlug: string,
+    user: User,
+  ): Promise<{ organization: Organization; role: OrganizationRole | null }> {
+    const slug = rawSlug.toLowerCase();
+    const found = ORGANIZATION_SLUG_PATTERN.test(slug)
+      ? await this.organizations.findBySlugWithRole(slug, user.id)
+      : null;
+    if (!found) throw new NotFoundException('団体が見つかりません');
+    return found;
   }
 
   private async findOwnedOrThrow(rawSlug: string, user: User): Promise<Organization> {
-    const org = await this.findOrThrow(rawSlug);
-    if ((await this.organizations.findRole(org.id, user.id)) !== 'OWNER') {
-      throw new ForbiddenException('オーナーのみ操作できます');
-    }
-    return org;
+    const { organization, role } = await this.findWithRoleOrThrow(rawSlug, user);
+    if (role !== 'OWNER') throw new ForbiddenException('オーナーのみ操作できます');
+    return organization;
   }
 
   /**

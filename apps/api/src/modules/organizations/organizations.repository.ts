@@ -7,6 +7,9 @@ import { publicUserSelect } from '../users/users.repository.js';
 /** 団体一覧で返す最大件数（新しい順） */
 const LIST_LIMIT = 50;
 
+/** 団体ページで返すメンバーの最大件数。総数は memberCount で返す */
+export const MEMBER_LIMIT = 200;
+
 /** LT会のカードや詳細に載せる団体情報（OrganizationSummaryDto）の取得条件 */
 export const organizationSummarySelect = {
   id: true,
@@ -22,12 +25,16 @@ const listItemInclude = {
 
 export type OrganizationListItem = Prisma.OrganizationGetPayload<{ include: typeof listItemInclude }>;
 
-/** 団体ページに必要な関連。メンバーは OWNER が先（enum の定義順）、その中は参加が古い順 */
+/**
+ * 団体ページに必要な関連。メンバーは OWNER が先（enum の定義順）、その中は参加が古い順に MEMBER_LIMIT 人まで。
+ * 閲覧者が上限の外にいることがあるので、閲覧者の役割はこの一覧からではなく findRoleBySlug で引く
+ */
 const detailInclude = {
   ...listItemInclude,
   members: {
     include: { user: { select: publicUserSelect } },
     orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+    take: MEMBER_LIMIT,
   },
 } satisfies Prisma.OrganizationInclude;
 
@@ -70,6 +77,29 @@ export class OrganizationsRepository {
       include: { organization: { select: organizationSummarySelect } },
       orderBy: { organization: { name: 'asc' } },
     });
+  }
+
+  /** 団体と、userId のその団体での役割（所属していなければ null）を 1 回のクエリで引く。OWNER 権限の確認に使う */
+  async findBySlugWithRole(
+    slug: string,
+    userId: string,
+  ): Promise<{ organization: Organization; role: OrganizationRole | null } | null> {
+    const found = await this.prisma.organization.findUnique({
+      where: { slug },
+      include: { members: { where: { userId }, select: { role: true } } },
+    });
+    if (!found) return null;
+    const { members, ...organization } = found;
+    return { organization, role: members[0]?.role ?? null };
+  }
+
+  /** slug の団体での userId の役割。団体が無いか所属していなければ null */
+  async findRoleBySlug(slug: string, userId: string): Promise<OrganizationRole | null> {
+    const member = await this.prisma.organizationMember.findFirst({
+      where: { userId, organization: { slug } },
+      select: { role: true },
+    });
+    return member?.role ?? null;
   }
 
   /** 所属していなければ null */

@@ -84,9 +84,12 @@ export class NotificationsService {
     this.saveInApp(() => this.notifications.createForRespondents(respondentIds(event), event.organizer.id, n));
   }
 
-  /** LT会にコメントが付いた */
+  /**
+   * LT会にコメントが付いた。団体の送り先には流さない: コメントは LT会と無関係な人でも投稿できるので、
+   * 流すと誰でも団体（第三者）の Discord に書き込めてしまう。主催者自身の送り先と全体向けにだけ流す
+   */
   commentPosted(
-    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl' | 'organization'>,
+    event: Pick<EventForNotification, 'id' | 'title' | 'webhookUrl'>,
     authorName: string,
     body: string,
   ): void {
@@ -97,7 +100,24 @@ export class NotificationsService {
       excerpt,
       this.eventUrl(event.id),
     ].join('\n');
-    void this.discord.send(content, ...webhookUrlsOf(event));
+    void this.discord.send(content, event.webhookUrl);
+  }
+
+  /**
+   * 作成後にLT会が団体に紐付けられた（編集で団体を選んだ・付け替えた）。作成時の通知は団体に届いていないので、
+   * その団体の送り先にだけ知らせる（全体向け・LT会ごとの送り先には作成時に流れている）
+   */
+  eventLinkedToOrganization(
+    event: Pick<EventForNotification, 'id' | 'title' | 'organizer'> & {
+      organization: { name: string; webhookUrl: string | null } | null;
+    },
+  ): void {
+    if (!event.organization?.webhookUrl) return;
+    const content = [
+      `🔗 LT会「${event.title}」が ${event.organization.name} のLT会になりました（主催: ${event.organizer.displayName}）`,
+      this.eventUrl(event.id),
+    ].join('\n');
+    void this.discord.sendOnly(content, event.organization.webhookUrl);
   }
 
   /**

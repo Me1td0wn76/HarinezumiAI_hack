@@ -68,8 +68,8 @@ export interface EventListFilter {
   status?: EventStatus;
   format?: EventFormat;
   organizerId?: string;
-  /** 団体の slug（小文字に正規化済み） */
-  organizationSlug?: string;
+  /** 団体の id（slug は Service で id に引き直す。events_organization_id_idx が効く） */
+  organizationId?: string;
 }
 
 export interface EventPage {
@@ -137,7 +137,7 @@ export class EventsRepository {
     if (filter.status) where.status = filter.status;
     if (filter.format) where.format = filter.format;
     if (filter.organizerId) where.organizerId = filter.organizerId;
-    if (filter.organizationSlug) where.organization = { slug: filter.organizationSlug };
+    if (filter.organizationId) where.organizationId = filter.organizationId;
     if (filter.tag) where.tags = { some: { tag: filter.tag } };
     if (filter.q) {
       // ILIKE '%q%'。events.title / description の pg_trgm GIN index が効く

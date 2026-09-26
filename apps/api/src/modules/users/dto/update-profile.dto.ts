@@ -1,16 +1,12 @@
 import type { UpdateProfileRequest } from '@lt/shared';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsUrl, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
+import { IsOmittable, TrimString } from '../../../common/validators.js';
 import { IsHandle } from './handle.validator.js';
-
-/**
- * 省略（undefined）だけを「変更なし」として検証を飛ばす。@IsOptional は null も飛ばすため、
- * NOT NULL の列に null を送られると Prisma まで届いて 500 になる
- */
-const IsOmittable = () => ValidateIf((_obj: unknown, value: unknown) => value !== undefined);
 
 export class UpdateProfileDto implements UpdateProfileRequest {
   @IsOmittable()
+  @TrimString()
   @IsString()
   @MinLength(1)
   @MaxLength(50)

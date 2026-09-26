@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ORGANIZATION_ROLE_LABEL, type EventSummaryDto, type PageDto } from "@lt/shared";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { EventList } from "@/components/event-list";
 import {
   AddMemberForm,
@@ -12,17 +12,13 @@ import { OrganizationForm } from "@/components/organization-form";
 import { UserLink } from "@/components/user-link";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
+import { canonicalLowercaseParam } from "@/lib/canonical-param";
 import { formatDate } from "@/lib/format";
 import { getOrganization } from "@/lib/organizations";
 
-/**
- * URL の slug（小文字）。/orgs/My-Lab のような URL は正規の小文字の URL へ移動させる。
- * generateMetadata とページは並行して動くので、両方で呼ぶ
- */
+/** URL の slug（小文字）。/orgs/My-Lab のような URL は小文字の URL へ移動させる */
 function canonicalSlug(raw: string): string {
-  const slug = raw.toLowerCase();
-  if (raw !== slug) permanentRedirect(`/orgs/${slug}`);
-  return slug;
+  return canonicalLowercaseParam(raw, "/orgs");
 }
 
 export async function generateMetadata(props: PageProps<"/orgs/[slug]">): Promise<Metadata> {
@@ -88,6 +84,9 @@ export default async function OrganizationPage(props: PageProps<"/orgs/[slug]">)
             </li>
           ))}
         </ul>
+        {org.memberCount > org.members.length && (
+          <p className="text-xs text-subtle">ほか {org.memberCount - org.members.length} 人のメンバーがいます。</p>
+        )}
         {org.viewerRole && viewer ? <LeaveButton slug={org.slug} userId={viewer.id} name={org.name} /> : null}
       </section>
 
@@ -100,7 +99,10 @@ export default async function OrganizationPage(props: PageProps<"/orgs/[slug]">)
           <AddMemberForm slug={org.slug} />
           <div className="border-t border-card-border pt-4">
             <p className="label">団体の情報</p>
-            <OrganizationForm organization={org} />
+            {/* org をそのまま渡すと members まで RSC のペイロードに載るので、フォームが使う項目だけ渡す */}
+            <OrganizationForm
+              organization={{ slug: org.slug, name: org.name, description: org.description, webhookUrl: org.webhookUrl }}
+            />
           </div>
           <div className="border-t border-card-border pt-4">
             <p className="label">団体の管理</p>

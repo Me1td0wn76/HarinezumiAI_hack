@@ -78,17 +78,14 @@ export function ResponseGrid({ detail, highlightKey }: { detail: EventDetailDto;
                         <div className="flex flex-col items-center gap-0.5">
                           <span
                             className={`inline-flex w-8 items-center justify-center rounded-full py-1 font-display font-bold ${cellStyle[a.availability]}`}
-                            title={a.comment ?? undefined}
                           >
                             {AVAILABILITY_LABEL[a.availability]}
                           </span>
+                          {/* truncateせず折り返して全文を出す。スマホなどホバーできない端末でも読めるようにするため */}
                           {a.comment && (
-                            <span
-                              title={a.comment}
-                              className="max-w-[6rem] truncate text-[10px] leading-tight text-subtle"
-                            >
-                            {a.comment}
-                          </span>
+                            <span className="max-w-[8rem] wrap-anywhere text-[11px] leading-tight text-subtle">
+                              {a.comment}
+                            </span>
                           )}
                         </div>
                       ) : (

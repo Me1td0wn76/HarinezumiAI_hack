@@ -9,12 +9,9 @@ import type { FormatFields } from './format.js';
 export const HISTORY_LIMIT = 50;
 
 /**
- * 詳細で返す参加表明の上限。1人1件でレート制限もあるので通常は届かない。
- * 上限を超えたLT会でも閲覧者自身の表明は EventsService.getDetail が別に取得して含める
+ * 詳細画面に必要な関連をすべて含めた取得条件。
+ * 参加表明はここに入れない（件数の上限と閲覧者ごとの除外があるので、コメントと同じく EntriesRepository で別に取る）
  */
-export const ENTRY_LIMIT = 500;
-
-/** 詳細画面に必要な関連をすべて含めた取得条件 */
 export const eventDetailInclude = {
   organizer: { select: publicUserSelect },
   confirmedDate: true,
@@ -28,15 +25,19 @@ export const eventDetailInclude = {
       },
     },
   },
-  // 表明の古い順に最大 ENTRY_LIMIT 件。荒らされても詳細ページが重くならないようにする（コメント欄と同じ考え方）
-  entries: {
-    orderBy: { createdAt: 'asc' },
-    include: { user: { select: publicUserSelect } },
-    take: ENTRY_LIMIT,
-  },
 } satisfies Prisma.EventInclude;
 
 export type EventDetail = Prisma.EventGetPayload<{ include: typeof eventDetailInclude }>;
+
+const eventAccessInfoSelect = {
+  id: true,
+  title: true,
+  status: true,
+  organizerId: true,
+  hiddenAt: true,
+} satisfies Prisma.EventSelect;
+
+export type EventAccessInfo = Prisma.EventGetPayload<{ select: typeof eventAccessInfoSelect }>;
 
 /** 一覧表示に必要な最小限の関連 */
 export const eventSummaryInclude = {
@@ -220,12 +221,9 @@ export class EventsRepository {
     });
   }
 
-  /** 1人分の参加表明（詳細の entries と同じ形） */
-  findEntry(eventId: string, userId: string): Promise<EventDetail['entries'][number] | null> {
-    return this.prisma.eventEntry.findUnique({
-      where: { eventId_userId: { eventId, userId } },
-      include: { user: { select: publicUserSelect } },
-    });
+  /** 閲覧可否と状態の判定に要る列だけ（詳細グラフを読まない。参加表明など軽い操作用） */
+  findAccessInfoById(id: string): Promise<EventAccessInfo | null> {
+    return this.prisma.event.findUnique({ where: { id }, select: eventAccessInfoSelect });
   }
 
   findDetailById(id: string): Promise<EventDetail | null> {

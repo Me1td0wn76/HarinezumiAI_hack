@@ -14,13 +14,14 @@ describe('ResponsesService', () => {
     findOrThrow: ReturnType<typeof vi.fn>;
     findVisibleOrThrow: ReturnType<typeof vi.fn>;
     getDetail: ReturnType<typeof vi.fn>;
+    toDetail: ReturnType<typeof vi.fn>;
   };
 
   const user = buildUser();
 
   beforeEach(async () => {
     repo = { upsertForUser: vi.fn(), upsertForGuest: vi.fn() };
-    events = { findOrThrow: vi.fn(), findVisibleOrThrow: vi.fn(), getDetail: vi.fn() };
+    events = { findOrThrow: vi.fn(), findVisibleOrThrow: vi.fn(), getDetail: vi.fn(), toDetail: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -143,6 +144,8 @@ describe('ResponsesService', () => {
       const updated = buildEvent({ status: 'OPEN' });
       repo.upsertForGuest.mockResolvedValue(undefined);
       events.findOrThrow.mockResolvedValue(updated);
+      const detail = { id: updated.id };
+      events.toDetail.mockResolvedValue(detail);
       const dto: SubmitGuestResponsesDto = {
         guestKey: 'guest-key-1',
         guestName: '  ゲスト太郎  ',
@@ -155,9 +158,9 @@ describe('ResponsesService', () => {
         { eventDateId: 'date-1', availability: 'NO', comment: null },
       ]);
       expect(events.findOrThrow).toHaveBeenCalledWith(event.id);
-      // ゲストは shareToken/viewer を持たない (viewerId = null) の詳細が返る
-      expect(result.id).toBe(updated.id);
-      expect(result.shareToken).toBeNull();
+      // 詳細はゲストとして（ログインユーザーなし・guestKey で）組み立てる。参加表明の一覧も同じ経路で付く
+      expect(events.toDetail).toHaveBeenCalledWith(updated, { guestKey: 'guest-key-1' });
+      expect(result).toBe(detail);
     });
   });
 });

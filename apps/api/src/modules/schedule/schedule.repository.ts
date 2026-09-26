@@ -4,9 +4,6 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { participatedBy } from '../events/events.repository.js';
 import { publicUserSelect } from '../users/users.repository.js';
 
-/** みんなのカレンダーで1回に返すLT会の上限。期間の上限（PUBLIC_SCHEDULE_MAX_DAYS）と合わせて応答の大きさを抑える */
-export const PUBLIC_SCHEDULE_EVENT_LIMIT = 500;
-
 const scheduleInclude = (userId: string) =>
   ({
     candidateDates: {
@@ -20,13 +17,20 @@ const scheduleInclude = (userId: string) =>
 
 export type ScheduleEvent = Prisma.EventGetPayload<{ include: ReturnType<typeof scheduleInclude> }>;
 
-const publicScheduleInclude = (dateFilter: Prisma.EventDateWhereInput) =>
-  ({
-    organizer: { select: publicUserSelect },
-    candidateDates: { where: dateFilter, orderBy: { startsAt: 'asc' } },
-  }) satisfies Prisma.EventInclude;
+const publicScheduleDateInclude = {
+  event: {
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      format: true,
+      confirmedDateId: true,
+      organizer: { select: publicUserSelect },
+    },
+  },
+} satisfies Prisma.EventDateInclude;
 
-export type PublicScheduleEvent = Prisma.EventGetPayload<{ include: ReturnType<typeof publicScheduleInclude> }>;
+export type PublicScheduleDate = Prisma.EventDateGetPayload<{ include: typeof publicScheduleDateInclude }>;
 
 @Injectable()
 export class ScheduleRepository {
@@ -44,23 +48,30 @@ export class ScheduleRepository {
   }
 
   /**
-   * みんなのカレンダー: [from, to) に候補日（日程調整中）か開催日（決定済み）があるLT会。
-   * 終了したもの・運営が非表示にしたもの・excludeOrganizerIds の主催分は除く。candidateDates は期間内のものだけ載せる
+   * みんなのカレンダー: [from, to) にある予定を、LT会ではなく日付（event_dates）の単位で開始日時の昇順に最大 take 件。
+   * 日程調整中のLT会は候補日すべて、開催日が決まったLT会は開催日だけ。
+   * 終了したもの・運営が非表示にしたもの・excludeOrganizerIds の主催分は除く。
+   * 日付の順に取るので、上限で打ち切っても欠けるのは期間の後ろのほうになる（作成日で切ると古くからの予定が抜ける）
    */
-  findPublicBetween(from: Date, to: Date, excludeOrganizerIds: string[] = []): Promise<PublicScheduleEvent[]> {
-    const inRange = { startsAt: { gte: from, lt: to } };
-    return this.prisma.event.findMany({
+  findPublicDatesBetween(
+    from: Date,
+    to: Date,
+    take: number,
+    excludeOrganizerIds: string[] = [],
+  ): Promise<PublicScheduleDate[]> {
+    const visible = { hiddenAt: null, organizerId: { notIn: excludeOrganizerIds } } satisfies Prisma.EventWhereInput;
+    return this.prisma.eventDate.findMany({
       where: {
-        hiddenAt: null,
-        organizerId: { notIn: excludeOrganizerIds },
+        startsAt: { gte: from, lt: to },
         OR: [
-          { status: 'OPEN', candidateDates: { some: inRange } },
-          { status: 'CONFIRMED', confirmedDate: inRange },
+          { event: { ...visible, status: 'OPEN' } },
+          // 開催日 = このLT会の confirmedDate として参照されている候補日
+          { event: { ...visible, status: 'CONFIRMED' }, confirmedFor: { isNot: null } },
         ],
       },
-      include: publicScheduleInclude(inRange),
-      orderBy: { createdAt: 'desc' },
-      take: PUBLIC_SCHEDULE_EVENT_LIMIT,
+      include: publicScheduleDateInclude,
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      take,
     });
   }
 }

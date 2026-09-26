@@ -27,7 +27,8 @@ export async function submitEntry(_prev: ActionState, formData: FormData): Promi
   } catch (err) {
     return { error: errorMessage(err) };
   }
-  revalidatePath(`/events/${eventId}`);
+  // 表明の有無で /me の参加履歴・/calendar・プロフィールの参加予定も変わるので、詳細だけでなく全体を再検証する
+  revalidatePath('/', 'layout');
   return { success: true };
 }
 
@@ -38,6 +39,7 @@ export async function withdrawEntry(_prev: ActionState, formData: FormData): Pro
   } catch (err) {
     return { error: errorMessage(err) };
   }
-  revalidatePath(`/events/${eventId}`);
+  // submitEntry と同じく、参加履歴やカレンダーも変わるので全体を再検証する
+  revalidatePath('/', 'layout');
   return { success: true };
 }

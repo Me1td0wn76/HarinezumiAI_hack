@@ -416,8 +416,18 @@ export interface PublicScheduleItemDto {
   confirmed: boolean;
 }
 
+/** みんなのカレンダーの応答 */
+export interface PublicScheduleDto {
+  /** 開始日時の昇順 */
+  items: PublicScheduleItemDto[];
+  /** 件数の上限（PUBLIC_SCHEDULE_ITEM_LIMIT）で打ち切ったか。true なら期間の後ろのほうの予定が欠けている */
+  truncated: boolean;
+}
+
 /** みんなのカレンダーで一度に取得できる期間の上限（日） */
 export const PUBLIC_SCHEDULE_MAX_DAYS = 62;
+/** みんなのカレンダーで一度に返す予定（開催日 / 候補日）の上限 */
+export const PUBLIC_SCHEDULE_ITEM_LIMIT = 1000;
 
 // ---------- 通知 ----------
 

@@ -6,6 +6,7 @@ import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { NotificationsRepository } from '../src/modules/notifications/notifications.repository.js';
 import { e2eHandle } from './e2e-handle.js';
 
 interface EntryDto {
@@ -28,6 +29,7 @@ const DAY = 24 * 60 * 60 * 1000;
 describe('参加表明とみんなのカレンダー (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let notificationsRepo: NotificationsRepository;
   const userIds: string[] = [];
   let eventId: string | undefined;
   const extraEventIds: string[] = [];
@@ -53,6 +55,7 @@ describe('参加表明とみんなのカレンダー (e2e)', () => {
     configureApp(app);
     await app.init();
     prisma = moduleFixture.get(PrismaService);
+    notificationsRepo = moduleFixture.get(NotificationsRepository);
   });
 
   afterAll(async () => {
@@ -142,7 +145,9 @@ describe('参加表明とみんなのカレンダー (e2e)', () => {
       .get('/schedule')
       .query({ from: new Date(Date.now()).toISOString(), to: new Date(Date.now() + 30 * DAY).toISOString() })
       .expect(200);
-    expect((schedule.body as { eventId: string }[]).some((i) => i.eventId === eventId)).toBe(true);
+    const scheduleBody = schedule.body as { items: { eventId: string }[]; truncated: boolean };
+    expect(scheduleBody.items.some((i) => i.eventId === eventId)).toBe(true);
+    expect(scheduleBody.truncated).toBe(false);
 
     // 取り消し → もう一度取り消すと 404
     await request(app.getHttpServer())
@@ -155,7 +160,7 @@ describe('参加表明とみんなのカレンダー (e2e)', () => {
       .expect(404);
   });
 
-  it('登壇通知は切り替えを繰り返しても重ならず、主催者がブロックした相手からは届かない。ブロックした相手は一覧から除く', async () => {
+  it('登壇の表明で主催者に通知が届く。未読があるうちは重ねず、主催者がブロックした相手からは作らない', async () => {
     const organizer = await register('E2E主催者2');
     const speaker = await register('E2E登壇者2');
     const blocked = await register('E2Eブロック対象');
@@ -170,42 +175,102 @@ describe('参加表明とみんなのカレンダー (e2e)', () => {
       .expect(201);
     const id = created.body.id as string;
     extraEventIds.push(id);
-
-    const enter = (token: string, role: 'SPEAKER' | 'AUDIENCE') =>
-      request(app.getHttpServer())
-        .put(`/events/${id}/entry`)
-        .set('Authorization', `Bearer ${token}`)
-        .send(role === 'SPEAKER' ? { role, talkTitle: 'LT' } : { role })
-        .expect(200);
     const speakerNotifications = () =>
       prisma.notification.count({ where: { userId: organizer.id, type: 'SPEAKER_ENTERED', eventId: id } });
 
-    // 登壇 → 聴講 → 登壇 と切り替えても、未読の通知があるうちは 1 件のまま
-    await enter(speaker.token, 'SPEAKER');
+    // API 経由: 登壇を表明すると通知が 1 件届く（保存は本処理を待たないので、届くまで待つ）
+    await request(app.getHttpServer())
+      .put(`/events/${id}/entry`)
+      .set('Authorization', `Bearer ${speaker.token}`)
+      .send({ role: 'SPEAKER', talkTitle: 'LT' })
+      .expect(200);
     await vi.waitFor(async () => expect(await speakerNotifications()).toBe(1));
-    await enter(speaker.token, 'AUDIENCE');
-    await enter(speaker.token, 'SPEAKER');
-    // 通知の保存は本処理を待たないので、作られるなら作られるだけの時間を置いてから数える
-    await new Promise((r) => setTimeout(r, 500));
-    expect(await speakerNotifications()).toBe(1);
 
-    // 主催者がブロックした相手の登壇表明は通知しない
+    // 「作らない」ことは待ち時間では確かめられないので、判定を持つリポジトリを直接呼んで完了を待つ
+    const notify = (speakerId: string) =>
+      notificationsRepo.createSpeakerEntered(organizer.id, {
+        type: 'SPEAKER_ENTERED',
+        eventId: id,
+        data: { eventTitle: 't', speakerId, speakerName: 's', talkTitle: 'LT' },
+      });
+    // 同じ登壇者の未読がある間は重ねない（登壇 / 聴講の切り替えや取り消し → 再表明の連打）
+    await notify(speaker.id);
+    expect(await speakerNotifications()).toBe(1);
+    // 既読にすれば、次の表明はまた届く
+    await prisma.notification.updateMany({ where: { userId: organizer.id }, data: { readAt: new Date() } });
+    await notify(speaker.id);
+    expect(await speakerNotifications()).toBe(2);
+    // 主催者がブロックした相手の表明は通知しない
     await request(app.getHttpServer())
       .post(`/users/${blocked.id}/block`)
       .set('Authorization', `Bearer ${organizer.token}`)
       .expect(204);
-    await enter(blocked.token, 'SPEAKER');
-    await new Promise((r) => setTimeout(r, 500));
-    expect(await speakerNotifications()).toBe(1);
+    await notify(blocked.id);
+    expect(await speakerNotifications()).toBe(2);
+  });
 
-    // ブロックした相手の表明は主催者の一覧から除く（コメント欄と同じ扱い）。第三者には見える
+  it('主催者にはブロックした相手も含めて全員を返し、それ以外の人にはブロックした相手を除く（どの経路の応答でも）', async () => {
+    const organizer = await register('E2E主催者3');
+    const speaker = await register('E2E登壇者3');
+    const viewer = await register('E2E閲覧者3');
+    const created = await request(app.getHttpServer())
+      .post('/events')
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .send({
+        title: 'E2E ブロックと一覧 LT会',
+        description: '',
+        candidateDates: [{ startsAt: new Date(Date.now() + 14 * DAY).toISOString() }],
+      })
+      .expect(201);
+    const id = created.body.id as string;
+    extraEventIds.push(id);
+    await request(app.getHttpServer())
+      .put(`/events/${id}/entry`)
+      .set('Authorization', `Bearer ${speaker.token}`)
+      .send({ role: 'SPEAKER', talkTitle: 'LT' })
+      .expect(200);
+
+    // 主催者も閲覧者も登壇者をブロックする
+    for (const blocker of [organizer, viewer]) {
+      await request(app.getHttpServer())
+        .post(`/users/${speaker.id}/block`)
+        .set('Authorization', `Bearer ${blocker.token}`)
+        .expect(204);
+    }
+    const entryIds = (body: unknown) => (body as EventDetailDto).entries.map((e) => e.user.id);
+
+    // 主催者: 詳細でも、編集・終了の応答でも全員見える
     const asOrganizer = await request(app.getHttpServer())
       .get(`/events/${id}`)
       .set('Authorization', `Bearer ${organizer.token}`)
       .expect(200);
-    expect((asOrganizer.body as EventDetailDto).entries.map((e) => e.user.id)).toEqual([speaker.id]);
+    expect(entryIds(asOrganizer.body)).toEqual([speaker.id]);
+    const patched = await request(app.getHttpServer())
+      .patch(`/events/${id}`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .send({ description: '更新' })
+      .expect(200);
+    expect(entryIds(patched.body)).toEqual([speaker.id]);
+
+    // 閲覧者: ブロックした相手は除く。ログインしていない人には見える
+    const asViewer = await request(app.getHttpServer())
+      .get(`/events/${id}`)
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(200);
+    expect(entryIds(asViewer.body)).toEqual([]);
     const asGuest = await request(app.getHttpServer()).get(`/events/${id}`).expect(200);
-    expect((asGuest.body as EventDetailDto).entries).toHaveLength(2);
+    expect(entryIds(asGuest.body)).toEqual([speaker.id]);
+
+    // 終了したLT会でも自分の表明は取り消せる（参加履歴から外すため）
+    const closed = await request(app.getHttpServer())
+      .post(`/events/${id}/close`)
+      .set('Authorization', `Bearer ${organizer.token}`)
+      .expect(201);
+    expect(entryIds(closed.body)).toEqual([speaker.id]);
+    await request(app.getHttpServer())
+      .delete(`/events/${id}/entry`)
+      .set('Authorization', `Bearer ${speaker.token}`)
+      .expect(204);
   });
 
   it('みんなのカレンダーは期間の指定が不正なら 400', async () => {

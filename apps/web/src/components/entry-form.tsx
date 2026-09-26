@@ -25,7 +25,6 @@ const ROLE_OPTION: Record<EntryRole, { icon: string; label: string; hint: string
  */
 export function EntryForm({ eventId, initial }: { eventId: string; initial: EventEntryDto | null }) {
   const [state, action, pending] = useActionState(submitEntry, undefined);
-  const [withdrawState, withdrawAction, withdrawing] = useActionState(withdrawEntry, undefined);
   const [role, setRole] = useState<EntryRole | null>(initial?.role ?? null);
   const [talkTitle, setTalkTitle] = useState(initial?.talkTitle ?? "");
   const [talkDetail, setTalkDetail] = useState(initial?.talkDetail ?? "");
@@ -130,7 +129,8 @@ export function EntryForm({ eventId, initial }: { eventId: string; initial: Even
           </div>
         )}
 
-        {(lastAction === "create" || lastAction === "update") && (
+        {/* 送信中は出さない（送信した瞬間はまだ前回の結果が state に残っていて、古い成功・エラーが見えてしまう） */}
+        {!pending && (lastAction === "create" || lastAction === "update") && (
           <FormMessage
             state={state}
             successText={lastAction === "update" ? "参加表明を更新しました" : "参加表明しました"}
@@ -142,25 +142,55 @@ export function EntryForm({ eventId, initial }: { eventId: string; initial: Even
         </button>
       </form>
 
-      {initial && (
+      <WithdrawEntryForm
+        eventId={eventId}
+        hasEntry={initial !== null}
+        showResult={lastAction === "withdraw"}
+        onStart={() => setLastAction("withdraw")}
+      />
+    </div>
+  );
+}
+
+/**
+ * 参加表明の取り消し。終了したLT会でも取り消せる（参加履歴から外すため）ので、EntryForm の外でも単独で使う。
+ * 取り消しに成功すると hasEntry が false になってボタンは消えるが、結果のメッセージは残すため、
+ * このコンポーネント自体は表明の有無にかかわらず置いておく
+ * @param showResult 結果のメッセージを出すか。EntryForm の中では、最後の操作が取り消しのときだけ出す
+ */
+export function WithdrawEntryForm({
+  eventId,
+  hasEntry,
+  showResult = true,
+  onStart,
+}: {
+  eventId: string;
+  hasEntry: boolean;
+  showResult?: boolean;
+  onStart?: () => void;
+}) {
+  const [state, action, pending] = useActionState(withdrawEntry, undefined);
+
+  return (
+    <>
+      {hasEntry && (
         <form
-          action={withdrawAction}
+          action={action}
           onSubmit={(e) => {
             if (!window.confirm("参加表明を取り消しますか？")) {
               e.preventDefault();
               return;
             }
-            setLastAction("withdraw");
+            onStart?.();
           }}
         >
           <input type="hidden" name="eventId" value={eventId} />
-          <button type="submit" className="btn-secondary text-xs" disabled={withdrawing}>
-            {withdrawing ? "取り消し中…" : "参加表明を取り消す"}
+          <button type="submit" className="btn-secondary text-xs" disabled={pending}>
+            {pending ? "取り消し中…" : "参加表明を取り消す"}
           </button>
         </form>
       )}
-      {/* 取り消しに成功すると上のフォームごと消えるので、結果はフォームの外に出す */}
-      {lastAction === "withdraw" && <FormMessage state={withdrawState} successText="参加表明を取り消しました" />}
-    </div>
+      {!pending && showResult && <FormMessage state={state} successText="参加表明を取り消しました" />}
+    </>
   );
 }

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/comment-section";
-import { EntryForm } from "@/components/entry-form";
+import { EntryForm, WithdrawEntryForm } from "@/components/entry-form";
 import { EntryList } from "@/components/entry-list";
 import { EventHeader } from "@/components/event-header";
 import { EventPlace } from "@/components/event-place";
@@ -143,9 +143,14 @@ export default async function EventDetailPage(props: PageProps<"/events/[id]">) 
         <h2 className="font-display font-extrabold text-foreground">登壇者・参加者</h2>
         <EntryList entries={detail.entries} showTotal={isOrganizer} />
         {detail.status === "CLOSED" ? (
-          <p className="border-t border-card-border pt-4 text-sm text-muted-foreground">
-            このLT会は終了したため、参加表明の受け付けも終了しています。
-          </p>
+          <div className="space-y-3 border-t border-card-border pt-4">
+            <p className="text-sm text-muted-foreground">
+              このLT会は終了したため、参加表明の受け付けも終了しています。
+              {detail.myEntry && "参加履歴から外したい場合は、表明を取り消せます。"}
+            </p>
+            {/* 表明済みの人だけ。取り消し後も結果のメッセージを出すため、myEntry が消えても置いておく */}
+            {user && !isOrganizer && <WithdrawEntryForm eventId={detail.id} hasEntry={detail.myEntry !== null} />}
+          </div>
         ) : isOrganizer ? null : (
           <div className="border-t border-card-border pt-4">
             <h3 className="mb-2 font-display font-extrabold text-foreground">

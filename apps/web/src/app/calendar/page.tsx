@@ -2,15 +2,25 @@ import {
   AVAILABILITY_LABEL,
   ENTRY_ROLE_LABEL,
   EVENT_FORMAT_LABEL,
-  type PublicScheduleItemDto,
+  PUBLIC_SCHEDULE_ITEM_LIMIT,
+  type PublicScheduleDto,
   type ScheduleItemDto,
 } from "@lt/shared";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ScheduleCalendar } from "@/components/schedule-calendar";
-import { apiFetch } from "@/lib/api";
+import { ApiError, TOKEN_COOKIE, apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDateRange, toTokyoWallClock } from "@/lib/format";
+import {
+  currentTokyoMonth,
+  formatDateRange,
+  formatMonth,
+  shiftMonth,
+  toTokyoWallClock,
+  tokyoMonthStart,
+} from "@/lib/format";
 
 export const metadata: Metadata = { title: "カレンダー | LT会支援アプリ" };
 
@@ -23,19 +33,31 @@ const DAY = 24 * 60 * 60 * 1000;
 function parseMonth(value: string | string[] | undefined): string {
   const m = typeof value === "string" ? /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value) : null;
   if (m && Number(m[1]) >= 2000 && Number(m[1]) <= 2100) return value as string;
-  return toTokyoWallClock(new Date().toISOString()).slice(0, 7);
+  return currentTokyoMonth();
 }
 
-/** 月を delta だけずらす（"2026-12", 1 → "2027-01"） */
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+/** 自分の予定。未ログイン（Cookie なし・トークン失効）なら null */
+async function loadMySchedule(): Promise<ScheduleItemDto[] | null> {
+  if (!(await cookies()).has(TOKEN_COOKIE)) return null;
+  try {
+    return await apiFetch<ScheduleItemDto[]>("/users/me/schedule");
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return null;
+    throw err;
+  }
 }
 
-/** その月の日本時間 1 日 0:00 */
-function monthStart(month: string): Date {
-  return new Date(`${month}-01T00:00:00+09:00`);
+/**
+ * みんなの予定（その月の分）。月表示のグリッドには前後の月の日も並ぶので、前後 1 週間分も合わせて取る
+ */
+function loadPublicSchedule(month: string): Promise<PublicScheduleDto> {
+  const start = tokyoMonthStart(month);
+  const end = tokyoMonthStart(shiftMonth(month, 1));
+  const query = new URLSearchParams({
+    from: new Date(start.getTime() - 7 * DAY).toISOString(),
+    to: new Date(end.getTime() + 7 * DAY).toISOString(),
+  });
+  return apiFetch<PublicScheduleDto>(`/schedule?${query}`);
 }
 
 function Legend() {
@@ -55,15 +77,23 @@ function Legend() {
 
 export default async function CalendarPage(props: PageProps<"/calendar">) {
   const searchParams = await props.searchParams;
-  const user = await getCurrentUser();
+  const month = parseMonth(searchParams.month);
+  // どの API 呼び出しも互いに依存しないので、直列に待たず同時に投げる。
+  // みんなの予定は、明示的に自分の予定を開いたとき以外は表示する可能性があるので先に取り始める
+  // （view の指定なしで今後の予定がある人の分は使わずに終わるが、予定が無い人を直列の待ちで遅くしないことを優先する）
+  const publicSchedule = searchParams.view === "mine" ? null : loadPublicSchedule(month);
+  // 取得に失敗しても、Suspense の中で await するまでは未処理の reject として扱わせない
+  publicSchedule?.catch(() => undefined);
+  const [user, myItems] = await Promise.all([
+    getCurrentUser(),
+    searchParams.view === "all" ? Promise.resolve(null) : loadMySchedule(),
+  ]);
+
   // みんなのカレンダーはログインなしでも見られる。自分の予定はログインが必要。
   // view の指定がなければ、今後の予定がある人は自分の予定、無い人（登録したばかりなど）はみんなの予定から始める
-  const myItems =
-    user && searchParams.view !== "all" ? await apiFetch<ScheduleItemDto[]>("/users/me/schedule") : null;
   const now = new Date().toISOString();
   const myUpcoming = myItems?.filter((i) => (i.endsAt ?? i.startsAt) >= now) ?? [];
-  const view =
-    !myItems || (searchParams.view !== "mine" && myUpcoming.length === 0) ? "all" : "mine";
+  const view = !user || !myItems || (searchParams.view !== "mine" && myUpcoming.length === 0) ? "all" : "mine";
   const fellBack = myItems !== null && view === "all";
 
   return (
@@ -98,7 +128,16 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
       {view === "mine" && myItems ? (
         <MyCalendar items={myItems} upcoming={myUpcoming} />
       ) : (
-        <PublicCalendar month={parseMonth(searchParams.month)} />
+        <>
+          <p className="text-sm text-muted-foreground">
+            公開中のLT会の開催予定です。気になるLT会を選んで、登壇・聴講を表明しましょう。
+            <Legend />
+          </p>
+          {/* 見出しとタブを先に返し、月の予定は取得できしだい流し込む */}
+          <Suspense key={month} fallback={<PublicCalendarSkeleton month={month} />}>
+            <PublicCalendar month={month} schedule={publicSchedule ?? loadPublicSchedule(month)} />
+          </Suspense>
+        </>
       )}
     </div>
   );
@@ -171,27 +210,31 @@ function MyCalendar({ items, upcoming }: { items: ScheduleItemDto[]; upcoming: S
   );
 }
 
-/**
- * 公開中のLT会の開催日 / 候補日。月ごとにサーバーで取得する（?month=2026-10）。
- * 月表示のグリッドには前後の月の日も並ぶので、前後 1 週間分も合わせて取る
- */
-async function PublicCalendar({ month }: { month: string }) {
-  const start = monthStart(month);
-  const end = monthStart(shiftMonth(month, 1));
-  const query = new URLSearchParams({
-    from: new Date(start.getTime() - 7 * DAY).toISOString(),
-    to: new Date(end.getTime() + 7 * DAY).toISOString(),
-  });
-  const items = await apiFetch<PublicScheduleItemDto[]>(`/schedule?${query}`);
-  const inMonth = items.filter((i) => i.startsAt >= start.toISOString() && i.startsAt < end.toISOString());
-  const [y, m] = month.split("-").map(Number);
+/** みんなの予定の読み込み中。カードの大きさを揃えて、読み込み後にレイアウトがずれないようにする */
+function PublicCalendarSkeleton({ month }: { month: string }) {
+  return (
+    <section className="card" aria-busy="true">
+      <p className="font-display text-2xl font-black tracking-tight text-foreground">{formatMonth(month)}</p>
+      <p className="mt-4 text-sm text-muted-foreground">予定を読み込んでいます…</p>
+      <div className="mt-4 h-96 animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />
+    </section>
+  );
+}
+
+/** 公開中のLT会の開催日 / 候補日。月ごとにサーバーで取得する（?month=2026-10） */
+async function PublicCalendar({ month, schedule }: { month: string; schedule: Promise<PublicScheduleDto> }) {
+  const { items, truncated } = await schedule;
+  const start = tokyoMonthStart(month).toISOString();
+  const end = tokyoMonthStart(shiftMonth(month, 1)).toISOString();
+  const inMonth = items.filter((i) => i.startsAt >= start && i.startsAt < end);
 
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        公開中のLT会の開催予定です。気になるLT会を選んで、登壇・聴講を表明しましょう。
-        <Legend />
-      </p>
+      {truncated && (
+        <p role="status" className="rounded-xl border border-primary bg-warning-bg px-4 py-3 text-sm text-warning-foreground">
+          予定が多いため、この期間の先頭から {PUBLIC_SCHEDULE_ITEM_LIMIT} 件までを表示しています。月の後半の予定が欠けている場合があります。
+        </p>
+      )}
 
       <section className="card">
         {/* 月が変わったら作り直して、その月を表示させる（initialDate は初回の表示にしか効かない） */}
@@ -202,7 +245,7 @@ async function PublicCalendar({ month }: { month: string }) {
             prev: `/calendar?view=all&month=${shiftMonth(month, -1)}`,
             today: "/calendar?view=all",
             next: `/calendar?view=all&month=${shiftMonth(month, 1)}`,
-            isCurrentMonth: month === parseMonth(undefined),
+            isCurrentMonth: month === currentTokyoMonth(),
           }}
           items={items.map((i) => ({
             id: i.eventDateId,
@@ -217,9 +260,7 @@ async function PublicCalendar({ month }: { month: string }) {
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-display font-extrabold text-foreground">
-          {y}年{m}月のLT会
-        </h2>
+        <h2 className="mb-3 font-display font-extrabold text-foreground">{formatMonth(month)}のLT会</h2>
         {inMonth.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             この月に予定されているLT会はありません。

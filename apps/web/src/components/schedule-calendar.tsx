@@ -9,7 +9,7 @@ import "@fullcalendar/react/themes/classic/theme.css";
 import "@fullcalendar/react/themes/classic/palette.css";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { toTokyoWallClock } from "@/lib/format";
+import { currentTokyoMonth, formatMonth, toTokyoWallClock } from "@/lib/format";
 
 export interface CalendarItem {
   id: string;
@@ -28,12 +28,6 @@ export interface CalendarNavLinks {
   next: string;
   /** 表示中の月が今月か。今月なら「今月」ボタンを押せない見た目にする */
   isCurrentMonth: boolean;
-}
-
-/** "2026-10-01" → "2026年10月"。カレンダーが描画される前の見出しに使う */
-function monthTitle(date: string): string {
-  const [y, m] = date.split("-").map(Number);
-  return `${y}年${m}月`;
 }
 
 /**
@@ -58,7 +52,8 @@ export function ScheduleCalendar({
   // 日付が変わるたびに再描画されるので、見出しとボタンの状態を controller から読める
   const controller = useCalendarController();
   const buttons = controller.view ? controller.getButtonState() : null;
-  const title = controller.view?.title ?? monthTitle(initialDate ?? toTokyoWallClock(new Date().toISOString()));
+  // カレンダーが描画される前（サーバー描画・初回）は initialDate の月（無ければ今月）を見出しにする
+  const title = controller.view?.title ?? formatMonth(initialDate?.slice(0, 7) ?? currentTokyoMonth());
 
   return (
     <div className="lt-calendar">

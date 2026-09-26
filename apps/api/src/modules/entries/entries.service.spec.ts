@@ -8,16 +8,16 @@ import { buildEntry, buildEvent, buildUser } from '../../test-support/event-fact
 
 describe('EntriesService', () => {
   let service: EntriesService;
-  let repo: { find: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
-  let events: { findVisibleOrThrow: ReturnType<typeof vi.fn> };
+  let repo: { findRole: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  let events: { findVisibleAccessInfoOrThrow: ReturnType<typeof vi.fn> };
   let notifications: { speakerEntered: ReturnType<typeof vi.fn> };
 
   // 主催者は user-1（buildEvent の既定）。参加表明するのは別のユーザー
   const speaker = buildUser({ id: 'user-2', handle: 'speaker', displayName: '登壇者' });
 
   beforeEach(async () => {
-    repo = { find: vi.fn().mockResolvedValue(null), upsert: vi.fn(), delete: vi.fn() };
-    events = { findVisibleOrThrow: vi.fn().mockResolvedValue(buildEvent()) };
+    repo = { findRole: vi.fn().mockResolvedValue(null), upsert: vi.fn(), delete: vi.fn() };
+    events = { findVisibleAccessInfoOrThrow: vi.fn().mockResolvedValue(buildEvent()) };
     notifications = { speakerEntered: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -84,7 +84,7 @@ describe('EntriesService', () => {
     });
 
     it('すでに登壇で表明済みなら、内容を更新しても通知を重ねない', async () => {
-      repo.find.mockResolvedValue(buildEntry());
+      repo.findRole.mockResolvedValue('SPEAKER');
       repo.upsert.mockResolvedValue(buildEntry({ talkTitle: '新しいタイトル' }));
 
       await service.submit('event-1', speaker, { role: 'SPEAKER', talkTitle: '新しいタイトル' });
@@ -93,7 +93,7 @@ describe('EntriesService', () => {
     });
 
     it('聴講から登壇に変えたら通知する', async () => {
-      repo.find.mockResolvedValue(buildEntry({ role: 'AUDIENCE' }));
+      repo.findRole.mockResolvedValue('AUDIENCE');
       repo.upsert.mockResolvedValue(buildEntry());
 
       await service.submit('event-1', speaker, { role: 'SPEAKER', talkTitle: '発表タイトル' });
@@ -112,14 +112,14 @@ describe('EntriesService', () => {
     });
 
     it('終了したLT会には表明できない（400）', async () => {
-      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'CLOSED' }));
+      events.findVisibleAccessInfoOrThrow.mockResolvedValue(buildEvent({ status: 'CLOSED' }));
 
       await expect(service.submit('event-1', speaker, { role: 'AUDIENCE' })).rejects.toThrow(BadRequestException);
       expect(repo.upsert).not.toHaveBeenCalled();
     });
 
     it('開催日が決まった後でも表明できる', async () => {
-      events.findVisibleOrThrow.mockResolvedValue(buildEvent({ status: 'CONFIRMED' }));
+      events.findVisibleAccessInfoOrThrow.mockResolvedValue(buildEvent({ status: 'CONFIRMED' }));
       repo.upsert.mockResolvedValue(buildEntry({ role: 'AUDIENCE' }));
 
       await expect(service.submit('event-1', speaker, { role: 'AUDIENCE' })).resolves.toBeDefined();

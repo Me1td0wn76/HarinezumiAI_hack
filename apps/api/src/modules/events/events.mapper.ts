@@ -9,9 +9,8 @@ import type {
 } from '@lt/shared';
 import type { EventDate } from '../../generated/prisma/client.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
+import type { EntryWithUser, EventEntries } from '../entries/entries.repository.js';
 import type { EventDetail, EventSummary } from './events.repository.js';
-
-type EventEntryWithUser = EventDetail['entries'][number];
 
 export function toEventDateDto(date: EventDate): EventDateDto {
   return {
@@ -56,15 +55,15 @@ export function toEventSummaryDto(event: EventSummary): EventSummaryDto {
 export interface Viewer {
   userId?: string | null;
   guestKey?: string | null;
-  /** 参加表明の一覧から除くユーザー（閲覧者がブロックした相手） */
-  excludeEntryUserIds?: string[];
 }
 
 /**
  * @param viewer 閲覧者。主催者本人のときだけ shareToken を含める。
- *   配信URL は主催者にはいつでも、回答者には開催日決定後にだけ返す
+ *   配信URL は主催者にはいつでも、回答者・参加表明した人には開催日決定後にだけ返す
+ * @param entries 参加表明（EntriesRepository.findForEvent の結果。除外・件数の上限は取得時に済ませておく）。
+ *   組み立ては EventsService.toDetail に任せ、ほかから直接呼ばない
  */
-export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetailDto {
+export function toEventDetailDto(event: EventDetail, viewer: Viewer, entries: EventEntries): EventDetailDto {
   const viewerId = viewer.userId ?? null;
   const tallies: DateTallyDto[] = [];
   const rows = new Map<string, ResponderRowDto>();
@@ -97,13 +96,11 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
   }
 
   const isOrganizer = viewerId === event.organizerId;
-  const excluded = new Set(viewer.excludeEntryUserIds);
-  const entries = event.entries
-    .filter((e) => !excluded.has(e.userId))
+  const entryList = [...entries.list]
     // 登壇者を先に。同じ役割の中では表明の古い順（取得時の並び）を保つ
     .sort((a, b) => Number(a.role === 'AUDIENCE') - Number(b.role === 'AUDIENCE'))
     .map((e) => toEventEntryDto(e, isOrganizer || e.userId === viewerId));
-  const myEntry = viewerId ? (entries.find((e) => e.user.id === viewerId) ?? null) : null;
+  const myEntry = entries.mine ? toEventEntryDto(entries.mine, true) : null;
   // 参加表明した人も「関わっている人」なので、開催日決定後は配信URL を見せる
   const canSeeMeetingUrl = isOrganizer || (event.status === 'CONFIRMED' && (viewerResponded || myEntry !== null));
 
@@ -125,7 +122,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
     venue: event.venue,
     meetingUrl: canSeeMeetingUrl ? event.meetingUrl : null,
     hasMeetingUrl: event.meetingUrl !== null,
-    entries,
+    entries: entryList,
     myEntry,
     createdAt: event.createdAt.toISOString(),
   };
@@ -134,7 +131,7 @@ export function toEventDetailDto(event: EventDetail, viewer: Viewer): EventDetai
 /**
  * @param showPrivate 発表内容の説明と発表時間を含めるか（主催者と本人のみ）。発表タイトルは公開する
  */
-export function toEventEntryDto(entry: EventEntryWithUser, showPrivate: boolean): EventEntryDto {
+export function toEventEntryDto(entry: EntryWithUser, showPrivate: boolean): EventEntryDto {
   return {
     user: toPublicUserDto(entry.user),
     role: entry.role,

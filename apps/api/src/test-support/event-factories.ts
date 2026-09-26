@@ -1,4 +1,5 @@
 import type { User } from '../generated/prisma/client.js';
+import type { EntryWithUser } from '../modules/entries/entries.repository.js';
 import type { EventDetail } from '../modules/events/events.repository.js';
 
 /** ユニットテスト用の User ビルダー。必要なフィールドだけ上書きする */
@@ -54,15 +55,14 @@ export function buildEvent(overrides: Partial<EventDetail> = {}): EventDetail {
         responses: [],
       },
     ],
-    entries: [],
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,
   };
 }
 
-/** ユニットテスト用の参加表明（EventDetail['entries'] の1件）ビルダー */
-export function buildEntry(overrides: Partial<EventDetail['entries'][number]> = {}): EventDetail['entries'][number] {
+/** ユニットテスト用の参加表明（EntriesRepository が返す形）ビルダー */
+export function buildEntry(overrides: Partial<EntryWithUser> = {}): EntryWithUser {
   return {
     id: 'entry-1',
     eventId: 'event-1',

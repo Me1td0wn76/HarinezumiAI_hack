@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PUBLIC_SCHEDULE_MAX_DAYS, type PublicScheduleItemDto, type ScheduleItemDto } from '@lt/shared';
+import {
+  PUBLIC_SCHEDULE_ITEM_LIMIT,
+  PUBLIC_SCHEDULE_MAX_DAYS,
+  type PublicScheduleDto,
+  type PublicScheduleItemDto,
+  type ScheduleItemDto,
+} from '@lt/shared';
 import type { User } from '../../generated/prisma/client.js';
 import { BlocksRepository } from '../blocks/blocks.repository.js';
 import { toPublicUserDto } from '../users/users.mapper.js';
@@ -46,10 +52,10 @@ export class ScheduleService {
   }
 
   /**
-   * みんなのカレンダー。[from, to) の公開中のLT会の開催日 / 候補日を開始日時の昇順で返す。
-   * ログインしていればブロックした相手のLT会を除く
+   * みんなのカレンダー。[from, to) の公開中のLT会の開催日 / 候補日を開始日時の昇順で最大 PUBLIC_SCHEDULE_ITEM_LIMIT 件。
+   * 上限を超えたら truncated で知らせる。ログインしていればブロックした相手のLT会を除く
    */
-  async publicBetween(query: PublicScheduleQueryDto, viewer: User | null): Promise<PublicScheduleItemDto[]> {
+  async publicBetween(query: PublicScheduleQueryDto, viewer: User | null): Promise<PublicScheduleDto> {
     const from = new Date(query.from);
     const to = new Date(query.to);
     if (to <= from) throw new BadRequestException('to は from より後にしてください');
@@ -57,27 +63,21 @@ export class ScheduleService {
       throw new BadRequestException(`期間は ${PUBLIC_SCHEDULE_MAX_DAYS} 日以内にしてください`);
     }
     const blockedIds = viewer ? await this.blocks.findBlockedIds(viewer.id) : [];
-    const events = await this.schedule.findPublicBetween(from, to, blockedIds);
+    // 1件多く取って、上限を超えたか（打ち切ったか）を判定する
+    const dates = await this.schedule.findPublicDatesBetween(from, to, PUBLIC_SCHEDULE_ITEM_LIMIT + 1, blockedIds);
+    const truncated = dates.length > PUBLIC_SCHEDULE_ITEM_LIMIT;
 
-    const items: PublicScheduleItemDto[] = [];
-    for (const event of events) {
-      const dates = event.confirmedDateId
-        ? event.candidateDates.filter((d) => d.id === event.confirmedDateId)
-        : event.candidateDates;
-      for (const date of dates) {
-        items.push({
-          eventId: event.id,
-          title: event.title,
-          status: event.status,
-          format: event.format,
-          organizer: toPublicUserDto(event.organizer),
-          eventDateId: date.id,
-          startsAt: date.startsAt.toISOString(),
-          endsAt: date.endsAt?.toISOString() ?? null,
-          confirmed: date.id === event.confirmedDateId,
-        });
-      }
-    }
-    return items.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    const items: PublicScheduleItemDto[] = dates.slice(0, PUBLIC_SCHEDULE_ITEM_LIMIT).map((date) => ({
+      eventId: date.event.id,
+      title: date.event.title,
+      status: date.event.status,
+      format: date.event.format,
+      organizer: toPublicUserDto(date.event.organizer),
+      eventDateId: date.id,
+      startsAt: date.startsAt.toISOString(),
+      endsAt: date.endsAt?.toISOString() ?? null,
+      confirmed: date.id === date.event.confirmedDateId,
+    }));
+    return { items, truncated };
   }
 }

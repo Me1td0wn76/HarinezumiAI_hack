@@ -24,7 +24,12 @@ export class EntriesService {
    * （切り替えを繰り返したときの重複とブロックの除外は NotificationsRepository.createSpeakerEntered が行う）
    */
   async submit(eventId: string, user: User, dto: SubmitEntryDto): Promise<EventEntryDto> {
-    const event = await this.events.findVisibleOrThrow(eventId, user);
+    const fields = normalizeEntry(dto);
+    // 状態・主催者の確認と、既存の表明の役割の取得は互いに依存しないので同時に行う（詳細グラフは読まない）
+    const [event, previousRole] = await Promise.all([
+      this.events.findVisibleAccessInfoOrThrow(eventId, user),
+      this.entries.findRole(eventId, user.id),
+    ]);
     if (event.status === 'CLOSED') {
       throw new BadRequestException('終了したLT会には参加表明できません');
     }
@@ -32,11 +37,9 @@ export class EntriesService {
     if (event.organizerId === user.id) {
       throw new BadRequestException('主催者は参加表明できません');
     }
-    const fields = normalizeEntry(dto);
-    const previous = await this.entries.find(eventId, user.id);
     const entry = await this.entries.upsert(eventId, user.id, fields);
 
-    if (fields.role === 'SPEAKER' && previous?.role !== 'SPEAKER') {
+    if (fields.role === 'SPEAKER' && previousRole !== 'SPEAKER') {
       this.notifications.speakerEntered(event, user, fields.talkTitle ?? '');
     }
     return toEventEntryDto(entry, true);
@@ -44,7 +47,7 @@ export class EntriesService {
 
   /** 自分の参加表明を取り消す。終了したLT会でも取り消せる（参加履歴から外したい場合のため） */
   async remove(eventId: string, user: User): Promise<void> {
-    await this.events.findVisibleOrThrow(eventId, user);
+    await this.events.findVisibleAccessInfoOrThrow(eventId, user);
     const deleted = await this.entries.delete(eventId, user.id);
     if (deleted === 0) throw new NotFoundException('参加表明が見つかりません');
   }
